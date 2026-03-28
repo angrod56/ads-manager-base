@@ -349,7 +349,7 @@
       grid-template-columns: repeat(5, 1fr);
       gap: 14px;
     }
-    .ad-card {
+    .creative-card {
       background: var(--surface2);
       border: 1px solid var(--border);
       border-radius: var(--radius);
@@ -360,8 +360,8 @@
       cursor: pointer;
       min-height: 420px;
     }
-    .ad-card:hover { border-color: var(--blue); transform: translateY(-2px); }
-    .ad-card-header {
+    .creative-card:hover { border-color: var(--blue); transform: translateY(-2px); }
+    .creative-card-header {
       padding: 10px 12px 6px;
       display: flex;
       align-items: flex-start;
@@ -379,7 +379,7 @@
     .rank-2 { background: rgba(168,168,168,.15); color: #c0c0c0; border: 1px solid #c0c0c0; }
     .rank-3 { background: rgba(205,127,50,.2);  color: #cd7f32; border: 1px solid #cd7f32; }
     .rank-4, .rank-5 { background: rgba(56,139,253,.15); color: var(--blue); border: 1px solid var(--blue); }
-    .ad-card-name {
+    .creative-card-name {
       font-size: 12px;
       font-weight: 600;
       color: var(--text);
@@ -389,7 +389,7 @@
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
     }
-    .ad-card-campaign {
+    .creative-card-campaign {
       padding: 0 12px 8px;
       font-size: 11px;
       color: var(--muted);
@@ -427,7 +427,7 @@
       transition: opacity .2s;
       pointer-events: all;
     }
-    .ad-card:hover .preview-expand { opacity: 1; }
+    .creative-card:hover .preview-expand { opacity: 1; }
 
     .preview-thumb {
       width: 100%;
@@ -447,15 +447,15 @@
       font-size: 28px;
     }
 
-    .ad-metrics {
+    .perf-metrics {
       padding: 10px 12px;
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 6px 8px;
     }
-    .ad-metric { display: flex; flex-direction: column; }
-    .ad-metric-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
-    .ad-metric-value { font-size: 14px; font-weight: 700; line-height: 1.2; }
+    .perf-metric { display: flex; flex-direction: column; }
+    .perf-metric-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+    .perf-metric-value { font-size: 14px; font-weight: 700; line-height: 1.2; }
 
     /* Modal preview */
     .modal-overlay {
@@ -641,13 +641,13 @@
     </div>
     <div class="top-ads-grid" id="topAdsGrid">
       ${[1,2,3,4,5].map(i => `
-        <div class="ad-card">
-          <div class="ad-card-header">
+        <div class="creative-card">
+          <div class="creative-card-header">
             <span class="rank-badge rank-${i}">#${i}</span>
-            <span class="ad-card-name"><span class="skeleton" style="width:100%;height:14px;display:block"></span></span>
+            <span class="creative-card-name"><span class="skeleton" style="width:100%;height:14px;display:block"></span></span>
           </div>
           <div class="preview-placeholder"><span class="spin" style="font-size:20px">↻</span></div>
-          <div class="ad-metrics"></div>
+          <div class="perf-metrics"></div>
         </div>`).join('')}
     </div>
   </div>
@@ -1299,37 +1299,37 @@ function renderTopAds(ads) {
         : `<div class="preview-placeholder">🎨</div>`;
 
     return `
-      <div class="ad-card" onclick="openModal('${ad.id}')">
-        <div class="ad-card-header">
+      <div class="creative-card" onclick="openModal('${ad.id}')">
+        <div class="creative-card-header">
           <span class="rank-badge ${rankClass(i)}">${rankLabel(i)}</span>
-          <span class="ad-card-name" title="${ad.name}">${fmt.short(ad.name, 40)}</span>
+          <span class="creative-card-name" title="${ad.name}">${fmt.short(ad.name, 40)}</span>
         </div>
-        <div class="ad-card-campaign" title="${ad.campaignName}">${fmt.short(ad.campaignName, 32)}</div>
+        <div class="creative-card-campaign" title="${ad.campaignName}">${fmt.short(ad.campaignName, 32)}</div>
         ${previewHtml}
-        <div class="ad-metrics">
-          <div class="ad-metric">
-            <span class="ad-metric-label">Compras</span>
-            <span class="ad-metric-value ${ad.purchases > 0 ? 'green' : 'muted'}">${ad.purchases || 0}</span>
+        <div class="perf-metrics">
+          <div class="perf-metric">
+            <span class="perf-metric-label">Compras</span>
+            <span class="perf-metric-value ${ad.purchases > 0 ? 'green' : 'muted'}">${ad.purchases || 0}</span>
           </div>
-          <div class="ad-metric">
-            <span class="ad-metric-label">Revenue</span>
-            <span class="ad-metric-value ${ad.revenue > 0 ? 'green' : 'muted'}">${fmt.usd(ad.revenue || 0)}</span>
+          <div class="perf-metric">
+            <span class="perf-metric-label">Revenue</span>
+            <span class="perf-metric-value ${ad.revenue > 0 ? 'green' : 'muted'}">${fmt.usd(ad.revenue || 0)}</span>
           </div>
-          <div class="ad-metric">
-            <span class="ad-metric-label">ROAS</span>
-            <span class="ad-metric-value ${roasCls}">${fmt.roas(ad.roas)}</span>
+          <div class="perf-metric">
+            <span class="perf-metric-label">ROAS</span>
+            <span class="perf-metric-value ${roasCls}">${fmt.roas(ad.roas)}</span>
           </div>
-          <div class="ad-metric">
-            <span class="ad-metric-label">CPA</span>
-            <span class="ad-metric-value ${cpaCls}">${fmt.usd(ad.cpa)}</span>
+          <div class="perf-metric">
+            <span class="perf-metric-label">CPA</span>
+            <span class="perf-metric-value ${cpaCls}">${fmt.usd(ad.cpa)}</span>
           </div>
-          <div class="ad-metric">
-            <span class="ad-metric-label">CTR</span>
-            <span class="ad-metric-value">${fmt.pct(ad.ctr)}</span>
+          <div class="perf-metric">
+            <span class="perf-metric-label">CTR</span>
+            <span class="perf-metric-value">${fmt.pct(ad.ctr)}</span>
           </div>
-          <div class="ad-metric">
-            <span class="ad-metric-label">Gasto</span>
-            <span class="ad-metric-value muted">${fmt.usd(ad.spend)}</span>
+          <div class="perf-metric">
+            <span class="perf-metric-label">Gasto</span>
+            <span class="perf-metric-value muted">${fmt.usd(ad.spend)}</span>
           </div>
         </div>
       </div>`;
