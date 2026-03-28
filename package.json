@@ -1,0 +1,25 @@
+{
+  "name": "ads-manager",
+  "version": "1.0.0",
+  "description": "Meta Ads Manager CLI — gestión de campañas desde terminal",
+  "type": "module",
+  "main": "src/cli.js",
+  "scripts": {
+    "start": "node src/cli.js",
+    "accounts": "node src/cli.js accounts",
+    "campaigns": "node src/cli.js campaigns",
+    "adsets": "node src/cli.js adsets",
+    "ads": "node src/cli.js ads",
+    "analyze:countries": "node src/analyze-countries.js",
+    "analyze:ads": "node src/analyze-ads.js",
+    "dashboard": "node src/server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "author": "Angelito",
+  "license": "MIT"
+}
