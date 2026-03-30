@@ -100,10 +100,13 @@ const GET = {
     const enriched = campaigns.map(c => {
       const ins       = iMap[c.id] || {};
       const spend     = parseFloat(ins.spend || 0);
-      const purchases = getActionValue(ins.actions || [], 'purchase');
-      const leads     = getActionValue(ins.actions || [], 'lead');
-      const revenue   = getRevenue(ins.action_values || []);
-      const roas      = getRoas(ins.purchase_roas || [], spend, revenue);
+      const purchases    = getActionValue(ins.actions || [], 'purchase');
+      const leads        = getActionValue(ins.actions || [], 'lead');
+      const registrations = getActionValue(ins.actions || [], 'complete_registration') ||
+                            getActionValue(ins.actions || [], 'omni_complete_registration');
+      const revenue      = getRevenue(ins.action_values || []);
+      const roas         = getRoas(ins.purchase_roas || [], spend, revenue);
+      const cpl          = calcCPA(spend, leads || registrations);
       return {
         ...c,
         spend,
@@ -111,8 +114,10 @@ const GET = {
         clicks:      parseInt(ins.clicks || 0),
         purchases,
         leads,
+        registrations,
         revenue,
         roas,
+        cpl,
         cpa:       calcCPA(spend, purchases),
         ctr:       parseFloat(ins.ctr || 0),
         cpm:       parseFloat(ins.cpm || 0),
@@ -124,14 +129,15 @@ const GET = {
 
     const totals = enriched.reduce(
       (a, c) => ({
-        spend:       a.spend + c.spend,
-        impressions: a.impressions + c.impressions,
-        clicks:      a.clicks + c.clicks,
-        purchases:   a.purchases + c.purchases,
-        leads:       a.leads + c.leads,
-        revenue:     a.revenue + c.revenue,
+        spend:         a.spend + c.spend,
+        impressions:   a.impressions + c.impressions,
+        clicks:        a.clicks + c.clicks,
+        purchases:     a.purchases + c.purchases,
+        leads:         a.leads + c.leads,
+        registrations: a.registrations + c.registrations,
+        revenue:       a.revenue + c.revenue,
       }),
-      { spend: 0, impressions: 0, clicks: 0, purchases: 0, leads: 0, revenue: 0 }
+      { spend: 0, impressions: 0, clicks: 0, purchases: 0, leads: 0, registrations: 0, revenue: 0 }
     );
     totals.cpa  = calcCPA(totals.spend, totals.purchases);
     totals.roas = totals.spend > 0 && totals.revenue > 0 ? totals.revenue / totals.spend : null;

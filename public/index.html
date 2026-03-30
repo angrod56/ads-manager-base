@@ -698,14 +698,16 @@
             <th data-sort="revenue" class="num">Revenue</th>
             <th data-sort="roas" class="num">ROAS</th>
             <th data-sort="purchases" class="num">Compras</th>
+            <th data-sort="leads" class="num">Leads</th>
             <th data-sort="cpa" class="num">CPA</th>
+            <th data-sort="cpl" class="num">CPL</th>
             <th data-sort="ctr" class="num">CTR</th>
             <th data-sort="impressions" class="num">Impr.</th>
             <th>Acción</th>
           </tr>
         </thead>
         <tbody id="campaignsTbody">
-          <tr><td colspan="12" class="empty"><div class="empty-icon">⏳</div><div>Cargando campañas…</div></td></tr>
+          <tr><td colspan="14" class="empty"><div class="empty-icon">⏳</div><div>Cargando campañas…</div></td></tr>
         </tbody>
       </table>
     </div>
@@ -988,7 +990,12 @@ function renderKPIs(t) {
     <div class="kpi-card">
       <div class="kpi-label">Compras</div>
       <div class="kpi-value ${t.purchases > 0 ? 'green' : 'red'}">${fmt.num(t.purchases)}</div>
-      <div class="kpi-sub">${t.leads > 0 ? `+ ${fmt.num(t.leads)} leads` : `Clics: ${fmt.num(t.clicks)}`}</div>
+      <div class="kpi-sub">Clics: ${fmt.num(t.clicks)}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Leads / Registros</div>
+      <div class="kpi-value ${(t.leads + t.registrations) > 0 ? 'green' : 'muted'}">${fmt.num(t.leads + t.registrations)}</div>
+      <div class="kpi-sub">${t.leads > 0 ? `${fmt.num(t.leads)} leads` : ''}${t.leads > 0 && t.registrations > 0 ? ' · ' : ''}${t.registrations > 0 ? `${fmt.num(t.registrations)} registros` : ''}${(t.leads + t.registrations) === 0 ? 'sin captaciones' : ''}</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">CPA promedio</div>
@@ -1029,7 +1036,7 @@ function renderTable() {
   const tbody = document.getElementById('campaignsTbody');
 
   if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="12"><div class="empty"><div class="empty-icon">🔍</div><div>Sin resultados</div></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="14"><div class="empty"><div class="empty-icon">🔍</div><div>Sin resultados</div></div></td></tr>`;
     return;
   }
 
@@ -1055,7 +1062,9 @@ function renderTable() {
         <td class="num ${c.revenue > 0 ? 'green' : 'muted'}">${fmt.usd(c.revenue || 0)}</td>
         <td class="num ${roasClass(c.roas)}">${fmt.roas(c.roas)}</td>
         <td class="num" style="font-weight:${c.purchases>0?'600':'400'}">${c.purchases > 0 ? c.purchases : '<span class="muted">0</span>'}</td>
+        <td class="num" style="font-weight:${(c.leads+c.registrations)>0?'600':'400'};color:${(c.leads+c.registrations)>0?'var(--green)':'var(--muted)'}">${(c.leads||0)+(c.registrations||0) || '<span class="muted">0</span>'}</td>
         <td class="num ${cpaCls}">${fmt.usd(c.cpa)}</td>
+        <td class="num ${cpaClass(c.cpl, 4)}">${fmt.usd(c.cpl)}</td>
         <td class="num muted">${fmt.pct(c.ctr)}</td>
         <td class="num muted">${fmt.num(c.impressions)}</td>
         <td>${actionBtn}</td>
@@ -1063,7 +1072,7 @@ function renderTable() {
 
     if (expanded) {
       const ads = S.adData[c.id];
-      html += `<tr class="ads-row"><td colspan="12"><div class="ads-inner" id="ads-${c.id}">`;
+      html += `<tr class="ads-row"><td colspan="14"><div class="ads-inner" id="ads-${c.id}">`;
       if (!ads) {
         html += `<span class="muted"><span class="spin">↻</span> Cargando ads…</span>`;
       } else if (!ads.length) {
