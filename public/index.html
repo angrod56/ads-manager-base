@@ -994,7 +994,7 @@ function renderKPIs(t) {
     </div>
     <div class="kpi-card">
       <div class="kpi-label">Registros Completados</div>
-      <div class="kpi-value ${t.registrations > 0 ? 'green' : 'muted'}">${fmt.num(t.registrations)}</div>
+      <div class="kpi-value ${(t.registrations||0) > 0 ? 'green' : 'muted'}">${fmt.num(t.registrations || 0)}</div>
       <div class="kpi-sub">complete_registration (pixel)</div>
     </div>
     <div class="kpi-card">
