@@ -100,21 +100,19 @@ const GET = {
     const enriched = campaigns.map(c => {
       const ins       = iMap[c.id] || {};
       const spend     = parseFloat(ins.spend || 0);
-      const purchases    = getActionValue(ins.actions || [], 'purchase');
-      const leads        = getActionValue(ins.actions || [], 'lead');
-      // complete_registration y omni_complete_registration son los mismos eventos — usar solo uno
+      const purchases     = getActionValue(ins.actions || [], 'purchase');
+      // complete_registration = evento de pixel configurado por el usuario (coincide con Ads Manager)
+      // lead = auto-tracked por Meta, puede inflar el número — NO usar para CPL
       const registrations = getActionValue(ins.actions || [], 'complete_registration');
-      const revenue      = getRevenue(ins.action_values || []);
-      const roas         = getRoas(ins.purchase_roas || [], spend, revenue);
-      // CPL: usar leads si es campaña de Lead Ads, registros si es campaña de conversión
-      const cpl          = calcCPA(spend, leads > 0 ? leads : registrations);
+      const revenue       = getRevenue(ins.action_values || []);
+      const roas          = getRoas(ins.purchase_roas || [], spend, revenue);
+      const cpl           = calcCPA(spend, registrations);
       return {
         ...c,
         spend,
         impressions: parseInt(ins.impressions || 0),
         clicks:      parseInt(ins.clicks || 0),
         purchases,
-        leads,
         registrations,
         revenue,
         roas,
@@ -134,11 +132,10 @@ const GET = {
         impressions:   a.impressions + c.impressions,
         clicks:        a.clicks + c.clicks,
         purchases:     a.purchases + c.purchases,
-        leads:         a.leads + c.leads,
         registrations: a.registrations + c.registrations,
         revenue:       a.revenue + c.revenue,
       }),
-      { spend: 0, impressions: 0, clicks: 0, purchases: 0, leads: 0, registrations: 0, revenue: 0 }
+      { spend: 0, impressions: 0, clicks: 0, purchases: 0, registrations: 0, revenue: 0 }
     );
     totals.cpa  = calcCPA(totals.spend, totals.purchases);
     totals.roas = totals.spend > 0 && totals.revenue > 0 ? totals.revenue / totals.spend : null;

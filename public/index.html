@@ -698,7 +698,7 @@
             <th data-sort="revenue" class="num">Revenue</th>
             <th data-sort="roas" class="num">ROAS</th>
             <th data-sort="purchases" class="num">Compras</th>
-            <th data-sort="leads" class="num">Leads</th>
+            <th data-sort="registrations" class="num">Registros</th>
             <th data-sort="cpa" class="num">CPA</th>
             <th data-sort="cpl" class="num">CPL</th>
             <th data-sort="ctr" class="num">CTR</th>
@@ -993,9 +993,9 @@ function renderKPIs(t) {
       <div class="kpi-sub">Clics: ${fmt.num(t.clicks)}</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">Leads (Meta Forms)</div>
-      <div class="kpi-value ${t.leads > 0 ? 'green' : 'muted'}">${fmt.num(t.leads)}</div>
-      <div class="kpi-sub">${t.registrations > 0 ? `+ ${fmt.num(t.registrations)} registros web` : 'sin registros web'}</div>
+      <div class="kpi-label">Registros Completados</div>
+      <div class="kpi-value ${t.registrations > 0 ? 'green' : 'muted'}">${fmt.num(t.registrations)}</div>
+      <div class="kpi-sub">complete_registration (pixel)</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">CPA promedio</div>
@@ -1062,10 +1062,7 @@ function renderTable() {
         <td class="num ${c.revenue > 0 ? 'green' : 'muted'}">${fmt.usd(c.revenue || 0)}</td>
         <td class="num ${roasClass(c.roas)}">${fmt.roas(c.roas)}</td>
         <td class="num" style="font-weight:${c.purchases>0?'600':'400'}">${c.purchases > 0 ? c.purchases : '<span class="muted">0</span>'}</td>
-        <td class="num" style="font-weight:${(c.leads||0)>0?'600':'400'};color:${(c.leads||0)>0?'var(--green)':'var(--muted)'}">
-          ${(c.leads||0) > 0 ? c.leads : '<span class="muted">0</span>'}
-          ${(c.registrations||0) > 0 ? `<span style="font-size:10px;color:var(--muted)"> +${c.registrations}reg</span>` : ''}
-        </td>
+        <td class="num" style="font-weight:${(c.registrations||0)>0?'600':'400'};color:${(c.registrations||0)>0?'var(--green)':'var(--muted)'}">${(c.registrations||0) > 0 ? c.registrations : '<span class="muted">0</span>'}</td>
         <td class="num ${cpaCls}">${fmt.usd(c.cpa)}</td>
         <td class="num ${cpaClass(c.cpl, 4)}">${fmt.usd(c.cpl)}</td>
         <td class="num muted">${fmt.pct(c.ctr)}</td>
