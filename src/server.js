@@ -102,11 +102,12 @@ const GET = {
       const spend     = parseFloat(ins.spend || 0);
       const purchases    = getActionValue(ins.actions || [], 'purchase');
       const leads        = getActionValue(ins.actions || [], 'lead');
-      const registrations = getActionValue(ins.actions || [], 'complete_registration') ||
-                            getActionValue(ins.actions || [], 'omni_complete_registration');
+      // complete_registration y omni_complete_registration son los mismos eventos — usar solo uno
+      const registrations = getActionValue(ins.actions || [], 'complete_registration');
       const revenue      = getRevenue(ins.action_values || []);
       const roas         = getRoas(ins.purchase_roas || [], spend, revenue);
-      const cpl          = calcCPA(spend, leads || registrations);
+      // CPL: usar leads si es campaña de Lead Ads, registros si es campaña de conversión
+      const cpl          = calcCPA(spend, leads > 0 ? leads : registrations);
       return {
         ...c,
         spend,
