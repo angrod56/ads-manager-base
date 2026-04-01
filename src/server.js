@@ -228,6 +228,81 @@ const GET = {
     json(res, withPreviews);
   },
 
+  // Recomendaciones automáticas basadas en skills
+  '/api/recommendations': async (res, q) => {
+    if (!q.account) return err(res, 'account requerido', 400);
+
+    const date7  = q.date || 'last_7d';
+    const date3  = 'last_3d';
+
+    const [campaigns7, insights7, insights3] = await Promise.all([
+      listCampaigns(q.account, 'ALL'),
+      getInsights(q.account, { datePreset: date7, level: 'campaign' }),
+      getInsights(q.account, { datePreset: date3, level: 'campaign' }),
+    ]);
+
+    const map7 = {}, map3 = {};
+    for (const r of insights7) map7[r.campaign_id] = r;
+    for (const r of insights3) map3[r.campaign_id] = r;
+
+    const pausar = [], escalar = [], revisar = [], bien = [];
+
+    for (const c of campaigns7) {
+      const i7 = map7[c.id] || {};
+      const i3 = map3[c.id] || {};
+      const spend7    = parseFloat(i7.spend || 0);
+      if (spend7 === 0) continue;
+
+      const purchases = getActionValue(i7.actions || [], 'purchase');
+      const regs      = getActionValue(i7.actions || [], 'complete_registration') || 0;
+      const revenue   = getRevenue(i7.action_values || []);
+      const roas      = getRoas(i7.purchase_roas || [], spend7, revenue);
+      const ctr       = parseFloat(i7.ctr || 0);
+      const freq      = parseFloat(i7.frequency || 0);
+      const cpl       = regs > 0 ? spend7 / regs : null;
+      const isLeads   = regs > 0 && purchases === 0;
+      const isConv    = purchases > 0 || (!isLeads && revenue > 0);
+      const name      = c.name;
+
+      // ── REGLAS DE PAUSA ──────────────────────────────────────────
+      if (isLeads) {
+        if (cpl !== null && cpl > 4)
+          pausar.push({ name, reason: `CPL $${cpl.toFixed(2)} USD supera el máximo de $4 USD`, metric: `CPL: $${cpl.toFixed(2)}` });
+        else if (spend7 >= 8 && regs === 0)
+          pausar.push({ name, reason: `Gastó $${spend7.toFixed(2)} sin generar registros`, metric: `Gasto: $${spend7.toFixed(2)}` });
+      } else {
+        if (roas !== null && roas < 1.0 && spend7 > 30)
+          pausar.push({ name, reason: `ROAS de ${roas.toFixed(2)}x está por debajo de 1.0x`, metric: `ROAS: ${roas.toFixed(2)}x` });
+        else if (purchases === 0 && spend7 >= 60)
+          pausar.push({ name, reason: `Gastó $${spend7.toFixed(2)} sin ninguna compra`, metric: `Gasto: $${spend7.toFixed(2)}` });
+        else if (ctr < 1 && spend7 > 20)
+          pausar.push({ name, reason: `CTR de ${ctr.toFixed(2)}% es muy bajo (< 1%)`, metric: `CTR: ${ctr.toFixed(2)}%` });
+      }
+
+      // ── REGLAS DE ESCALAR ────────────────────────────────────────
+      if (isLeads && cpl !== null && cpl >= 1 && cpl <= 2)
+        escalar.push({ name, reason: `CPL excelente de $${cpl.toFixed(2)} USD`, metric: `CPL: $${cpl.toFixed(2)}` });
+      else if (isConv && roas !== null && roas >= 1.2)
+        escalar.push({ name, reason: `ROAS de ${roas.toFixed(2)}x está por encima del mínimo`, metric: `ROAS: ${roas.toFixed(2)}x` });
+
+      // ── REGLAS DE REVISAR ────────────────────────────────────────
+      if (freq > 2.5)
+        revisar.push({ name, reason: `Frecuencia alta de ${freq.toFixed(1)} — audiencia posiblemente saturada`, metric: `Freq: ${freq.toFixed(1)}` });
+      if (roas !== null && roas >= 1.0 && roas < 1.2)
+        revisar.push({ name, reason: `ROAS de ${roas.toFixed(2)}x está en zona límite (1.0–1.2x)`, metric: `ROAS: ${roas.toFixed(2)}x` });
+      if (isLeads && cpl !== null && cpl > 2 && cpl <= 4)
+        revisar.push({ name, reason: `CPL de $${cpl.toFixed(2)} está en zona límite ($2–$4)`, metric: `CPL: $${cpl.toFixed(2)}` });
+
+      // ── LO QUE ESTÁ BIEN ─────────────────────────────────────────
+      if (isConv && roas !== null && roas >= 1.2 && ctr >= 2)
+        bien.push({ name, reason: `ROAS ${roas.toFixed(2)}x y CTR ${ctr.toFixed(2)}% — rendimiento sólido`, metric: `ROAS: ${roas.toFixed(2)}x · CTR: ${ctr.toFixed(2)}%` });
+      else if (isLeads && cpl !== null && cpl <= 2)
+        bien.push({ name, reason: `CPL $${cpl.toFixed(2)} dentro del rango ideal ($1–$2)`, metric: `CPL: $${cpl.toFixed(2)}` });
+    }
+
+    json(res, { pausar, escalar, revisar, bien, period: date7 });
+  },
+
   // Análisis por país para una cuenta
   '/api/countries': async (res, q) => {
     if (!q.account) return err(res, 'account requerido', 400);

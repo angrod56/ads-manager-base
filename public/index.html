@@ -344,6 +344,20 @@
       flex-wrap: wrap;
       gap: 10px;
     }
+    .reco-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 4px; }
+    @media (max-width: 768px) { .reco-grid { grid-template-columns: 1fr; } }
+    .reco-block { border-radius: 8px; padding: 14px 16px; }
+    .reco-block.pausar { background: rgba(248,81,73,.08); border: 1px solid rgba(248,81,73,.25); }
+    .reco-block.escalar { background: rgba(63,185,80,.08); border: 1px solid rgba(63,185,80,.25); }
+    .reco-block.revisar { background: rgba(210,153,34,.08); border: 1px solid rgba(210,153,34,.25); }
+    .reco-block.bien { background: rgba(88,166,255,.08); border: 1px solid rgba(88,166,255,.25); }
+    .reco-block h4 { font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+    .reco-item { display: flex; flex-direction: column; gap: 2px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .reco-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .reco-item-name { font-size: 12px; font-weight: 600; color: var(--fg); }
+    .reco-item-reason { font-size: 12px; color: var(--muted); }
+    .reco-item-metric { font-size: 11px; font-weight: 600; opacity: .7; }
+    .reco-empty { font-size: 12px; color: var(--muted); font-style: italic; }
     .top-ads-grid {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
@@ -715,6 +729,15 @@
 
   <!-- Analysis -->
   <div class="analysis-grid" id="analysisGrid"></div>
+
+  <!-- Recomendaciones -->
+  <div class="card" id="recoSection">
+    <div class="card-header">
+      <span class="card-title">🎯 Recomendaciones de Acción</span>
+      <button id="recoBtn" onclick="loadRecommendations()" style="padding:6px 14px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--fg);cursor:pointer;font-size:13px">Analizar cuenta</button>
+    </div>
+    <div id="recoContent" style="color:var(--muted);font-size:13px;padding:8px 0">Haz click en "Analizar cuenta" para ver recomendaciones basadas en tus métricas.</div>
+  </div>
 
   <!-- Countries -->
   <div class="card">
@@ -1607,6 +1630,48 @@ function renderCountries(data) {
           </tr>`).join('')}
       </tbody>
     </table>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  RECOMENDACIONES
+// ═══════════════════════════════════════════════════════════════════
+async function loadRecommendations() {
+  if (!S.account) return;
+  const btn = document.getElementById('recoBtn');
+  const content = document.getElementById('recoContent');
+  btn.textContent = '⏳ Analizando…';
+  btn.disabled = true;
+  content.innerHTML = '<span class="muted">Analizando métricas con tus criterios…</span>';
+
+  try {
+    const data = await api(`/api/recommendations?account=${S.account}&date=${S.date}`);
+    const { pausar, escalar, revisar, bien } = data;
+
+    const block = (type, icon, title, items, emptyMsg) => `
+      <div class="reco-block ${type}">
+        <h4>${icon} ${title} ${items.length > 0 ? `<span style="font-weight:400;opacity:.6">(${items.length})</span>` : ''}</h4>
+        ${items.length === 0
+          ? `<div class="reco-empty">${emptyMsg}</div>`
+          : items.map(i => `
+            <div class="reco-item">
+              <span class="reco-item-name">${i.name}</span>
+              <span class="reco-item-reason">${i.reason}</span>
+              <span class="reco-item-metric">${i.metric}</span>
+            </div>`).join('')}
+      </div>`;
+
+    content.innerHTML = `<div class="reco-grid">
+      ${block('pausar',  '🔴', 'Pausar ahora',      pausar,  'Ninguna campaña cumple criterios de pausa')}
+      ${block('escalar', '🟢', 'Escalar / Mantener', escalar, 'Ninguna campaña con señales de escalar aún')}
+      ${block('revisar', '🟡', 'Revisar / Vigilar',  revisar, 'Sin campañas en zona límite')}
+      ${block('bien',    '🔵', 'Funcionando bien',   bien,    'Sin campañas con rendimiento destacado')}
+    </div>`;
+  } catch (e) {
+    content.innerHTML = `<span class="muted red">Error al analizar: ${e.message}</span>`;
+  } finally {
+    btn.textContent = 'Actualizar análisis';
+    btn.disabled = false;
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
