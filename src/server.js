@@ -228,6 +228,175 @@ const GET = {
     json(res, withPreviews);
   },
 
+  // ── Helpers de lanzamientos ──────────────────────────────────────────────────
+
+  // Extrae el nombre del lanzamiento del nombre de campaña
+  // Ej: "SANT G2 | Conversiones 2" → "SANT G2"
+  //     "WEBINAR 21 - DICIEMBRE 13 DE 2024 // FB" → "WEBINAR 21 - DICIEMBRE 13 DE 2024"
+
+  // ── Endpoint lanzamientos agrupados ──────────────────────────────────────────
+  '/api/launches': async (res, q) => {
+    if (!q.account) return err(res, 'account requerido', 400);
+    const date = q.date || 'last_30d';
+
+    const [campaigns, insights] = await Promise.all([
+      listCampaigns(q.account, 'ALL'),
+      getInsights(q.account, { datePreset: date, level: 'campaign' }),
+    ]);
+
+    const iMap = {};
+    for (const r of insights) iMap[r.campaign_id] = r;
+
+    // Agrupar campañas por nombre de lanzamiento
+    const groups = {};
+    for (const c of campaigns) {
+      const key = c.name.split(' | ')[0].split(' // ')[0].trim();
+      if (!groups[key]) groups[key] = { name: key, ids: [], statuses: [] };
+      groups[key].ids.push(c.id);
+      groups[key].statuses.push(c.effective_status || c.status);
+    }
+
+    const launches = Object.values(groups).map(g => {
+      let spend = 0, impressions = 0, clicks = 0, purchases = 0,
+          leads = 0, regs = 0, revenue = 0, reach = 0, lpViews = 0;
+
+      for (const id of g.ids) {
+        const ins = iMap[id] || {};
+        spend       += parseFloat(ins.spend || 0);
+        impressions += parseInt(ins.impressions || 0);
+        clicks      += parseInt(ins.clicks || 0);
+        purchases   += getActionValue(ins.actions || [], 'purchase');
+        leads       += getActionValue(ins.actions || [], 'lead');
+        regs        += getActionValue(ins.actions || [], 'complete_registration') || 0;
+        revenue     += getRevenue(ins.action_values || []);
+        reach       += parseInt(ins.reach || 0);
+        lpViews     += getActionValue(ins.actions || [], 'landing_page_view');
+      }
+
+      if (spend === 0) return null;
+
+      // Detectar tipo de embudo
+      const funnelType = regs > 0 ? 'webinar' : leads > 0 ? 'leads' : 'direct';
+      const isActive   = g.statuses.some(s => s === 'ACTIVE');
+
+      // Métricas derivadas
+      const ctr     = impressions > 0 ? (clicks / impressions) * 100 : 0;
+      const lpRate  = clicks > 0 && lpViews > 0 ? (lpViews / clicks) * 100 : null;
+      const regRate = lpViews > 0 && regs > 0 ? (regs / lpViews) * 100 : null;
+      const cpl     = leads > 0 ? spend / leads : regs > 0 ? spend / regs : null;
+      const cpa     = purchases > 0 ? spend / purchases : null;
+      const roas    = spend > 0 && revenue > 0 ? revenue / spend : null;
+      const closeRate = (leads > 0 || regs > 0) && purchases > 0
+        ? (purchases / (leads || regs)) * 100 : null;
+
+      // Etapas del embudo
+      let funnel = [];
+      if (funnelType === 'webinar') {
+        funnel = [
+          { stage: 'Impresiones',  value: impressions, rate: null },
+          { stage: 'Clics',        value: clicks,      rate: ctr ? ctr.toFixed(1) + '%' : null,    label: 'CTR' },
+          { stage: 'Registros',    value: regs,        rate: regRate ? regRate.toFixed(1) + '%' : null, label: 'Tasa reg.' },
+          { stage: 'Ventas',       value: purchases,   rate: closeRate ? closeRate.toFixed(1) + '%' : null, label: 'Cierre' },
+        ];
+      } else if (funnelType === 'leads') {
+        funnel = [
+          { stage: 'Impresiones',  value: impressions, rate: null },
+          { stage: 'Clics',        value: clicks,      rate: ctr ? ctr.toFixed(1) + '%' : null,    label: 'CTR' },
+          { stage: 'Leads',        value: leads,       rate: lpRate ? lpRate.toFixed(1) + '%' : null, label: 'Conv. LP' },
+          { stage: 'Ventas',       value: purchases,   rate: closeRate ? closeRate.toFixed(1) + '%' : null, label: 'Cierre' },
+        ];
+      } else {
+        funnel = [
+          { stage: 'Impresiones',  value: impressions, rate: null },
+          { stage: 'Clics',        value: clicks,      rate: ctr ? ctr.toFixed(1) + '%' : null,    label: 'CTR' },
+          { stage: 'Compras',      value: purchases,   rate: null },
+          { stage: 'Revenue',      value: revenue > 0 ? '$' + revenue.toFixed(0) : 0, rate: roas ? roas.toFixed(2) + 'x' : null, label: 'ROAS' },
+        ];
+      }
+
+      // Alertas automáticas basadas en skills
+      const alerts = [];
+      if (ctr < 1)
+        alerts.push({ type: 'error',   msg: `CTR ${ctr.toFixed(2)}% — el creativo no está enganchando, revisar ángulo del anuncio` });
+      else if (ctr < 2)
+        alerts.push({ type: 'warning', msg: `CTR ${ctr.toFixed(2)}% en zona límite (< 2%), probar nuevo creativo` });
+
+      if (funnelType === 'webinar') {
+        if (regRate !== null && regRate < 15)
+          alerts.push({ type: 'error',   msg: `Tasa de registro ${regRate.toFixed(1)}% baja — revisar landing page de registro` });
+        if (cpl !== null && cpl > 4)
+          alerts.push({ type: 'error',   msg: `CPL $${cpl.toFixed(2)} supera el máximo de $4 USD — evaluar pausa` });
+        else if (cpl !== null && cpl > 2)
+          alerts.push({ type: 'warning', msg: `CPL $${cpl.toFixed(2)} en zona límite ($2–$4 USD)` });
+        else if (cpl !== null && cpl <= 2)
+          alerts.push({ type: 'success', msg: `CPL $${cpl.toFixed(2)} excelente — considerar escalar presupuesto` });
+      } else if (funnelType === 'leads') {
+        if (cpl !== null && cpl > 4)
+          alerts.push({ type: 'error',   msg: `CPL $${cpl.toFixed(2)} supera máximo de $4 USD` });
+        else if (cpl !== null && cpl <= 2)
+          alerts.push({ type: 'success', msg: `CPL $${cpl.toFixed(2)} ideal — candidato a escalar` });
+      } else {
+        if (roas !== null && roas < 1)
+          alerts.push({ type: 'error',   msg: `ROAS ${roas.toFixed(2)}x — perdiendo dinero, evaluar pausa inmediata` });
+        else if (roas !== null && roas < 1.2)
+          alerts.push({ type: 'warning', msg: `ROAS ${roas.toFixed(2)}x por debajo del mínimo de 1.2x` });
+        else if (roas !== null && roas >= 1.2)
+          alerts.push({ type: 'success', msg: `ROAS ${roas.toFixed(2)}x sobre el mínimo — candidato a escalar` });
+        if (cpa !== null && cpa > 50)
+          alerts.push({ type: 'warning', msg: `CPA $${cpa.toFixed(2)} elevado — verificar precio del producto vs costo` });
+      }
+      if (closeRate !== null && closeRate < 1)
+        alerts.push({ type: 'warning', msg: `Tasa de cierre ${closeRate.toFixed(1)}% muy baja — revisar proceso de venta post-lead` });
+
+      if (alerts.length === 0)
+        alerts.push({ type: 'info', msg: 'Sin alertas críticas en este período' });
+
+      return {
+        name: g.name, funnelType, isActive,
+        campaigns: g.ids.length,
+        spend, impressions, clicks, purchases, leads, regs, revenue, reach,
+        ctr, cpl, cpa, roas, closeRate,
+        funnel, alerts,
+      };
+    }).filter(Boolean).sort((a, b) => b.spend - a.spend);
+
+    json(res, launches);
+  },
+
+  // ── Tendencia diaria de un lanzamiento ───────────────────────────────────────
+  '/api/launch-trend': async (res, q) => {
+    if (!q.account || !q.launch) return err(res, 'account y launch requeridos', 400);
+    const date = q.date || 'last_30d';
+
+    const campaigns = await listCampaigns(q.account, 'ALL');
+    const ids = campaigns
+      .filter(c => c.name.split(' | ')[0].split(' // ')[0].trim() === q.launch)
+      .map(c => c.id);
+
+    if (!ids.length) return json(res, []);
+
+    const allInsights = await Promise.all(
+      ids.map(id => getInsights(id, { datePreset: date, level: 'campaign', timeIncrement: '1' }))
+    );
+
+    const byDate = {};
+    for (const rows of allInsights) {
+      for (const r of rows) {
+        const d = r.date_start;
+        if (!byDate[d]) byDate[d] = { date: d, spend: 0, clicks: 0, impressions: 0, purchases: 0, leads: 0, regs: 0, revenue: 0 };
+        byDate[d].spend       += parseFloat(r.spend || 0);
+        byDate[d].impressions += parseInt(r.impressions || 0);
+        byDate[d].clicks      += parseInt(r.clicks || 0);
+        byDate[d].purchases   += getActionValue(r.actions || [], 'purchase');
+        byDate[d].leads       += getActionValue(r.actions || [], 'lead');
+        byDate[d].regs        += getActionValue(r.actions || [], 'complete_registration') || 0;
+        byDate[d].revenue     += getRevenue(r.action_values || []);
+      }
+    }
+
+    json(res, Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date)));
+  },
+
   // Recomendaciones automáticas basadas en skills
   '/api/recommendations': async (res, q) => {
     if (!q.account) return err(res, 'account requerido', 400);

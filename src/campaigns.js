@@ -116,6 +116,7 @@ export async function getInsights(entityId, options = {}) {
     until,
     level = 'campaign',
     breakdowns,
+    timeIncrement,
   } = options;
 
   const params = {
@@ -130,7 +131,8 @@ export async function getInsights(entityId, options = {}) {
     params.date_preset = datePreset;
   }
 
-  if (breakdowns) params.breakdowns = breakdowns;
+  if (breakdowns)    params.breakdowns     = breakdowns;
+  if (timeIncrement) params.time_increment = timeIncrement;
 
   return paginateAll(`/${entityId}/insights`, params);
 }

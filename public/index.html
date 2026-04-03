@@ -344,6 +344,39 @@
       flex-wrap: wrap;
       gap: 10px;
     }
+    /* ── Lanzamientos ── */
+    .launches-list { display: flex; flex-direction: column; gap: 12px; }
+    .launch-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; cursor: pointer; transition: border-color .2s; }
+    .launch-card:hover, .launch-card.active { border-color: var(--blue); }
+    .launch-card-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .launch-name { font-weight: 600; font-size: 14px; }
+    .launch-type-badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+    .launch-type-badge.webinar { background: rgba(88,166,255,.15); color: var(--blue); }
+    .launch-type-badge.leads   { background: rgba(63,185,80,.15);  color: var(--green); }
+    .launch-type-badge.direct  { background: rgba(210,153,34,.15); color: var(--yellow); }
+    .launch-metrics { display: flex; gap: 20px; margin-top: 10px; flex-wrap: wrap; }
+    .launch-metric { display: flex; flex-direction: column; gap: 2px; }
+    .launch-metric-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+    .launch-metric-value { font-size: 14px; font-weight: 600; }
+    .launch-detail { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); display: none; }
+    .launch-detail.open { display: block; }
+    /* Funnel */
+    .funnel-wrap { display: flex; align-items: center; gap: 0; margin-bottom: 16px; flex-wrap: wrap; }
+    .funnel-stage { display: flex; align-items: center; }
+    .funnel-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; text-align: center; min-width: 110px; }
+    .funnel-box-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+    .funnel-box-value { font-size: 18px; font-weight: 700; }
+    .funnel-arrow { display: flex; flex-direction: column; align-items: center; padding: 0 8px; }
+    .funnel-arrow-rate { font-size: 10px; color: var(--muted); white-space: nowrap; }
+    .funnel-arrow-icon { font-size: 16px; color: var(--muted); }
+    /* Alertas de lanzamiento */
+    .launch-alerts { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+    .launch-alert { padding: 8px 12px; border-radius: 6px; font-size: 12px; display: flex; align-items: flex-start; gap: 8px; }
+    .launch-alert.error   { background: rgba(248,81,73,.1);   border: 1px solid rgba(248,81,73,.3); }
+    .launch-alert.warning { background: rgba(210,153,34,.1);  border: 1px solid rgba(210,153,34,.3); }
+    .launch-alert.success { background: rgba(63,185,80,.1);   border: 1px solid rgba(63,185,80,.3); }
+    .launch-alert.info    { background: rgba(88,166,255,.08); border: 1px solid rgba(88,166,255,.2); }
+    .launch-trend-wrap { height: 180px; margin-top: 8px; }
     .reco-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 4px; }
     @media (max-width: 768px) { .reco-grid { grid-template-columns: 1fr; } }
     .reco-block { border-radius: 8px; padding: 14px 16px; }
@@ -729,6 +762,15 @@
 
   <!-- Analysis -->
   <div class="analysis-grid" id="analysisGrid"></div>
+
+  <!-- Lanzamientos -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">🚀 Análisis por Lanzamiento</span>
+      <button id="launchesBtn" onclick="loadLaunches()" style="padding:6px 14px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--fg);cursor:pointer;font-size:13px">Ver lanzamientos</button>
+    </div>
+    <div id="launchesContent" style="color:var(--muted);font-size:13px;padding:8px 0">Haz click en "Ver lanzamientos" para analizar el embudo de cada campaña.</div>
+  </div>
 
   <!-- Recomendaciones -->
   <div class="card" id="recoSection">
@@ -1630,6 +1672,158 @@ function renderCountries(data) {
           </tr>`).join('')}
       </tbody>
     </table>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  LANZAMIENTOS
+// ═══════════════════════════════════════════════════════════════════
+const launchCharts = {};
+
+function funnelTypeLabel(t) {
+  return t === 'webinar' ? '🎥 Webinar' : t === 'leads' ? '📋 Leads' : '🛒 Venta directa';
+}
+
+function alertIcon(type) {
+  return type === 'error' ? '🔴' : type === 'warning' ? '🟡' : type === 'success' ? '🟢' : '🔵';
+}
+
+function renderLaunchCard(l, idx) {
+  const roas  = l.roas  ? l.roas.toFixed(2)  + 'x' : '—';
+  const cpl   = l.cpl   ? '$' + l.cpl.toFixed(2)   : '—';
+  const cpa   = l.cpa   ? '$' + l.cpa.toFixed(2)   : '—';
+  const spend = '$' + (l.spend || 0).toFixed(2);
+  const statusDot = l.isActive ? '<span style="color:var(--green);font-size:10px">● ACTIVO</span>' : '<span style="color:var(--muted);font-size:10px">● PAUSADO</span>';
+
+  return `
+  <div class="launch-card" id="lcard-${idx}" onclick="toggleLaunch(${idx})">
+    <div class="launch-card-header">
+      <span class="launch-name">${l.name}</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        ${statusDot}
+        <span class="launch-type-badge ${l.funnelType}">${funnelTypeLabel(l.funnelType)}</span>
+      </div>
+    </div>
+    <div class="launch-metrics">
+      <div class="launch-metric"><span class="launch-metric-label">Gasto</span><span class="launch-metric-value">${spend}</span></div>
+      ${l.funnelType !== 'direct' ? `<div class="launch-metric"><span class="launch-metric-label">${l.funnelType === 'webinar' ? 'Registros' : 'Leads'}</span><span class="launch-metric-value" style="color:var(--green)">${l.funnelType === 'webinar' ? (l.regs||0) : (l.leads||0)}</span></div>` : ''}
+      ${l.purchases > 0 ? `<div class="launch-metric"><span class="launch-metric-label">Ventas</span><span class="launch-metric-value" style="color:var(--green)">${l.purchases}</span></div>` : ''}
+      <div class="launch-metric"><span class="launch-metric-label">CPL</span><span class="launch-metric-value">${cpl}</span></div>
+      <div class="launch-metric"><span class="launch-metric-label">CPA</span><span class="launch-metric-value">${cpa}</span></div>
+      <div class="launch-metric"><span class="launch-metric-label">ROAS</span><span class="launch-metric-value ${l.roas >= 1.2 ? 'green' : l.roas >= 1 ? 'yellow' : 'red'}">${roas}</span></div>
+      <div class="launch-metric"><span class="launch-metric-label">CTR</span><span class="launch-metric-value">${(l.ctr||0).toFixed(2)}%</span></div>
+    </div>
+    <div class="launch-detail" id="ldetail-${idx}">
+      <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:10px">EMBUDO</div>
+      <div class="funnel-wrap">
+        ${l.funnel.map((s, i) => `
+          ${i > 0 ? `<div class="funnel-arrow"><span class="funnel-arrow-rate">${l.funnel[i].rate || ''}</span><span class="funnel-arrow-icon">→</span><span class="funnel-arrow-rate" style="font-size:9px">${l.funnel[i].label || ''}</span></div>` : ''}
+          <div class="funnel-box">
+            <div class="funnel-box-label">${s.stage}</div>
+            <div class="funnel-box-value">${typeof s.value === 'number' ? s.value.toLocaleString('en-US') : s.value}</div>
+          </div>`).join('')}
+      </div>
+      <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px">ALERTAS</div>
+      <div class="launch-alerts">
+        ${l.alerts.map(a => `<div class="launch-alert ${a.type}">${alertIcon(a.type)} ${a.msg}</div>`).join('')}
+      </div>
+      <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px">TENDENCIA</div>
+      <div class="launch-trend-wrap"><canvas id="ltchart-${idx}"></canvas></div>
+    </div>
+  </div>`;
+}
+
+const launchState = { launches: [], open: null };
+
+async function toggleLaunch(idx) {
+  const detail = document.getElementById(`ldetail-${idx}`);
+  const card   = document.getElementById(`lcard-${idx}`);
+  const isOpen = detail.classList.contains('open');
+
+  document.querySelectorAll('.launch-detail').forEach(d => d.classList.remove('open'));
+  document.querySelectorAll('.launch-card').forEach(c => c.classList.remove('active'));
+
+  if (!isOpen) {
+    detail.classList.add('open');
+    card.classList.add('active');
+    launchState.open = idx;
+    await loadLaunchTrend(idx);
+  }
+}
+
+async function loadLaunchTrend(idx) {
+  const l = launchState.launches[idx];
+  if (!l || !S.account) return;
+
+  const canvasId = `ltchart-${idx}`;
+  if (launchCharts[canvasId]) { launchCharts[canvasId].destroy(); delete launchCharts[canvasId]; }
+
+  try {
+    const trend = await api(`/api/launch-trend?account=${S.account}&launch=${encodeURIComponent(l.name)}&date=${S.date}`);
+    if (!trend.length) return;
+
+    const labels  = trend.map(t => t.date.slice(5));
+    const metric1 = l.funnelType === 'webinar' ? trend.map(t => t.regs)
+                  : l.funnelType === 'leads'   ? trend.map(t => t.leads)
+                  : trend.map(t => t.purchases);
+    const label1  = l.funnelType === 'webinar' ? 'Registros' : l.funnelType === 'leads' ? 'Leads' : 'Compras';
+    const spend   = trend.map(t => t.spend);
+
+    const ctx = document.getElementById(canvasId)?.getContext('2d');
+    if (!ctx) return;
+
+    launchCharts[canvasId] = new Chart(ctx, {
+      data: {
+        labels,
+        datasets: [
+          {
+            type: 'bar', label: 'Gasto $', data: spend,
+            backgroundColor: 'rgba(88,166,255,.25)', borderColor: 'rgba(88,166,255,.6)',
+            borderWidth: 1, yAxisID: 'y2',
+          },
+          {
+            type: 'line', label: label1, data: metric1,
+            borderColor: '#3fb950', backgroundColor: 'rgba(63,185,80,.1)',
+            borderWidth: 2, pointRadius: 3, tension: .3, fill: true, yAxisID: 'y',
+          },
+        ],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: '#8b949e', font: { size: 11 } } } },
+        scales: {
+          x:  { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,.05)' } },
+          y:  { position: 'left',  ticks: { color: '#3fb950', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,.05)' } },
+          y2: { position: 'right', ticks: { color: '#58a6ff', font: { size: 10 }, callback: v => '$' + v.toFixed(0) }, grid: { display: false } },
+        },
+      },
+    });
+  } catch(e) { console.warn('Trend error:', e.message); }
+}
+
+async function loadLaunches() {
+  if (!S.account) return;
+  const btn     = document.getElementById('launchesBtn');
+  const content = document.getElementById('launchesContent');
+  btn.textContent = '⏳ Cargando…';
+  btn.disabled    = true;
+  content.innerHTML = '<span class="muted">Agrupando campañas por lanzamiento…</span>';
+
+  try {
+    const data = await api(`/api/launches?account=${S.account}&date=${S.date}`);
+    launchState.launches = data;
+
+    if (!data.length) {
+      content.innerHTML = '<span class="muted">No hay lanzamientos con datos en este período.</span>';
+      return;
+    }
+
+    content.innerHTML = `<div class="launches-list">${data.map((l, i) => renderLaunchCard(l, i)).join('')}</div>`;
+  } catch(e) {
+    content.innerHTML = `<span class="muted red">Error: ${e.message}</span>`;
+  } finally {
+    btn.textContent = 'Actualizar';
+    btn.disabled    = false;
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
