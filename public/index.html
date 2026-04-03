@@ -89,18 +89,35 @@
       padding: 6px 12px;
       font-size: 13px;
       cursor: pointer;
-      transition: background .15s, border-color .15s;
+      transition: background .2s, border-color .2s, box-shadow .2s, transform .15s;
       display: flex;
       align-items: center;
       gap: 6px;
       white-space: nowrap;
+      position: relative;
+      overflow: hidden;
     }
-    button:hover    { background: var(--border); }
+    button::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(255,255,255,.12) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity .25s;
+      pointer-events: none;
+    }
+    button:hover::after { opacity: 1; }
+    button:hover {
+      background: var(--border);
+      box-shadow: 0 0 10px rgba(88,166,255,.18), 0 2px 8px rgba(0,0,0,.25);
+      transform: translateY(-1px);
+    }
+    button:active { transform: translateY(0); box-shadow: none; }
     button.primary  { background: #1877f2; border-color: #1877f2; color: #fff; }
-    button.primary:hover { background: #0a66c2; }
+    button.primary:hover { background: #0a66c2; box-shadow: 0 0 14px rgba(24,119,242,.4), 0 2px 8px rgba(0,0,0,.3); }
     button.danger   { background: transparent; border-color: var(--red); color: var(--red); }
     button.success  { background: transparent; border-color: var(--green); color: var(--green); }
-    button:disabled { opacity: .5; cursor: not-allowed; }
+    button:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
 
     /* ── Layout ── */
     .main { max-width: 1400px; margin: 0 auto; padding: 24px; display: flex; flex-direction: column; gap: 20px; }
@@ -233,11 +250,25 @@
       padding: 3px 8px;
       font-size: 11px;
       cursor: pointer;
-      transition: all .15s;
+      transition: all .2s, box-shadow .2s;
+      position: relative;
+      overflow: hidden;
     }
-    .action-btn:hover { background: var(--surface2); color: var(--text); border-color: var(--muted); }
+    .action-btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 50%, rgba(255,255,255,.15) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity .2s;
+      pointer-events: none;
+    }
+    .action-btn:hover { color: var(--text); border-color: var(--muted); }
+    .action-btn:hover::after { opacity: 1; }
     .action-btn.pause    { border-color: var(--yellow); color: var(--yellow); }
+    .action-btn.pause:hover    { box-shadow: 0 0 8px rgba(210,153,34,.35); background: rgba(210,153,34,.08); }
     .action-btn.activate { border-color: var(--green);  color: var(--green); }
+    .action-btn.activate:hover { box-shadow: 0 0 8px rgba(63,185,80,.35);  background: rgba(63,185,80,.08); }
 
     /* ── Analysis section ── */
     .analysis-grid {
@@ -499,10 +530,28 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 6px 8px;
+      position: relative;
+      background: linear-gradient(180deg, transparent 0%, rgba(88,166,255,.03) 100%);
+      border-top: 1px solid rgba(88,166,255,.08);
+      transition: background .3s;
     }
+    .creative-card:hover .perf-metrics {
+      background: linear-gradient(180deg, rgba(88,166,255,.04) 0%, rgba(88,166,255,.1) 100%);
+      border-top-color: rgba(88,166,255,.25);
+    }
+    .perf-metrics::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(88,166,255,.4), transparent);
+      opacity: 0;
+      transition: opacity .3s;
+    }
+    .creative-card:hover .perf-metrics::before { opacity: 1; }
     .perf-metric { display: flex; flex-direction: column; }
     .perf-metric-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
-    .perf-metric-value { font-size: 14px; font-weight: 700; line-height: 1.2; }
+    .perf-metric-value { font-size: 14px; font-weight: 700; line-height: 1.2; transition: color .2s; }
 
     /* Modal preview */
     .modal-overlay {
@@ -1907,6 +1956,15 @@ async function init() {
 init().catch(e => {
   document.querySelector('.main').innerHTML =
     `<div class="card empty"><div class="empty-icon">❌</div><div>${e.message}</div></div>`;
+});
+
+// Efecto de luz que sigue el cursor en los botones
+document.addEventListener('mousemove', e => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  const r = btn.getBoundingClientRect();
+  btn.style.setProperty('--mx', ((e.clientX - r.left) / r.width  * 100) + '%');
+  btn.style.setProperty('--my', ((e.clientY - r.top)  / r.height * 100) + '%');
 });
 </script>
 </body>
