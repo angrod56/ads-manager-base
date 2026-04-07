@@ -647,6 +647,38 @@
       .top-ads-grid { grid-template-columns: repeat(2, 1fr); }
     }
 
+    /* ── Delta indicators ── */
+    .delta { font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 2px; }
+    .delta.up   { color: var(--green); }
+    .delta.down { color: var(--red); }
+    .delta.flat { color: var(--muted); }
+    .kpi-delta  { margin-top: 2px; font-size: 11px; }
+
+    /* ── Bulk actions bar ── */
+    .bulk-bar {
+      display: none; align-items: center; gap: 10px;
+      padding: 8px 14px; background: rgba(88,166,255,.1);
+      border: 1px solid rgba(88,166,255,.3); border-radius: 6px;
+      font-size: 13px; flex-wrap: wrap;
+    }
+    .bulk-bar.visible { display: flex; }
+    .bulk-count { font-weight: 600; color: var(--blue); }
+
+    /* ── Budget inline edit ── */
+    .budget-cell { cursor: pointer; display: flex; align-items: center; gap: 4px; }
+    .budget-cell:hover .budget-edit-icon { opacity: 1; }
+    .budget-edit-icon { opacity: 0; font-size: 10px; color: var(--muted); transition: opacity .15s; }
+    .budget-input { width: 80px; padding: 2px 6px; border: 1px solid var(--blue); border-radius: 4px; font-size: 12px; background: var(--surface2); color: var(--text); }
+
+    /* ── AdSets table ── */
+    .adsets-wrap { margin: 8px 0; }
+    .adsets-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+    .adset-tab { padding: 3px 10px; border-radius: 4px; border: 1px solid var(--border); font-size: 11px; cursor: pointer; background: transparent; color: var(--muted); }
+    .adset-tab.active { background: rgba(88,166,255,.15); border-color: var(--blue); color: var(--blue); }
+
+    /* ── Export button ── */
+    .export-btn { font-size: 12px; padding: 4px 10px; }
+
     /* ── Countries ── */
     .countries-grid {
       display: grid;
@@ -781,29 +813,39 @@
           <option value="PAUSED">Pausadas</option>
         </select>
         <input type="text" id="searchInput" placeholder="Buscar campaña…">
+        <button class="export-btn" onclick="exportCSV()" title="Exportar CSV">⬇ CSV</button>
       </div>
+    </div>
+    <!-- Bulk actions bar -->
+    <div class="bulk-bar" id="bulkBar">
+      <span class="bulk-count" id="bulkCount">0 seleccionadas</span>
+      <button onclick="bulkAction('pause')" style="font-size:12px;padding:4px 10px">⏸ Pausar</button>
+      <button onclick="bulkAction('activate')" style="font-size:12px;padding:4px 10px">▶ Activar</button>
+      <button onclick="clearSelection()" style="font-size:12px;padding:4px 10px;color:var(--muted)">✕ Cancelar</button>
     </div>
     <div class="table-wrap">
       <table>
         <thead>
           <tr>
+            <th><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this.checked)" title="Seleccionar todas"></th>
             <th></th>
             <th data-sort="name">Campaña</th>
             <th data-sort="status">Estado</th>
             <th data-sort="spend" class="num sort-desc">Gasto</th>
+            <th class="num">Budget/día</th>
             <th data-sort="revenue" class="num">Revenue</th>
             <th data-sort="roas" class="num">ROAS</th>
             <th data-sort="purchases" class="num">Compras</th>
             <th data-sort="registrations" class="num">Registros</th>
             <th data-sort="cpa" class="num">CPA</th>
             <th data-sort="cpl" class="num">CPL</th>
+            <th data-sort="frequency" class="num">Frec.</th>
             <th data-sort="ctr" class="num">CTR</th>
-            <th data-sort="impressions" class="num">Impr.</th>
             <th>Acción</th>
           </tr>
         </thead>
         <tbody id="campaignsTbody">
-          <tr><td colspan="14" class="empty"><div class="empty-icon">⏳</div><div>Cargando campañas…</div></td></tr>
+          <tr><td colspan="15" class="empty"><div class="empty-icon">⏳</div><div>Cargando campañas…</div></td></tr>
         </tbody>
       </table>
     </div>
@@ -1082,44 +1124,53 @@ function updateCharts(campaigns) {
 // ═══════════════════════════════════════════════════════════════════
 //  KPIs
 // ═══════════════════════════════════════════════════════════════════
-function renderKPIs(t) {
+function renderKPIs(t, prev) {
+  const p = prev || {};
   const roasCls = !t.roas ? '' : t.roas >= 3 ? 'green' : t.roas >= 1 ? 'yellow' : 'red';
   const cpaCls  = !t.cpa  ? '' : t.cpa  < 20  ? 'green' : t.cpa < 50  ? 'yellow' : 'red';
+  // Para CPA: bajar es bueno, subir es malo → invertir dirección
+  function deltaCPA(curr, prev) {
+    if (!prev || !curr) return '';
+    const pct = ((curr - prev) / prev) * 100;
+    const cls = pct < 0 ? 'up' : pct > 0 ? 'down' : 'flat';
+    const arrow = pct < 0 ? '↓' : '↑';
+    return `<span class="delta ${cls}">${arrow}${Math.abs(pct).toFixed(0)}%</span>`;
+  }
   document.getElementById('kpiGrid').innerHTML = `
     <div class="kpi-card">
       <div class="kpi-label">Gasto total</div>
-      <div class="kpi-value">${fmt.usd(t.spend)}</div>
+      <div class="kpi-value">${fmt.usd(t.spend)} ${delta(t.spend, p.spend)}</div>
       <div class="kpi-sub">CPM: ${fmt.usd(t.cpm)} · Impr: ${fmt.num(t.impressions)}</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">Revenue</div>
-      <div class="kpi-value ${t.revenue > 0 ? 'green' : ''}">${fmt.usd(t.revenue)}</div>
+      <div class="kpi-value ${t.revenue > 0 ? 'green' : ''}">${fmt.usd(t.revenue)} ${delta(t.revenue, p.revenue)}</div>
       <div class="kpi-sub">valor de conversión</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">ROAS</div>
-      <div class="kpi-value ${roasCls}">${t.roas ? t.roas.toFixed(2) + 'x' : '—'}</div>
+      <div class="kpi-value ${roasCls}">${t.roas ? t.roas.toFixed(2) + 'x' : '—'} ${delta(t.roas, p.roas)}</div>
       <div class="kpi-sub">${t.roas ? (t.roas >= 3 ? 'rentable' : t.roas >= 1 ? 'cerca del break-even' : 'por debajo del break-even') : 'sin datos de revenue'}</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">Compras</div>
-      <div class="kpi-value ${t.purchases > 0 ? 'green' : 'red'}">${fmt.num(t.purchases)}</div>
+      <div class="kpi-value ${t.purchases > 0 ? 'green' : 'red'}">${fmt.num(t.purchases)} ${delta(t.purchases, p.purchases)}</div>
       <div class="kpi-sub">Clics: ${fmt.num(t.clicks)}</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">Registros Completados</div>
-      <div class="kpi-value ${(t.registrations||0) > 0 ? 'green' : 'muted'}">${fmt.num(t.registrations || 0)}</div>
+      <div class="kpi-value ${(t.registrations||0) > 0 ? 'green' : 'muted'}">${fmt.num(t.registrations||0)} ${delta(t.registrations, p.registrations)}</div>
       <div class="kpi-sub">complete_registration (pixel)</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">CPA promedio</div>
-      <div class="kpi-value ${cpaCls}">${fmt.usd(t.cpa)}</div>
+      <div class="kpi-value ${cpaCls}">${fmt.usd(t.cpa)} ${deltaCPA(t.cpa, p.cpa)}</div>
       <div class="kpi-sub">costo por compra</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">CTR promedio</div>
-      <div class="kpi-value ${t.ctr >= 2 ? 'green' : t.ctr >= 1 ? 'yellow' : 'red'}">${fmt.pct(t.ctr)}</div>
-      <div class="kpi-sub">Clics: ${fmt.num(t.clicks)}</div>
+      <div class="kpi-value ${t.ctr >= 2 ? 'green' : t.ctr >= 1 ? 'yellow' : 'red'}">${fmt.pct(t.ctr)} ${delta(t.ctr, p.ctr)}</div>
+      <div class="kpi-sub">vs período anterior</div>
     </div>
   `;
 }
@@ -1144,13 +1195,84 @@ function filteredCampaigns() {
   return list;
 }
 
+// ─── Selection state ────────────────────────────────────────────────────────
+const selectedIds = new Set();
+function updateBulkBar() {
+  const bar   = document.getElementById('bulkBar');
+  const count = document.getElementById('bulkCount');
+  if (selectedIds.size > 0) { bar.classList.add('visible'); count.textContent = `${selectedIds.size} seleccionadas`; }
+  else { bar.classList.remove('visible'); }
+}
+function toggleSelectAll(checked) {
+  filteredCampaigns().forEach(c => checked ? selectedIds.add(c.id) : selectedIds.delete(c.id));
+  renderTable(); updateBulkBar();
+}
+function clearSelection() { selectedIds.clear(); renderTable(); updateBulkBar(); document.getElementById('selectAll').checked = false; }
+async function bulkAction(action) {
+  if (!selectedIds.size) return;
+  const ids = [...selectedIds];
+  showToast(`Aplicando "${action}" a ${ids.length} campañas…`);
+  try {
+    const r = await apiFetch('/api/bulk-action', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ ids, action }) });
+    showToast(`✓ ${r.ok} exitosas${r.fail ? ', ' + r.fail + ' fallaron' : ''}`);
+    clearSelection(); loadOverview();
+  } catch(e) { showToast('Error: ' + e.message, true); }
+}
+
+// ─── Budget inline edit ──────────────────────────────────────────────────────
+function startBudgetEdit(id, current) {
+  const cell = document.getElementById(`budget-${id}`);
+  const val  = current ? Math.round(current / 100) : '';
+  cell.innerHTML = `<input class="budget-input" id="bi-${id}" type="number" value="${val}" min="1" onblur="saveBudget('${id}')" onkeydown="if(event.key==='Enter')saveBudget('${id}');if(event.key==='Escape')renderTable()">`;
+  document.getElementById(`bi-${id}`)?.focus();
+}
+async function saveBudget(id) {
+  const input = document.getElementById(`bi-${id}`);
+  if (!input) return;
+  const amount = parseInt(input.value) * 100;
+  if (!amount || amount < 100) { renderTable(); return; }
+  try {
+    await apiFetch('/api/budget', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ id, amount }) });
+    showToast('✓ Presupuesto actualizado');
+    loadOverview();
+  } catch(e) { showToast('Error: ' + e.message, true); renderTable(); }
+}
+
+// ─── Export CSV ──────────────────────────────────────────────────────────────
+function exportCSV() {
+  const list = filteredCampaigns();
+  const cols = ['Nombre','Estado','Gasto','Revenue','ROAS','Compras','Registros','CPA','CPL','CTR%','Impr.','Clics','Frec.'];
+  const rows = list.map(c => [
+    `"${c.name}"`, c.effective_status || c.status,
+    (c.spend||0).toFixed(2), (c.revenue||0).toFixed(2),
+    c.roas ? c.roas.toFixed(2) : 0, c.purchases||0, c.registrations||0,
+    c.cpa ? c.cpa.toFixed(2) : 0, c.cpl ? c.cpl.toFixed(2) : 0,
+    (c.ctr||0).toFixed(2), c.impressions||0, c.clicks||0, (c.frequency||0).toFixed(1)
+  ]);
+  const csv  = [cols.join(','), ...rows.map(r => r.join(','))].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = `campanas-${S.date}-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+// ─── Delta helpers ───────────────────────────────────────────────────────────
+function delta(curr, prev) {
+  if (!prev || !curr) return '';
+  const pct = ((curr - prev) / prev) * 100;
+  const cls = pct > 0 ? 'up' : pct < 0 ? 'down' : 'flat';
+  const arrow = pct > 0 ? '↑' : '↓';
+  return `<span class="delta ${cls}">${arrow}${Math.abs(pct).toFixed(0)}%</span>`;
+}
+
 function renderTable() {
   const list = filteredCampaigns();
   const avg  = S.totals?.cpa;
   const tbody = document.getElementById('campaignsTbody');
 
   if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="14"><div class="empty"><div class="empty-icon">🔍</div><div>Sin resultados</div></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="15"><div class="empty"><div class="empty-icon">🔍</div><div>Sin resultados</div></div></td></tr>`;
     return;
   }
 
@@ -1159,70 +1281,140 @@ function renderTable() {
     const isActive   = c.effective_status === 'ACTIVE' || c.status === 'ACTIVE';
     const expanded   = S.expanded.has(c.id);
     const cpaCls     = cpaClass(c.cpa, avg);
+    const freqCls    = (c.frequency||0) > 3 ? 'red' : (c.frequency||0) > 2.5 ? 'yellow' : 'muted';
+    const budget     = c.daily_budget ? '$' + (parseInt(c.daily_budget)/100).toFixed(0) : c.lifetime_budget ? 'LT' : '—';
     const actionBtn  = isActive
       ? `<button class="action-btn pause" onclick="toggleStatus('${c.id}','ACTIVE')">⏸ Pausar</button>`
       : `<button class="action-btn activate" onclick="toggleStatus('${c.id}','PAUSED')">▶ Activar</button>`;
 
     html += `
       <tr class="${expanded ? 'expanded' : ''}" id="row-${c.id}">
-        <td style="width:28px">
-          <span class="expand-icon" onclick="toggleExpand('${c.id}')">▶</span>
-        </td>
-        <td class="name-cell" onclick="toggleExpand('${c.id}')" title="${c.name}">
-          ${fmt.short(c.name, 36)}
-        </td>
+        <td style="width:28px"><input type="checkbox" ${selectedIds.has(c.id)?'checked':''} onchange="selectedIds[this.checked?'add':'delete']('${c.id}');updateBulkBar()"></td>
+        <td style="width:28px"><span class="expand-icon" onclick="toggleExpand('${c.id}')">▶</span></td>
+        <td class="name-cell" onclick="toggleExpand('${c.id}')" title="${c.name}">${fmt.short(c.name, 34)}</td>
         <td>${statusBadge(c.effective_status || c.status)}</td>
         <td class="num">${fmt.usd(c.spend)}</td>
+        <td class="num" id="budget-${c.id}">
+          <span class="budget-cell" onclick="startBudgetEdit('${c.id}','${c.daily_budget||''}')">
+            ${budget}<span class="budget-edit-icon">✏</span>
+          </span>
+        </td>
         <td class="num ${c.revenue > 0 ? 'green' : 'muted'}">${fmt.usd(c.revenue || 0)}</td>
         <td class="num ${roasClass(c.roas)}">${fmt.roas(c.roas)}</td>
         <td class="num" style="font-weight:${c.purchases>0?'600':'400'}">${c.purchases > 0 ? c.purchases : '<span class="muted">0</span>'}</td>
-        <td class="num" style="font-weight:${(c.registrations||0)>0?'600':'400'};color:${(c.registrations||0)>0?'var(--green)':'var(--muted)'}">${(c.registrations||0) > 0 ? c.registrations : '<span class="muted">0</span>'}</td>
+        <td class="num" style="color:${(c.registrations||0)>0?'var(--green)':'var(--muted)'}">${(c.registrations||0)||'<span class="muted">0</span>'}</td>
         <td class="num ${cpaCls}">${fmt.usd(c.cpa)}</td>
         <td class="num ${cpaClass(c.cpl, 4)}">${fmt.usd(c.cpl)}</td>
+        <td class="num ${freqCls}">${(c.frequency||0).toFixed(1)}</td>
         <td class="num muted">${fmt.pct(c.ctr)}</td>
-        <td class="num muted">${fmt.num(c.impressions)}</td>
         <td>${actionBtn}</td>
       </tr>`;
 
     if (expanded) {
-      const ads = S.adData[c.id];
-      html += `<tr class="ads-row"><td colspan="14"><div class="ads-inner" id="ads-${c.id}">`;
-      if (!ads) {
-        html += `<span class="muted"><span class="spin">↻</span> Cargando ads…</span>`;
-      } else if (!ads.length) {
+      const expandData = S.adData[c.id];
+      html += `<tr class="ads-row"><td colspan="15"><div class="ads-inner" id="ads-${c.id}">`;
+
+      // Tabs: AdSets | Ads
+      html += `<div class="adsets-tabs">
+        <button class="adset-tab active" onclick="showTab('${c.id}','adsets',this)">Ad Sets</button>
+        <button class="adset-tab" onclick="showTab('${c.id}','ads',this)">Ads</button>
+      </div>`;
+
+      // AdSets panel
+      const adsets = S.adsetData?.[c.id];
+      html += `<div id="tab-adsets-${c.id}">`;
+      if (!adsets) {
+        html += `<span class="muted"><span class="spin">↻</span> Cargando ad sets…</span>`;
+        loadAdsetData(c.id);
+      } else if (!adsets.length) {
+        html += `<span class="muted">Sin datos de ad sets en este período.</span>`;
+      } else {
+        html += `<table><thead><tr>
+          <th>Ad Set</th><th>Estado</th>
+          <th class="num">Gasto</th><th class="num">ROAS</th>
+          <th class="num">Compras</th><th class="num">CPA</th>
+          <th class="num">CPL</th><th class="num">CTR</th>
+          <th class="num">Frec.</th><th class="num">Alcance</th>
+          <th class="num">Budget/día</th>
+        </tr></thead><tbody>
+        ${adsets.map(s => {
+          const bud = s.daily_budget ? '$'+(parseInt(s.daily_budget)/100).toFixed(0) : '—';
+          const fc  = (s.frequency||0)>3?'red':(s.frequency||0)>2.5?'yellow':'muted';
+          return `<tr>
+            <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis" title="${s.name}">${fmt.short(s.name,32)}</td>
+            <td>${statusBadge(s.status)}</td>
+            <td class="num">${fmt.usd(s.spend)}</td>
+            <td class="num ${roasClass(s.roas)}">${fmt.roas(s.roas)}</td>
+            <td class="num">${s.purchases||0}</td>
+            <td class="num ${cpaClass(s.cpa,avg)}">${fmt.usd(s.cpa)}</td>
+            <td class="num ${cpaClass(s.cpl,4)}">${fmt.usd(s.cpl)}</td>
+            <td class="num muted">${fmt.pct(s.ctr)}</td>
+            <td class="num ${fc}">${(s.frequency||0).toFixed(1)}</td>
+            <td class="num muted">${fmt.num(s.reach)}</td>
+            <td class="num" id="budget-s-${s.id}">
+              <span class="budget-cell" onclick="startBudgetEdit('${s.id}','${s.daily_budget||''}')">
+                ${bud}<span class="budget-edit-icon">✏</span>
+              </span>
+            </td>
+          </tr>`;
+        }).join('')}
+        </tbody></table>`;
+      }
+      html += `</div>`;
+
+      // Ads panel (hidden initially)
+      html += `<div id="tab-ads-${c.id}" style="display:none">`;
+      if (!expandData) {
+        html += `<span class="muted">Carga la pestaña "Ads" para ver.</span>`;
+      } else if (!expandData.length) {
         html += `<span class="muted">Sin datos de ads en este período.</span>`;
       } else {
-        html += `
-          <table>
-            <thead><tr>
-              <th>Ad</th>
-              <th class="num">Gasto</th>
-              <th class="num">Revenue</th>
-              <th class="num">ROAS</th>
-              <th class="num">Compras</th>
-              <th class="num">CPA</th>
-              <th class="num">CTR</th>
-              <th class="num">Frec.</th>
-            </tr></thead>
-            <tbody>
-              ${ads.map(a => `
-                <tr>
-                  <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis" title="${a.name}">${fmt.short(a.name, 38)}</td>
-                  <td class="num">${fmt.usd(a.spend)}</td>
-                  <td class="num ${a.revenue > 0 ? 'green' : 'muted'}">${fmt.usd(a.revenue || 0)}</td>
-                  <td class="num ${roasClass(a.roas)}">${fmt.roas(a.roas)}</td>
-                  <td class="num" style="font-weight:${a.purchases>0?'600':'400'};color:${a.purchases>0?'var(--green)':'var(--muted)'}">${a.purchases || 0}</td>
-                  <td class="num ${cpaClass(a.cpa, avg)}">${fmt.usd(a.cpa)}</td>
-                  <td class="num muted">${fmt.pct(a.ctr)}</td>
-                  <td class="num muted">${a.frequency?.toFixed(1) || '—'}</td>
-                </tr>`).join('')}
-            </tbody>
-          </table>`;
+        html += `<table><thead><tr>
+          <th>Ad</th><th class="num">Gasto</th><th class="num">Revenue</th>
+          <th class="num">ROAS</th><th class="num">Compras</th>
+          <th class="num">CPA</th><th class="num">CTR</th><th class="num">Frec.</th>
+        </tr></thead><tbody>
+        ${expandData.map(a => `<tr>
+          <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis" title="${a.name}">${fmt.short(a.name,38)}</td>
+          <td class="num">${fmt.usd(a.spend)}</td>
+          <td class="num ${a.revenue>0?'green':'muted'}">${fmt.usd(a.revenue||0)}</td>
+          <td class="num ${roasClass(a.roas)}">${fmt.roas(a.roas)}</td>
+          <td class="num" style="color:${a.purchases>0?'var(--green)':'var(--muted)'}">${a.purchases||0}</td>
+          <td class="num ${cpaClass(a.cpa,avg)}">${fmt.usd(a.cpa)}</td>
+          <td class="num muted">${fmt.pct(a.ctr)}</td>
+          <td class="num muted">${a.frequency?.toFixed(1)||'—'}</td>
+        </tr>`).join('')}
+        </tbody></table>`;
       }
+      html += `</div>`;
+
       html += `</div></td></tr>`;
     }
   }
   tbody.innerHTML = html;
+}
+
+function showTab(campaignId, tab, btn) {
+  document.querySelectorAll(`#ads-${campaignId} .adset-tab`).forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(`tab-adsets-${campaignId}`).style.display = tab === 'adsets' ? '' : 'none';
+  document.getElementById(`tab-ads-${campaignId}`).style.display    = tab === 'ads'    ? '' : 'none';
+  if (tab === 'ads' && !S.adData[campaignId]) loadAdData(campaignId);
+}
+
+async function loadAdsetData(campaignId) {
+  if (!S.adsetData) S.adsetData = {};
+  try {
+    S.adsetData[campaignId] = await api(`/api/adset-metrics?campaign=${campaignId}&date=${S.date}`);
+  } catch { S.adsetData[campaignId] = []; }
+  renderTable();
+}
+
+// apiFetch helper (raw fetch for non-GET)
+async function apiFetch(url, opts) {
+  const r = await fetch(url, opts);
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1329,10 +1521,11 @@ async function loadOverview() {
   btn.disabled = true;
 
   try {
-    const data = await api(`/api/overview?account=${S.account}&date=${S.date}`);
+    const data = await api(`/api/overview?account=${S.account}&date=${S.date}&compare=1`);
     S.campaigns = data.campaigns;
     S.totals    = data.totals;
-    renderKPIs(data.totals);
+    S.adsetData = {};
+    renderKPIs(data.totals, data.prevTotals);
     updateCharts(data.campaigns);
     renderTable();
     renderAnalysis();

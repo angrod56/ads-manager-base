@@ -142,7 +142,75 @@ const GET = {
     totals.ctr  = totals.impressions > 0 ? (totals.clicks / totals.impressions) * 100 : 0;
     totals.cpm  = totals.impressions > 0 ? (totals.spend / totals.impressions) * 1000 : 0;
 
-    json(res, { campaigns: enriched, totals });
+    // Período anterior para comparación
+    let prevTotals = null;
+    if (q.compare === '1') {
+      const prevInsights = await getInsights(q.account, {
+        datePreset: q.date || 'last_30d',
+        level: 'campaign',
+        // shift period: use time_range based on date length
+      });
+      // Calculamos período anterior con since/until
+      const now   = new Date();
+      const days  = q.date === 'last_7d' ? 7 : q.date === 'last_3d' ? 3 : 30;
+      const until = new Date(now); until.setDate(until.getDate() - days);
+      const since = new Date(until); since.setDate(since.getDate() - days);
+      const fmt   = d => d.toISOString().slice(0, 10);
+      const prevIns = await getInsights(q.account, { since: fmt(since), until: fmt(until), level: 'campaign' });
+      prevTotals = prevIns.reduce(
+        (a, r) => ({
+          spend:       a.spend + parseFloat(r.spend || 0),
+          purchases:   a.purchases + getActionValue(r.actions || [], 'purchase'),
+          registrations: a.registrations + (getActionValue(r.actions || [], 'complete_registration') || 0),
+          revenue:     a.revenue + getRevenue(r.action_values || []),
+          impressions: a.impressions + parseInt(r.impressions || 0),
+          clicks:      a.clicks + parseInt(r.clicks || 0),
+        }),
+        { spend: 0, purchases: 0, registrations: 0, revenue: 0, impressions: 0, clicks: 0 }
+      );
+      prevTotals.roas = prevTotals.spend > 0 && prevTotals.revenue > 0 ? prevTotals.revenue / prevTotals.spend : null;
+      prevTotals.ctr  = prevTotals.impressions > 0 ? (prevTotals.clicks / prevTotals.impressions) * 100 : 0;
+      prevTotals.cpa  = calcCPA(prevTotals.spend, prevTotals.purchases);
+    }
+
+    json(res, { campaigns: enriched, totals, prevTotals });
+  },
+
+  // Ad Sets con métricas para una campaña
+  '/api/adset-metrics': async (res, q) => {
+    if (!q.campaign) return err(res, 'campaign requerido', 400);
+    const [adsets, insights] = await Promise.all([
+      listAdSets(q.account || q.campaign, q.campaign, 'ALL'),
+      getInsights(q.campaign, { datePreset: q.date || 'last_30d', level: 'adset' }),
+    ]);
+    const iMap = {};
+    for (const r of insights) iMap[r.adset_id] = r;
+    const enriched = adsets.map(s => {
+      const ins   = iMap[s.id] || {};
+      const spend = parseFloat(ins.spend || 0);
+      const regs  = getActionValue(ins.actions || [], 'complete_registration') || 0;
+      const purchases = getActionValue(ins.actions || [], 'purchase');
+      const revenue   = getRevenue(ins.action_values || []);
+      return {
+        id: s.id, name: s.name,
+        status: s.effective_status || s.status,
+        daily_budget: s.daily_budget,
+        lifetime_budget: s.lifetime_budget,
+        optimization_goal: s.optimization_goal,
+        spend,
+        impressions: parseInt(ins.impressions || 0),
+        clicks:      parseInt(ins.clicks || 0),
+        purchases, regs, revenue,
+        roas:  getRoas(ins.purchase_roas || [], spend, revenue),
+        cpa:   calcCPA(spend, purchases),
+        cpl:   calcCPA(spend, regs),
+        ctr:   parseFloat(ins.ctr || 0),
+        cpm:   parseFloat(ins.cpm || 0),
+        frequency: parseFloat(ins.frequency || 0),
+        reach: parseInt(ins.reach || 0),
+      };
+    }).sort((a, b) => b.spend - a.spend);
+    json(res, enriched);
   },
 
   // Insights a nivel ad para drill-down de campaña
@@ -516,6 +584,16 @@ const POST = {
     const { id, amount, type = 'daily_budget' } = await body(req);
     if (!id || !amount) return err(res, 'id y amount requeridos', 400);
     json(res, await setBudget(id, parseInt(amount), type));
+  },
+  '/api/bulk-action': async (res, req) => {
+    const { ids, action } = await body(req);
+    if (!ids?.length || !action) return err(res, 'ids y action requeridos', 400);
+    const results = await Promise.allSettled(
+      ids.map(id => action === 'pause' ? pauseEntity(id) : activateEntity(id))
+    );
+    const ok   = results.filter(r => r.status === 'fulfilled').length;
+    const fail = results.filter(r => r.status === 'rejected').length;
+    json(res, { ok, fail, total: ids.length });
   },
 };
 
