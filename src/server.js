@@ -85,6 +85,64 @@ const GET = {
     json(res, data);
   },
 
+  // ── Proyecciones de lanzamiento ─────────────────────────────────────────────
+  '/api/projections': async (res, q) => {
+    if (!q.account) return err(res, 'account requerido', 400);
+
+    const date = q.date || 'last_30d';
+    const [campaigns, insights] = await Promise.all([
+      listCampaigns(q.account, 'ALL'),
+      getInsights(q.account, { datePreset: date, level: 'campaign' }),
+    ]);
+
+    const iMap = {};
+    for (const r of insights) iMap[r.campaign_id] = r;
+
+    // Agrupar por lanzamiento
+    const groups = {};
+    for (const c of campaigns) {
+      const key = c.name.split(' | ')[0].split(' // ')[0].trim();
+      if (!groups[key]) groups[key] = { name: key, ids: [] };
+      groups[key].ids.push(c.id);
+    }
+
+    const launches = Object.values(groups).map(g => {
+      let spend = 0, purchases = 0, leads = 0, regs = 0, revenue = 0,
+          clicks = 0, impressions = 0;
+
+      for (const id of g.ids) {
+        const ins = iMap[id] || {};
+        spend       += parseFloat(ins.spend || 0);
+        purchases   += getActionValue(ins.actions || [], 'purchase');
+        leads       += getActionValue(ins.actions || [], 'lead');
+        regs        += getActionValue(ins.actions || [], 'complete_registration') || 0;
+        revenue     += getRevenue(ins.action_values || []);
+        clicks      += parseInt(ins.clicks || 0);
+        impressions += parseInt(ins.impressions || 0);
+      }
+
+      if (spend === 0) return null;
+
+      const funnelType   = regs > 0 ? 'webinar' : leads > 0 ? 'leads' : 'direct';
+      const conversions  = funnelType === 'webinar' ? regs : leads;
+      const cpl          = conversions > 0 ? spend / conversions : null;
+      const closeRate    = conversions > 0 && purchases > 0 ? purchases / conversions : null;
+      const avgTicket    = purchases > 0 && revenue > 0 ? revenue / purchases : null;
+      const roas         = spend > 0 && revenue > 0 ? revenue / spend : null;
+      const ctr          = impressions > 0 ? (clicks / impressions) * 100 : 0;
+
+      return {
+        name: g.name, funnelType,
+        spend, purchases, conversions, revenue,
+        cpl, closeRate, avgTicket, roas, ctr,
+        // Tasas históricas para proyección
+        conversionRate: conversions > 0 && clicks > 0 ? conversions / clicks : null,
+      };
+    }).filter(Boolean).sort((a, b) => b.spend - a.spend);
+
+    json(res, launches);
+  },
+
   // Endpoint principal del dashboard — campañas + métricas merged
   '/api/overview': async (res, q) => {
     if (!q.account) return err(res, 'account requerido', 400);
