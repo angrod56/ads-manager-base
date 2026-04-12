@@ -375,6 +375,46 @@
       flex-wrap: wrap;
       gap: 10px;
     }
+    /* ── Proyecciones ── */
+    .proj-layout { display: grid; grid-template-columns: 300px 1fr; gap: 20px; align-items: start; }
+    @media (max-width: 900px) { .proj-layout { grid-template-columns: 1fr; } }
+    .proj-selector { display: flex; flex-direction: column; gap: 8px; }
+    .proj-launch-item { padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; transition: border-color .2s, background .2s; }
+    .proj-launch-item:hover { border-color: var(--blue); }
+    .proj-launch-item.selected { border-color: var(--blue); background: rgba(88,166,255,.08); }
+    .proj-launch-item-name { font-size: 13px; font-weight: 600; }
+    .proj-launch-item-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .proj-panel { display: flex; flex-direction: column; gap: 16px; }
+    .proj-inputs { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+    .proj-input-group { display: flex; flex-direction: column; gap: 4px; }
+    .proj-input-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+    .proj-input { padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface2); color: var(--text); font-size: 13px; width: 100%; }
+    .proj-input:focus { outline: none; border-color: var(--blue); }
+    .proj-scenarios { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    @media (max-width: 700px) { .proj-scenarios { grid-template-columns: 1fr; } }
+    .proj-scenario { border-radius: 8px; padding: 16px; border: 1px solid var(--border); }
+    .proj-scenario.conservative { border-color: rgba(210,153,34,.3); background: rgba(210,153,34,.05); }
+    .proj-scenario.realistic    { border-color: rgba(88,166,255,.3);  background: rgba(88,166,255,.06); }
+    .proj-scenario.optimistic   { border-color: rgba(63,185,80,.3);   background: rgba(63,185,80,.05); }
+    .proj-scenario-title { font-size: 13px; font-weight: 700; margin-bottom: 12px; }
+    .proj-scenario.conservative .proj-scenario-title { color: var(--yellow); }
+    .proj-scenario.realistic    .proj-scenario-title { color: var(--blue); }
+    .proj-scenario.optimistic   .proj-scenario-title { color: var(--green); }
+    .proj-metric { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+    .proj-metric:last-child { border-bottom: none; }
+    .proj-metric-label { color: var(--muted); }
+    .proj-metric-value { font-weight: 700; }
+    .proj-funnel { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-bottom: 4px; }
+    .proj-funnel-step { text-align: center; padding: 8px 12px; border-radius: 6px; background: var(--surface2); border: 1px solid var(--border); min-width: 90px; }
+    .proj-funnel-step-label { font-size: 10px; color: var(--muted); }
+    .proj-funnel-step-value { font-size: 16px; font-weight: 700; }
+    .proj-arrow { color: var(--muted); font-size: 14px; }
+    .proj-empty { color: var(--muted); font-size: 13px; padding: 20px 0; }
+    .proj-baseline { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin-bottom: 4px; }
+    .proj-baseline-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 10px; }
+    .proj-baseline-label { font-size: 10px; color: var(--muted); text-transform: uppercase; }
+    .proj-baseline-value { font-size: 15px; font-weight: 700; margin-top: 2px; }
+
     /* ── Lanzamientos ── */
     .launches-list { display: flex; flex-direction: column; gap: 12px; }
     .launch-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; cursor: pointer; transition: border-color .2s; }
@@ -870,6 +910,15 @@
       <button id="recoBtn" onclick="loadRecommendations()" style="padding:6px 14px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--fg);cursor:pointer;font-size:13px">Analizar cuenta</button>
     </div>
     <div id="recoContent" style="color:var(--muted);font-size:13px;padding:8px 0">Haz click en "Analizar cuenta" para ver recomendaciones basadas en tus métricas.</div>
+  </div>
+
+  <!-- Proyecciones de ventas -->
+  <div class="card" id="projSection">
+    <div class="card-header">
+      <span class="card-title">📈 Proyecciones de Ventas por Lanzamiento</span>
+      <button id="projBtn" onclick="loadProjections()" style="padding:6px 14px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--fg);cursor:pointer;font-size:13px">Ver proyecciones</button>
+    </div>
+    <div id="projContent" style="color:var(--muted);font-size:13px;padding:8px 0">Haz click en "Ver proyecciones" para calcular escenarios de ventas basados en tus datos reales.</div>
   </div>
 
   <!-- Countries -->
@@ -2107,6 +2156,193 @@ async function loadRecommendations() {
     btn.textContent = 'Actualizar análisis';
     btn.disabled = false;
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  PROYECCIONES DE VENTAS
+// ═══════════════════════════════════════════════════════════════════
+const projState = { launches: [], selected: null };
+
+async function loadProjections() {
+  if (!S.account) return;
+  const btn     = document.getElementById('projBtn');
+  const content = document.getElementById('projContent');
+  btn.textContent = '⏳ Cargando…';
+  btn.disabled    = true;
+  content.innerHTML = '<span class="muted">Calculando datos de funnel…</span>';
+
+  try {
+    const data = await api(`/api/projections?account=${S.account}&date=${S.date}`);
+    projState.launches = data;
+
+    if (!data.length) {
+      content.innerHTML = '<span class="muted">No hay lanzamientos con datos suficientes para proyectar.</span>';
+      return;
+    }
+
+    content.innerHTML = `
+      <div class="proj-layout">
+        <div class="proj-selector" id="projSelector">
+          ${data.map((l, i) => `
+            <div class="proj-launch-item${i === 0 ? ' selected' : ''}" id="projitem-${i}" onclick="selectProjectionLaunch(${i})">
+              <div class="proj-launch-item-name">${l.name}</div>
+              <div class="proj-launch-item-meta">
+                ${funnelTypeLabel(l.funnelType)} · Gasto: $${(l.spend||0).toFixed(2)}
+                ${l.cpl ? ` · CPL: $${l.cpl.toFixed(2)}` : ''}
+              </div>
+            </div>`).join('')}
+        </div>
+        <div id="projPanel"></div>
+      </div>`;
+
+    selectProjectionLaunch(0);
+  } catch(e) {
+    content.innerHTML = `<span class="muted red">Error: ${e.message}</span>`;
+  } finally {
+    btn.textContent = 'Actualizar';
+    btn.disabled    = false;
+  }
+}
+
+function selectProjectionLaunch(idx) {
+  projState.selected = idx;
+  document.querySelectorAll('.proj-launch-item').forEach((el, i) =>
+    el.classList.toggle('selected', i === idx)
+  );
+  renderProjectionPanel(projState.launches[idx]);
+}
+
+function calcScenario(l, inputs, factor) {
+  const budget    = parseFloat(inputs.budget)    || l.spend    || 0;
+  const price     = parseFloat(inputs.price)     || l.avgTicket|| 0;
+  // showRate: from input (%) or default 50%; stored as a fraction in l.showRate? No, we store it as %
+  const showRatePct  = parseFloat(inputs.showRate)  || 50;
+  const closeRatePct = parseFloat(inputs.closeRate) || ((l.closeRate || 0) * 100) || 5;
+
+  // CPL: conservative = CPL worse (higher), optimistic = CPL better (lower)
+  // factor 0.8 → conservative: fewer leads (CPL * 1/0.8 = 25% higher)
+  // factor 1.2 → optimistic:  more leads  (CPL * 1/1.2 = 17% lower)
+  const baseCPL   = l.cpl || 0;
+  const effectiveCPL = baseCPL > 0 ? baseCPL / factor : 0;
+
+  const leads   = effectiveCPL > 0 ? Math.round(budget / effectiveCPL) : 0;
+  const showUps = l.funnelType === 'webinar'
+    ? Math.round(leads * (showRatePct / 100))
+    : leads;
+  const closeable = l.funnelType === 'webinar' ? showUps : leads;
+  const sales     = Math.round(closeable * (closeRatePct / 100));
+  const revenue   = sales * price;
+  const roas      = budget > 0 ? revenue / budget : 0;
+  const cpa       = sales > 0 ? budget / sales : 0;
+
+  return { leads, showUps, sales, revenue, roas, cpa, budget };
+}
+
+function renderProjectionPanel(l) {
+  if (!l) return;
+  const panel = document.getElementById('projPanel');
+  if (!panel) return;
+
+  // Inputs con valores por defecto derivados de datos reales
+  const defaultBudget    = (l.spend || 0).toFixed(2);
+  const defaultPrice     = (l.avgTicket || 0).toFixed(2);
+  const defaultShowRate  = 50; // webinar show rate default (not tracked by Meta)
+  // closeRate from backend is decimal (e.g. 0.05 = 5%); convert to % for display
+  const defaultCloseRate = l.closeRate ? (l.closeRate * 100).toFixed(1) : '5.0';
+
+  panel.innerHTML = `
+    <div class="proj-panel">
+      <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Datos reales del lanzamiento</div>
+      <div class="proj-baseline">
+        ${l.spend    ? `<div class="proj-baseline-card"><div class="proj-baseline-label">Gasto real</div><div class="proj-baseline-value">$${l.spend.toFixed(2)}</div></div>` : ''}
+        ${l.cpl      ? `<div class="proj-baseline-card"><div class="proj-baseline-label">CPL real</div><div class="proj-baseline-value">$${l.cpl.toFixed(2)}</div></div>` : ''}
+        ${l.funnelType === 'webinar' && l.conversions ? `<div class="proj-baseline-card"><div class="proj-baseline-label">Registros</div><div class="proj-baseline-value">${l.conversions}</div></div>` : ''}
+        ${l.funnelType === 'leads'   && l.conversions ? `<div class="proj-baseline-card"><div class="proj-baseline-label">Leads</div><div class="proj-baseline-value">${l.conversions}</div></div>` : ''}
+        ${l.closeRate ? `<div class="proj-baseline-card"><div class="proj-baseline-label">Tasa de cierre real</div><div class="proj-baseline-value">${(l.closeRate * 100).toFixed(1)}%</div></div>` : ''}
+        ${l.avgTicket ? `<div class="proj-baseline-card"><div class="proj-baseline-label">Ticket promedio</div><div class="proj-baseline-value">$${l.avgTicket.toFixed(2)}</div></div>` : ''}
+        ${l.roas     ? `<div class="proj-baseline-card"><div class="proj-baseline-label">ROAS real</div><div class="proj-baseline-value ${l.roas >= 1 ? 'green' : 'red'}">${l.roas.toFixed(2)}x</div></div>` : ''}
+      </div>
+
+      <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:8px;margin-bottom:4px">Ajusta los parámetros</div>
+      <div class="proj-inputs">
+        <div class="proj-input-group">
+          <label class="proj-input-label">Presupuesto planeado ($)</label>
+          <input class="proj-input" id="pi-budget"    type="number" min="0" step="100" value="${defaultBudget}"    oninput="recalcProjections()">
+        </div>
+        <div class="proj-input-group">
+          <label class="proj-input-label">Precio del producto ($)</label>
+          <input class="proj-input" id="pi-price"     type="number" min="0" step="10"  value="${defaultPrice}"     oninput="recalcProjections()">
+        </div>
+        ${l.funnelType === 'webinar' ? `
+        <div class="proj-input-group">
+          <label class="proj-input-label">Tasa de asistencia (%)</label>
+          <input class="proj-input" id="pi-showRate"  type="number" min="0" max="100" step="1" value="${defaultShowRate}"  oninput="recalcProjections()">
+        </div>` : '<input type="hidden" id="pi-showRate" value="100">'}
+        <div class="proj-input-group">
+          <label class="proj-input-label">Tasa de cierre (%)</label>
+          <input class="proj-input" id="pi-closeRate" type="number" min="0" max="100" step="0.1" value="${defaultCloseRate}" oninput="recalcProjections()">
+        </div>
+      </div>
+
+      <div id="projScenarios"></div>
+    </div>`;
+
+  recalcProjections();
+}
+
+function recalcProjections() {
+  const l = projState.launches[projState.selected];
+  if (!l) return;
+
+  const inputs = {
+    budget:    document.getElementById('pi-budget')?.value,
+    price:     document.getElementById('pi-price')?.value,
+    showRate:  document.getElementById('pi-showRate')?.value,
+    closeRate: document.getElementById('pi-closeRate')?.value,
+  };
+
+  const conservative = calcScenario(l, inputs, 0.8);
+  const realistic    = calcScenario(l, inputs, 1.0);
+  const optimistic   = calcScenario(l, inputs, 1.2);
+
+  const scenEl = document.getElementById('projScenarios');
+  if (!scenEl) return;
+
+  const showFunnel = (s) => {
+    const steps = [];
+    if (l.cpl > 0) {
+      steps.push({ label: l.funnelType === 'webinar' ? 'Registros' : 'Leads', value: s.leads });
+    }
+    if (l.funnelType === 'webinar') {
+      steps.push({ label: 'Asistentes', value: s.showUps });
+    }
+    steps.push({ label: 'Ventas', value: s.sales });
+    steps.push({ label: 'Revenue', value: '$' + s.revenue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) });
+
+    return `<div class="proj-funnel">
+      <div class="proj-funnel-step"><div class="proj-funnel-step-label">Presupuesto</div><div class="proj-funnel-step-value">$${s.budget.toLocaleString('en-US', {maximumFractionDigits:0})}</div></div>
+      ${steps.map(st => `
+        <div class="proj-arrow">→</div>
+        <div class="proj-funnel-step"><div class="proj-funnel-step-label">${st.label}</div><div class="proj-funnel-step-value">${typeof st.value === 'string' ? st.value : st.value.toLocaleString('en-US')}</div></div>
+      `).join('')}
+    </div>`;
+  };
+
+  const card = (type, label, emoji, s) => `
+    <div class="proj-scenario ${type}">
+      <div class="proj-scenario-title">${emoji} ${label}</div>
+      ${showFunnel(s)}
+      <div class="proj-metric"><span class="proj-metric-label">Ventas proyectadas</span><span class="proj-metric-value">${s.sales}</span></div>
+      <div class="proj-metric"><span class="proj-metric-label">Revenue proyectado</span><span class="proj-metric-value">$${s.revenue.toLocaleString('en-US', {minimumFractionDigits:0,maximumFractionDigits:0})}</span></div>
+      <div class="proj-metric"><span class="proj-metric-label">ROAS proyectado</span><span class="proj-metric-value ${s.roas >= 1 ? 'green' : 'red'}">${s.roas.toFixed(2)}x</span></div>
+      <div class="proj-metric"><span class="proj-metric-label">CPA proyectado</span><span class="proj-metric-value">${s.cpa > 0 ? '$' + s.cpa.toFixed(2) : '—'}</span></div>
+    </div>`;
+
+  scenEl.innerHTML = `<div class="proj-scenarios">
+    ${card('conservative', 'Conservador',  '🔴', conservative)}
+    ${card('realistic',    'Realista',     '🔵', realistic)}
+    ${card('optimistic',   'Optimista',    '🟢', optimistic)}
+  </div>`;
 }
 
 // ═══════════════════════════════════════════════════════════════════
