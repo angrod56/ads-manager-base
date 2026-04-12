@@ -131,12 +131,17 @@ const GET = {
       const roas         = spend > 0 && revenue > 0 ? revenue / spend : null;
       const ctr          = impressions > 0 ? (clicks / impressions) * 100 : 0;
 
+      const cpm            = impressions > 0 ? (spend / impressions) * 1000 : null;
+      const cpc            = clicks > 0 ? spend / clicks : null;
+      // LP conversion rate: % of clicks that become leads/regs
+      const lpConvRate     = conversions > 0 && clicks > 0 ? conversions / clicks : null;
+
       return {
         name: g.name, funnelType,
         spend, purchases, conversions, revenue,
-        cpl, closeRate, avgTicket, roas, ctr,
-        // Tasas históricas para proyección
-        conversionRate: conversions > 0 && clicks > 0 ? conversions / clicks : null,
+        clicks, impressions,
+        cpl, closeRate, avgTicket, roas, ctr, cpm, cpc,
+        lpConvRate,  // decimal: conversions / clicks
       };
     }).filter(Boolean).sort((a, b) => b.spend - a.spend);
 

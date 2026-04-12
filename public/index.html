@@ -2187,8 +2187,8 @@ async function loadProjections() {
             <div class="proj-launch-item${i === 0 ? ' selected' : ''}" id="projitem-${i}" onclick="selectProjectionLaunch(${i})">
               <div class="proj-launch-item-name">${l.name}</div>
               <div class="proj-launch-item-meta">
-                ${funnelTypeLabel(l.funnelType)} · Gasto: $${(l.spend||0).toFixed(2)}
-                ${l.cpl ? ` · CPL: $${l.cpl.toFixed(2)}` : ''}
+                ${funnelTypeLabel(l.funnelType)} · $${(l.spend||0).toFixed(0)} gastado
+                ${l.cpl ? ` · CPL $${l.cpl.toFixed(2)}` : ''}
               </div>
             </div>`).join('')}
         </div>
@@ -2212,30 +2212,47 @@ function selectProjectionLaunch(idx) {
   renderProjectionPanel(projState.launches[idx]);
 }
 
+// ── Embudo completo:
+// Presupuesto → Impresiones (CPM) → Clicks (CTR) → Leads/Regs (% conv. página)
+//   → [Asistentes (% show, webinar)] → Ventas (% cierre) → Revenue → ROAS
 function calcScenario(l, inputs, factor) {
-  const budget    = parseFloat(inputs.budget)    || l.spend    || 0;
-  const price     = parseFloat(inputs.price)     || l.avgTicket|| 0;
-  // showRate: from input (%) or default 50%; stored as a fraction in l.showRate? No, we store it as %
-  const showRatePct  = parseFloat(inputs.showRate)  || 50;
-  const closeRatePct = parseFloat(inputs.closeRate) || ((l.closeRate || 0) * 100) || 5;
+  const budget      = parseFloat(inputs.budget)     || 0;
+  const cpm         = parseFloat(inputs.cpm)        || 0;  // costo por mil impresiones (fijo)
+  const ctrPct      = parseFloat(inputs.ctr)        || 0;  // % CTR
+  const lpConvPct   = parseFloat(inputs.lpConv)     || 0;  // % conv. página de destino
+  const showRatePct = parseFloat(inputs.showRate)   || 0;  // % asistencia (webinar)
+  const closeRatePct= parseFloat(inputs.closeRate)  || 0;  // % cierre
+  const price       = parseFloat(inputs.price)      || 0;  // ticket promedio
 
-  // CPL: conservative = CPL worse (higher), optimistic = CPL better (lower)
-  // factor 0.8 → conservative: fewer leads (CPL * 1/0.8 = 25% higher)
-  // factor 1.2 → optimistic:  more leads  (CPL * 1/1.2 = 17% lower)
-  const baseCPL   = l.cpl || 0;
-  const effectiveCPL = baseCPL > 0 ? baseCPL / factor : 0;
+  // Aplicar factor a las tasas de conversión (no al presupuesto ni al CPM)
+  const eCTR      = (ctrPct   / 100) * factor;
+  const eLPConv   = (lpConvPct/ 100) * factor;
+  const eShowRate = (showRatePct / 100) * factor;
+  const eClose    = (closeRatePct/ 100) * factor;
 
-  const leads   = effectiveCPL > 0 ? Math.round(budget / effectiveCPL) : 0;
-  const showUps = l.funnelType === 'webinar'
-    ? Math.round(leads * (showRatePct / 100))
-    : leads;
+  // Paso 1: Impresiones = budget / CPM * 1000
+  const impressions = cpm > 0 ? Math.round((budget / cpm) * 1000) : 0;
+
+  // Paso 2: Clicks = impresiones × CTR
+  const clicks = Math.round(impressions * eCTR);
+
+  // Paso 3: Leads/Registros = clicks × % conversión página
+  const leads = Math.round(clicks * eLPConv);
+
+  // Paso 4 (webinar): Asistentes = leads × % show
+  const showUps = l.funnelType === 'webinar' ? Math.round(leads * eShowRate) : leads;
+
+  // Paso 5: Ventas = closeable × % cierre
   const closeable = l.funnelType === 'webinar' ? showUps : leads;
-  const sales     = Math.round(closeable * (closeRatePct / 100));
-  const revenue   = sales * price;
-  const roas      = budget > 0 ? revenue / budget : 0;
-  const cpa       = sales > 0 ? budget / sales : 0;
+  const sales     = Math.round(closeable * eClose);
 
-  return { leads, showUps, sales, revenue, roas, cpa, budget };
+  // Paso 6: Revenue y ROAS
+  const revenue = sales * price;
+  const roas    = budget > 0 ? revenue / budget : 0;
+  const cpa     = sales > 0 ? budget / sales : 0;
+  const cpl_out = leads > 0 ? budget / leads : 0;
+
+  return { budget, impressions, clicks, leads, showUps, sales, revenue, roas, cpa, cpl: cpl_out };
 }
 
 function renderProjectionPanel(l) {
@@ -2243,44 +2260,69 @@ function renderProjectionPanel(l) {
   const panel = document.getElementById('projPanel');
   if (!panel) return;
 
-  // Inputs con valores por defecto derivados de datos reales
-  const defaultBudget    = (l.spend || 0).toFixed(2);
-  const defaultPrice     = (l.avgTicket || 0).toFixed(2);
-  const defaultShowRate  = 50; // webinar show rate default (not tracked by Meta)
-  // closeRate from backend is decimal (e.g. 0.05 = 5%); convert to % for display
-  const defaultCloseRate = l.closeRate ? (l.closeRate * 100).toFixed(1) : '5.0';
+  // Derivar defaults desde datos reales
+  const dBudget    = (l.spend || 0).toFixed(0);
+  const dCPM       = l.cpm  ? l.cpm.toFixed(2)  : '0';
+  const dCTR       = l.ctr  ? l.ctr.toFixed(2)  : '0';
+  // lpConvRate del backend es decimal (regs/clicks); convertir a %
+  const dLPConv    = l.lpConvRate ? (l.lpConvRate * 100).toFixed(2) : '0';
+  const dShowRate  = '50';  // Meta no trackea esto — el usuario lo sabe
+  const dClose     = l.closeRate ? (l.closeRate * 100).toFixed(1) : '5.0';
+  const dPrice     = l.avgTicket ? l.avgTicket.toFixed(2) : '0';
+
+  const baseCards = [
+    l.spend       && `<div class="proj-baseline-card"><div class="proj-baseline-label">Gasto real</div><div class="proj-baseline-value">$${l.spend.toFixed(2)}</div></div>`,
+    l.impressions && `<div class="proj-baseline-card"><div class="proj-baseline-label">Impresiones</div><div class="proj-baseline-value">${l.impressions.toLocaleString('en-US')}</div></div>`,
+    l.clicks      && `<div class="proj-baseline-card"><div class="proj-baseline-label">Clicks</div><div class="proj-baseline-value">${l.clicks.toLocaleString('en-US')}</div></div>`,
+    l.cpm         && `<div class="proj-baseline-card"><div class="proj-baseline-label">CPM</div><div class="proj-baseline-value">$${l.cpm.toFixed(2)}</div></div>`,
+    l.ctr         && `<div class="proj-baseline-card"><div class="proj-baseline-label">CTR</div><div class="proj-baseline-value">${l.ctr.toFixed(2)}%</div></div>`,
+    l.lpConvRate  && `<div class="proj-baseline-card"><div class="proj-baseline-label">Conv. página</div><div class="proj-baseline-value">${(l.lpConvRate*100).toFixed(2)}%</div></div>`,
+    l.conversions && `<div class="proj-baseline-card"><div class="proj-baseline-label">${l.funnelType==='webinar'?'Registros':'Leads'}</div><div class="proj-baseline-value">${l.conversions}</div></div>`,
+    l.cpl         && `<div class="proj-baseline-card"><div class="proj-baseline-label">CPL</div><div class="proj-baseline-value">$${l.cpl.toFixed(2)}</div></div>`,
+    l.closeRate   && `<div class="proj-baseline-card"><div class="proj-baseline-label">% Cierre</div><div class="proj-baseline-value">${(l.closeRate*100).toFixed(1)}%</div></div>`,
+    l.purchases   && `<div class="proj-baseline-card"><div class="proj-baseline-label">Ventas reales</div><div class="proj-baseline-value">${l.purchases}</div></div>`,
+    l.avgTicket   && `<div class="proj-baseline-card"><div class="proj-baseline-label">Ticket prom.</div><div class="proj-baseline-value">$${l.avgTicket.toFixed(2)}</div></div>`,
+    l.roas        && `<div class="proj-baseline-card"><div class="proj-baseline-label">ROAS real</div><div class="proj-baseline-value ${l.roas>=1?'green':'red'}">${l.roas.toFixed(2)}x</div></div>`,
+  ].filter(Boolean).join('');
 
   panel.innerHTML = `
     <div class="proj-panel">
-      <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Datos reales del lanzamiento</div>
-      <div class="proj-baseline">
-        ${l.spend    ? `<div class="proj-baseline-card"><div class="proj-baseline-label">Gasto real</div><div class="proj-baseline-value">$${l.spend.toFixed(2)}</div></div>` : ''}
-        ${l.cpl      ? `<div class="proj-baseline-card"><div class="proj-baseline-label">CPL real</div><div class="proj-baseline-value">$${l.cpl.toFixed(2)}</div></div>` : ''}
-        ${l.funnelType === 'webinar' && l.conversions ? `<div class="proj-baseline-card"><div class="proj-baseline-label">Registros</div><div class="proj-baseline-value">${l.conversions}</div></div>` : ''}
-        ${l.funnelType === 'leads'   && l.conversions ? `<div class="proj-baseline-card"><div class="proj-baseline-label">Leads</div><div class="proj-baseline-value">${l.conversions}</div></div>` : ''}
-        ${l.closeRate ? `<div class="proj-baseline-card"><div class="proj-baseline-label">Tasa de cierre real</div><div class="proj-baseline-value">${(l.closeRate * 100).toFixed(1)}%</div></div>` : ''}
-        ${l.avgTicket ? `<div class="proj-baseline-card"><div class="proj-baseline-label">Ticket promedio</div><div class="proj-baseline-value">$${l.avgTicket.toFixed(2)}</div></div>` : ''}
-        ${l.roas     ? `<div class="proj-baseline-card"><div class="proj-baseline-label">ROAS real</div><div class="proj-baseline-value ${l.roas >= 1 ? 'green' : 'red'}">${l.roas.toFixed(2)}x</div></div>` : ''}
-      </div>
+      <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Datos históricos del lanzamiento</div>
+      <div class="proj-baseline">${baseCards}</div>
 
-      <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:8px;margin-bottom:4px">Ajusta los parámetros</div>
+      <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:14px;margin-bottom:8px">
+        Parámetros del funnel
+        <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;margin-left:6px">— edita los valores para proyectar</span>
+      </div>
       <div class="proj-inputs">
         <div class="proj-input-group">
-          <label class="proj-input-label">Presupuesto planeado ($)</label>
-          <input class="proj-input" id="pi-budget"    type="number" min="0" step="100" value="${defaultBudget}"    oninput="recalcProjections()">
+          <label class="proj-input-label">Presupuesto ($)</label>
+          <input class="proj-input" id="pi-budget"   type="number" min="0" step="100"  value="${dBudget}"   oninput="recalcProjections()">
         </div>
         <div class="proj-input-group">
-          <label class="proj-input-label">Precio del producto ($)</label>
-          <input class="proj-input" id="pi-price"     type="number" min="0" step="10"  value="${defaultPrice}"     oninput="recalcProjections()">
+          <label class="proj-input-label">CPM ($) — costo/1000 imp.</label>
+          <input class="proj-input" id="pi-cpm"      type="number" min="0" step="0.1"  value="${dCPM}"      oninput="recalcProjections()">
+        </div>
+        <div class="proj-input-group">
+          <label class="proj-input-label">CTR (%)</label>
+          <input class="proj-input" id="pi-ctr"      type="number" min="0" max="100" step="0.01" value="${dCTR}" oninput="recalcProjections()">
+        </div>
+        <div class="proj-input-group">
+          <label class="proj-input-label">Conv. página (%)</label>
+          <input class="proj-input" id="pi-lpconv"   type="number" min="0" max="100" step="0.01" value="${dLPConv}" oninput="recalcProjections()">
         </div>
         ${l.funnelType === 'webinar' ? `
         <div class="proj-input-group">
-          <label class="proj-input-label">Tasa de asistencia (%)</label>
-          <input class="proj-input" id="pi-showRate"  type="number" min="0" max="100" step="1" value="${defaultShowRate}"  oninput="recalcProjections()">
+          <label class="proj-input-label">% Asistencia webinar</label>
+          <input class="proj-input" id="pi-showRate" type="number" min="0" max="100" step="1" value="${dShowRate}" oninput="recalcProjections()">
         </div>` : '<input type="hidden" id="pi-showRate" value="100">'}
         <div class="proj-input-group">
-          <label class="proj-input-label">Tasa de cierre (%)</label>
-          <input class="proj-input" id="pi-closeRate" type="number" min="0" max="100" step="0.1" value="${defaultCloseRate}" oninput="recalcProjections()">
+          <label class="proj-input-label">% Cierre / Conversión</label>
+          <input class="proj-input" id="pi-closeRate" type="number" min="0" max="100" step="0.1" value="${dClose}" oninput="recalcProjections()">
+        </div>
+        <div class="proj-input-group">
+          <label class="proj-input-label">Precio producto ($)</label>
+          <input class="proj-input" id="pi-price"    type="number" min="0" step="10"   value="${dPrice}"    oninput="recalcProjections()">
         </div>
       </div>
 
@@ -2296,9 +2338,12 @@ function recalcProjections() {
 
   const inputs = {
     budget:    document.getElementById('pi-budget')?.value,
-    price:     document.getElementById('pi-price')?.value,
+    cpm:       document.getElementById('pi-cpm')?.value,
+    ctr:       document.getElementById('pi-ctr')?.value,
+    lpConv:    document.getElementById('pi-lpconv')?.value,
     showRate:  document.getElementById('pi-showRate')?.value,
     closeRate: document.getElementById('pi-closeRate')?.value,
+    price:     document.getElementById('pi-price')?.value,
   };
 
   const conservative = calcScenario(l, inputs, 0.8);
@@ -2308,41 +2353,47 @@ function recalcProjections() {
   const scenEl = document.getElementById('projScenarios');
   if (!scenEl) return;
 
-  const showFunnel = (s) => {
-    const steps = [];
-    if (l.cpl > 0) {
-      steps.push({ label: l.funnelType === 'webinar' ? 'Registros' : 'Leads', value: s.leads });
-    }
-    if (l.funnelType === 'webinar') {
-      steps.push({ label: 'Asistentes', value: s.showUps });
-    }
-    steps.push({ label: 'Ventas', value: s.sales });
-    steps.push({ label: 'Revenue', value: '$' + s.revenue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) });
+  const p2 = n => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  const pn = n => n.toLocaleString('en-US');
 
+  const funnelRow = (s) => {
+    const steps = [
+      { label: 'Presupuesto', value: p2(s.budget) },
+      { label: 'Impresiones', value: pn(s.impressions) },
+      { label: 'Clicks',      value: pn(s.clicks) },
+      { label: l.funnelType === 'webinar' ? 'Registros' : 'Leads', value: pn(s.leads) },
+    ];
+    if (l.funnelType === 'webinar') steps.push({ label: 'Asistentes', value: pn(s.showUps) });
+    steps.push({ label: 'Ventas', value: pn(s.sales) });
+    steps.push({ label: 'Revenue', value: p2(s.revenue) });
     return `<div class="proj-funnel">
-      <div class="proj-funnel-step"><div class="proj-funnel-step-label">Presupuesto</div><div class="proj-funnel-step-value">$${s.budget.toLocaleString('en-US', {maximumFractionDigits:0})}</div></div>
-      ${steps.map(st => `
-        <div class="proj-arrow">→</div>
-        <div class="proj-funnel-step"><div class="proj-funnel-step-label">${st.label}</div><div class="proj-funnel-step-value">${typeof st.value === 'string' ? st.value : st.value.toLocaleString('en-US')}</div></div>
-      `).join('')}
+      ${steps.map((st, i) => `
+        ${i > 0 ? '<div class="proj-arrow">→</div>' : ''}
+        <div class="proj-funnel-step">
+          <div class="proj-funnel-step-label">${st.label}</div>
+          <div class="proj-funnel-step-value">${st.value}</div>
+        </div>`).join('')}
     </div>`;
   };
 
-  const card = (type, label, emoji, s) => `
+  const card = (type, emoji, label, s) => `
     <div class="proj-scenario ${type}">
       <div class="proj-scenario-title">${emoji} ${label}</div>
-      ${showFunnel(s)}
-      <div class="proj-metric"><span class="proj-metric-label">Ventas proyectadas</span><span class="proj-metric-value">${s.sales}</span></div>
-      <div class="proj-metric"><span class="proj-metric-label">Revenue proyectado</span><span class="proj-metric-value">$${s.revenue.toLocaleString('en-US', {minimumFractionDigits:0,maximumFractionDigits:0})}</span></div>
-      <div class="proj-metric"><span class="proj-metric-label">ROAS proyectado</span><span class="proj-metric-value ${s.roas >= 1 ? 'green' : 'red'}">${s.roas.toFixed(2)}x</span></div>
-      <div class="proj-metric"><span class="proj-metric-label">CPA proyectado</span><span class="proj-metric-value">${s.cpa > 0 ? '$' + s.cpa.toFixed(2) : '—'}</span></div>
+      ${funnelRow(s)}
+      <div class="proj-metric"><span class="proj-metric-label">CPL proyectado</span><span class="proj-metric-value">${s.cpl > 0 ? p2(s.cpl) : '—'}</span></div>
+      <div class="proj-metric"><span class="proj-metric-label">Ventas</span><span class="proj-metric-value" style="color:var(--green)">${s.sales}</span></div>
+      <div class="proj-metric"><span class="proj-metric-label">Revenue</span><span class="proj-metric-value">${p2(s.revenue)}</span></div>
+      <div class="proj-metric"><span class="proj-metric-label">ROAS</span><span class="proj-metric-value ${s.roas >= 1 ? 'green' : 'red'}">${s.roas.toFixed(2)}x</span></div>
+      <div class="proj-metric"><span class="proj-metric-label">CPA</span><span class="proj-metric-value">${s.cpa > 0 ? p2(s.cpa) : '—'}</span></div>
     </div>`;
 
-  scenEl.innerHTML = `<div class="proj-scenarios">
-    ${card('conservative', 'Conservador',  '🔴', conservative)}
-    ${card('realistic',    'Realista',     '🔵', realistic)}
-    ${card('optimistic',   'Optimista',    '🟢', optimistic)}
-  </div>`;
+  scenEl.innerHTML = `
+    <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:16px;margin-bottom:8px">Escenarios proyectados</div>
+    <div class="proj-scenarios">
+      ${card('conservative', '🔴', 'Conservador (-20%)',  conservative)}
+      ${card('realistic',    '🔵', 'Realista (histórico)', realistic)}
+      ${card('optimistic',   '🟢', 'Optimista (+20%)',    optimistic)}
+    </div>`;
 }
 
 // ═══════════════════════════════════════════════════════════════════
