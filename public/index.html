@@ -1182,10 +1182,17 @@ function fmtMoney(v) {
   return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-// Formatea presupuesto (Meta lo devuelve en unidades mínimas: centavos para USD, centavos de COP para COP)
-function fmtBudget(cents) {
-  if (!cents) return '—';
-  const amount = parseInt(cents) / 100;
+// Formatea presupuesto.
+// USD/EUR y similares: Meta devuelve en centavos → dividir por 100.
+// COP: Meta devuelve en pesos directamente → NO dividir por 100.
+function budgetRaw(val) {
+  // Devuelve el valor numérico real en la moneda de la cuenta
+  if (!val) return 0;
+  return S.currency === 'COP' ? parseInt(val) : parseInt(val) / 100;
+}
+function fmtBudget(val) {
+  if (!val) return '—';
+  const amount = budgetRaw(val);
   if (S.currency === 'COP') {
     return '$' + amount.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   }
@@ -1476,15 +1483,18 @@ async function bulkAction(action) {
 // ─── Budget inline edit ──────────────────────────────────────────────────────
 function startBudgetEdit(id, current) {
   const cell = document.getElementById(`budget-${id}`);
-  const val  = current ? Math.round(current / 100) : '';
+  // Mostrar el valor real en la moneda de la cuenta (sin /100 para COP)
+  const val  = current ? Math.round(budgetRaw(current)) : '';
   cell.innerHTML = `<input class="budget-input" id="bi-${id}" type="number" value="${val}" min="1" onblur="saveBudget('${id}')" onkeydown="if(event.key==='Enter')saveBudget('${id}');if(event.key==='Escape')renderTable()">`;
   document.getElementById(`bi-${id}`)?.focus();
 }
 async function saveBudget(id) {
   const input = document.getElementById(`bi-${id}`);
   if (!input) return;
-  const amount = parseInt(input.value) * 100;
-  if (!amount || amount < 100) { renderTable(); return; }
+  // Meta espera el valor en unidades mínimas: centavos para USD, pesos para COP
+  const entered = parseInt(input.value);
+  const amount  = S.currency === 'COP' ? entered : entered * 100;
+  if (!amount || amount < 1) { renderTable(); return; }
   try {
     await apiFetch('/api/budget', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ id, amount }) });
     showToast('✓ Presupuesto actualizado');
