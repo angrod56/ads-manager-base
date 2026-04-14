@@ -1132,6 +1132,8 @@
 // ═══════════════════════════════════════════════════════════════════
 const S = {
   account: null,
+  currency: 'USD',   // moneda de la cuenta seleccionada
+  accounts: [],      // lista completa de cuentas (para lookup de moneda)
   date: 'last_30d',
   campaigns: [],
   totals: null,
@@ -1163,11 +1165,32 @@ async function post(path, body) {
 //  FORMAT
 // ═══════════════════════════════════════════════════════════════════
 const fmt = {
-  usd: v => v == null ? '—' : '$' + Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-  num: v => v == null ? '—' : Number(v).toLocaleString('en-US'),
-  pct: v => v == null ? '—' : Number(v).toFixed(2) + '%',
+  usd:   v => fmtMoney(v),   // usa la moneda de la cuenta activa (USD o COP)
+  num:   v => v == null ? '—' : Number(v).toLocaleString('en-US'),
+  pct:   v => v == null ? '—' : Number(v).toFixed(2) + '%',
   short: (s, n = 30) => s && s.length > n ? s.slice(0, n - 1) + '…' : (s || '—'),
+  roas:  v => v == null ? '—' : v.toFixed(2) + 'x',
 };
+
+// Formatea según la moneda de la cuenta activa
+function fmtMoney(v) {
+  if (v == null) return '—';
+  const n = Number(v);
+  if (S.currency === 'COP') {
+    return '$' + n.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  }
+  return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// Formatea presupuesto (Meta lo devuelve en unidades mínimas: centavos para USD, centavos de COP para COP)
+function fmtBudget(cents) {
+  if (!cents) return '—';
+  const amount = parseInt(cents) / 100;
+  if (S.currency === 'COP') {
+    return '$' + amount.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  }
+  return '$' + amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
 
 function cpaClass(cpa, avg) {
   if (!cpa || !avg) return 'cpa-none';
@@ -1181,8 +1204,6 @@ function roasClass(roas) {
   if (roas >= 1)  return 'roas-good';
   return 'roas-bad';
 }
-
-fmt.roas = v => v == null ? '—' : Number(v).toFixed(2) + 'x';
 
 function statusBadge(s) {
   const m = {
@@ -1515,7 +1536,7 @@ function renderTable() {
     const expanded   = S.expanded.has(c.id);
     const cpaCls     = cpaClass(c.cpa, avg);
     const freqCls    = (c.frequency||0) > 3 ? 'red' : (c.frequency||0) > 2.5 ? 'yellow' : 'muted';
-    const budget     = c.daily_budget ? '$' + (parseInt(c.daily_budget)/100).toFixed(0) : c.lifetime_budget ? 'LT' : '—';
+    const budget     = c.daily_budget ? fmtBudget(c.daily_budget) : c.lifetime_budget ? `LT ${fmtBudget(c.lifetime_budget)}` : '—';
     const actionBtn  = isActive
       ? `<button class="action-btn pause" onclick="toggleStatus('${c.id}','ACTIVE')">⏸ Pausar</button>`
       : `<button class="action-btn activate" onclick="toggleStatus('${c.id}','PAUSED')">▶ Activar</button>`;
@@ -1571,7 +1592,7 @@ function renderTable() {
           <th class="num">Budget/día</th>
         </tr></thead><tbody>
         ${adsets.map(s => {
-          const bud = s.daily_budget ? '$'+(parseInt(s.daily_budget)/100).toFixed(0) : '—';
+          const bud = s.daily_budget ? fmtBudget(s.daily_budget) : s.lifetime_budget ? `LT ${fmtBudget(s.lifetime_budget)}` : '—';
           const fc  = (s.frequency||0)>3?'red':(s.frequency||0)>2.5?'yellow':'muted';
           return `<tr>
             <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis" title="${s.name}">${fmt.short(s.name,32)}</td>
@@ -2614,18 +2635,25 @@ async function init() {
     api('/api/config'),
   ]);
 
+  S.accounts = accounts;
+
   const sel = document.getElementById('accountSelect');
   sel.innerHTML = accounts.map(a =>
-    `<option value="${a.id}">${a.name} (${a.id})</option>`
+    `<option value="${a.id}">${a.name} — ${a.currency} (${a.id})</option>`
   ).join('');
 
   // Pre-seleccionar cuenta por defecto
   if (config.defaultAccount) sel.value = config.defaultAccount;
-  S.account = sel.value;
-  S.date    = document.getElementById('dateSelect').value;
+  S.account  = sel.value;
+  S.currency = accounts.find(a => a.id === S.account)?.currency || 'USD';
+  S.date     = document.getElementById('dateSelect').value;
 
   // Eventos
-  sel.addEventListener('change', e => { S.account = e.target.value; loadOverview(); });
+  sel.addEventListener('change', e => {
+    S.account  = e.target.value;
+    S.currency = S.accounts.find(a => a.id === S.account)?.currency || 'USD';
+    loadOverview();
+  });
   document.getElementById('dateSelect').addEventListener('change', e => { S.date = e.target.value; loadOverview(); });
   document.getElementById('refreshBtn').addEventListener('click', loadOverview);
   document.getElementById('searchInput').addEventListener('input', e => { S.filter = e.target.value; renderTable(); });
