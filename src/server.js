@@ -46,6 +46,12 @@ async function body(req) {
 
 // ── Rutas GET ─────────────────────────────────────────────────────────────────
 
+// Helper: devuelve opciones de fecha para getInsights según los query params
+function dateOpts(q, fallback = 'last_30d') {
+  if (q.since && q.until) return { since: q.since, until: q.until };
+  return { datePreset: q.date || fallback };
+}
+
 const GET = {
 
   '/api/config': async (res) => {
@@ -89,10 +95,9 @@ const GET = {
   '/api/projections': async (res, q) => {
     if (!q.account) return err(res, 'account requerido', 400);
 
-    const date = q.date || 'last_30d';
     const [campaigns, insights] = await Promise.all([
       listCampaigns(q.account, 'ALL'),
-      getInsights(q.account, { datePreset: date, level: 'campaign' }),
+      getInsights(q.account, { ...dateOpts(q), level: 'campaign' }),
     ]);
 
     const iMap = {};
@@ -154,7 +159,7 @@ const GET = {
 
     const [campaigns, insights] = await Promise.all([
       listCampaigns(q.account, 'ALL'),
-      getInsights(q.account, { datePreset: q.date || 'last_30d', level: 'campaign' }),
+      getInsights(q.account, { ...dateOpts(q), level: 'campaign' }),
     ]);
 
     const iMap = {};
@@ -244,7 +249,7 @@ const GET = {
     if (!q.campaign) return err(res, 'campaign requerido', 400);
     const [adsets, insights] = await Promise.all([
       listAdSets(q.account || q.campaign, q.campaign, 'ALL'),
-      getInsights(q.campaign, { datePreset: q.date || 'last_30d', level: 'adset' }),
+      getInsights(q.campaign, { ...dateOpts(q), level: 'adset' }),
     ]);
     const iMap = {};
     for (const r of insights) iMap[r.adset_id] = r;
@@ -279,10 +284,7 @@ const GET = {
   // Insights a nivel ad para drill-down de campaña
   '/api/campaign-ads': async (res, q) => {
     if (!q.campaign) return err(res, 'campaign requerido', 400);
-    const data = await getInsights(q.campaign, {
-      datePreset: q.date || 'last_30d',
-      level: 'ad',
-    });
+    const data = await getInsights(q.campaign, { ...dateOpts(q), level: 'ad' });
     json(res, data.map(row => {
       const spend     = parseFloat(row.spend || 0);
       const purchases = getActionValue(row.actions || [], 'purchase');
@@ -309,10 +311,7 @@ const GET = {
   '/api/top-ads': async (res, q) => {
     if (!q.account) return err(res, 'account requerido', 400);
 
-    const insights = await getInsights(q.account, {
-      datePreset: q.date || 'last_30d',
-      level: 'ad',
-    });
+    const insights = await getInsights(q.account, { ...dateOpts(q), level: 'ad' });
 
     const mapped = insights.map(row => {
       const spend     = parseFloat(row.spend || 0);
@@ -368,11 +367,10 @@ const GET = {
   // ── Endpoint lanzamientos agrupados ──────────────────────────────────────────
   '/api/launches': async (res, q) => {
     if (!q.account) return err(res, 'account requerido', 400);
-    const date = q.date || 'last_30d';
 
     const [campaigns, insights] = await Promise.all([
       listCampaigns(q.account, 'ALL'),
-      getInsights(q.account, { datePreset: date, level: 'campaign' }),
+      getInsights(q.account, { ...dateOpts(q), level: 'campaign' }),
     ]);
 
     const iMap = {};
@@ -497,7 +495,6 @@ const GET = {
   // ── Tendencia diaria de un lanzamiento ───────────────────────────────────────
   '/api/launch-trend': async (res, q) => {
     if (!q.account || !q.launch) return err(res, 'account y launch requeridos', 400);
-    const date = q.date || 'last_30d';
 
     const campaigns = await listCampaigns(q.account, 'ALL');
     const ids = campaigns
@@ -507,7 +504,7 @@ const GET = {
     if (!ids.length) return json(res, []);
 
     const allInsights = await Promise.all(
-      ids.map(id => getInsights(id, { datePreset: date, level: 'campaign', timeIncrement: '1' }))
+      ids.map(id => getInsights(id, { ...dateOpts(q), level: 'campaign', timeIncrement: '1' }))
     );
 
     const byDate = {};
@@ -607,7 +604,7 @@ const GET = {
   '/api/countries': async (res, q) => {
     if (!q.account) return err(res, 'account requerido', 400);
     const data = await getInsights(q.account, {
-      datePreset: q.date || 'last_30d',
+      ...dateOpts(q),
       level: q.level || 'campaign',
       breakdowns: 'country',
     });

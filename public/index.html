@@ -885,7 +885,14 @@
       <option value="last_month">Mes anterior</option>
       <option value="this_month">Este mes</option>
       <option value="this_year">Este año</option>
+      <option value="custom">📅 Rango personalizado…</option>
     </select>
+    <div id="customDateWrap" style="display:none;align-items:center;gap:6px;flex-wrap:wrap">
+      <input type="date" id="dateFrom" style="font-size:12px;padding:5px 8px">
+      <span style="color:var(--muted);font-size:12px">→</span>
+      <input type="date" id="dateTo"   style="font-size:12px;padding:5px 8px">
+      <button id="applyDateBtn" onclick="applyCustomDate()" style="font-size:12px;padding:5px 12px;background:var(--blue);border-color:var(--blue);color:#fff">Aplicar</button>
+    </div>
     <button id="refreshBtn">↺ Actualizar</button>
     <span class="last-update" id="lastUpdate"></span>
   </div>
@@ -1135,6 +1142,8 @@ const S = {
   currency: 'USD',   // moneda de la cuenta seleccionada
   accounts: [],      // lista completa de cuentas (para lookup de moneda)
   date: 'last_30d',
+  since: null,       // rango personalizado inicio (YYYY-MM-DD)
+  until: null,       // rango personalizado fin   (YYYY-MM-DD)
   campaigns: [],
   totals: null,
   sort: { by: 'spend', dir: 'desc' },
@@ -1153,6 +1162,22 @@ async function api(path) {
   const d = await r.json();
   if (d.error) throw new Error(d.error);
   return d;
+}
+
+// Genera el query string de fecha según el modo activo
+function dateParams() {
+  if (S.date === 'custom' && S.since && S.until) {
+    return `since=${S.since}&until=${S.until}`;
+  }
+  return `date=${S.date}`;
+}
+function applyCustomDate() {
+  const from = document.getElementById('dateFrom').value;
+  const to   = document.getElementById('dateTo').value;
+  if (!from || !to) return;
+  S.since = from;
+  S.until = to;
+  loadOverview();
 }
 async function post(path, body) {
   const r = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -1669,7 +1694,7 @@ function showTab(campaignId, tab, btn) {
 async function loadAdsetData(campaignId) {
   if (!S.adsetData) S.adsetData = {};
   try {
-    S.adsetData[campaignId] = await api(`/api/adset-metrics?campaign=${campaignId}&date=${S.date}`);
+    S.adsetData[campaignId] = await api(`/api/adset-metrics?campaign=${campaignId}&${dateParams()}`);
   } catch { S.adsetData[campaignId] = []; }
   renderTable();
 }
@@ -1751,7 +1776,7 @@ async function toggleExpand(id) {
     if (!S.adData[id]) {
       renderTable();
       try {
-        S.adData[id] = await api(`/api/campaign-ads?campaign=${id}&date=${S.date}`);
+        S.adData[id] = await api(`/api/campaign-ads?campaign=${id}&${dateParams()}`);
       } catch {
         S.adData[id] = [];
       }
@@ -1785,7 +1810,7 @@ async function loadOverview() {
   btn.disabled = true;
 
   try {
-    const data = await api(`/api/overview?account=${S.account}&date=${S.date}&compare=1`);
+    const data = await api(`/api/overview?account=${S.account}&${dateParams()}&compare=1`);
     S.campaigns = data.campaigns;
     S.totals    = data.totals;
     S.adsetData = {};
@@ -1845,7 +1870,7 @@ async function loadTopAds() {
   document.getElementById('topAdsSubtitle').textContent = 'Cargando…';
 
   try {
-    const data = await api(`/api/top-ads?account=${S.account}&date=${S.date}&format=${topAdsState.format}&limit=5`);
+    const data = await api(`/api/top-ads?account=${S.account}&${dateParams()}&format=${topAdsState.format}&limit=5`);
     topAdsState.ads = data;
     renderTopAds(data);
   } catch (e) {
@@ -2046,7 +2071,7 @@ async function switchModalFormat(btn) {
     `<div class="preview-placeholder" style="height:200px;display:flex;align-items:center;justify-content:center"><span class="spin" style="font-size:20px">↻</span></div>`;
 
   try {
-    const data = await api(`/api/top-ads?account=${S.account}&date=${S.date}&format=${fmt2}&limit=5`);
+    const data = await api(`/api/top-ads?account=${S.account}&${dateParams()}&format=${fmt2}&limit=5`);
     const ad   = data.find(a => a.id === adId);
     renderModalPreview(ad?.preview || null);
   } catch {
@@ -2079,7 +2104,7 @@ window.addEventListener('resize', () => {
 async function loadCountries() {
   if (!S.account) return;
   try {
-    const data = await api(`/api/countries?account=${S.account}&date=${S.date}`);
+    const data = await api(`/api/countries?account=${S.account}&${dateParams()}`);
     renderCountries(data);
   } catch (e) {
     document.getElementById('countriesTable').innerHTML =
@@ -2264,7 +2289,7 @@ async function loadLaunchTrend(idx) {
   if (launchCharts[canvasId]) { launchCharts[canvasId].destroy(); delete launchCharts[canvasId]; }
 
   try {
-    const trend = await api(`/api/launch-trend?account=${S.account}&launch=${encodeURIComponent(l.name)}&date=${S.date}`);
+    const trend = await api(`/api/launch-trend?account=${S.account}&launch=${encodeURIComponent(l.name)}&${dateParams()}`);
     if (!trend.length) return;
 
     const labels  = trend.map(t => t.date.slice(5));
@@ -2315,7 +2340,7 @@ async function loadLaunches() {
   content.innerHTML = '<span class="muted">Agrupando campañas por lanzamiento…</span>';
 
   try {
-    const data = await api(`/api/launches?account=${S.account}&date=${S.date}`);
+    const data = await api(`/api/launches?account=${S.account}&${dateParams()}`);
     launchState.launches = data;
 
     if (!data.length) {
@@ -2344,7 +2369,7 @@ async function loadRecommendations() {
   content.innerHTML = '<span class="muted">Analizando métricas con tus criterios…</span>';
 
   try {
-    const data = await api(`/api/recommendations?account=${S.account}&date=${S.date}`);
+    const data = await api(`/api/recommendations?account=${S.account}&${dateParams()}`);
     const { pausar, escalar, revisar, bien } = data;
 
     const block = (type, icon, title, items, emptyMsg) => `
@@ -2388,7 +2413,7 @@ async function loadProjections() {
   content.innerHTML = '<span class="muted">Calculando datos de funnel…</span>';
 
   try {
-    const data = await api(`/api/projections?account=${S.account}&date=${S.date}`);
+    const data = await api(`/api/projections?account=${S.account}&${dateParams()}`);
     projState.launches = data;
 
     if (!data.length) {
@@ -2664,7 +2689,22 @@ async function init() {
     S.currency = S.accounts.find(a => a.id === S.account)?.currency || 'USD';
     loadOverview();
   });
-  document.getElementById('dateSelect').addEventListener('change', e => { S.date = e.target.value; loadOverview(); });
+  document.getElementById('dateSelect').addEventListener('change', e => {
+    S.date = e.target.value;
+    const wrap = document.getElementById('customDateWrap');
+    if (S.date === 'custom') {
+      wrap.style.display = 'flex';
+      const today = new Date().toISOString().slice(0, 10);
+      const week  = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+      document.getElementById('dateFrom').value = document.getElementById('dateFrom').value || week;
+      document.getElementById('dateTo').value   = document.getElementById('dateTo').value   || today;
+    } else {
+      wrap.style.display = 'none';
+      S.since = null;
+      S.until = null;
+      loadOverview();
+    }
+  });
   document.getElementById('refreshBtn').addEventListener('click', loadOverview);
   document.getElementById('searchInput').addEventListener('input', e => { S.filter = e.target.value; renderTable(); });
   document.getElementById('topAdsFormat').addEventListener('change', loadTopAds);
