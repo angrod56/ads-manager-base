@@ -1000,6 +1000,7 @@
               <th data-sort="roas" class="num">ROAS</th>
               <th data-sort="purchases" class="num">Compras</th>
               <th data-sort="registrations" class="num">Registros</th>
+              <th data-sort="regConv" class="num" title="Registros / Visitas a la página">Conv. Reg.</th>
               <th data-sort="cpa" class="num">CPA</th>
               <th data-sort="cpl" class="num">CPL</th>
               <th data-sort="frequency" class="num">Frec.</th>
@@ -1008,7 +1009,7 @@
             </tr>
           </thead>
           <tbody id="campaignsTbody">
-            <tr><td colspan="15" class="empty"><div class="empty-icon">⏳</div><div>Cargando campañas…</div></td></tr>
+            <tr><td colspan="16" class="empty"><div class="empty-icon">⏳</div><div>Cargando campañas…</div></td></tr>
           </tbody>
         </table>
       </div>
@@ -1235,6 +1236,17 @@ function roasClass(roas) {
   if (!roas) return 'muted';
   if (roas >= 1)  return 'roas-good';
   return 'roas-bad';
+}
+function fmtRegConv(regs, lp) {
+  if (!lp) return '<span class="muted">—</span>';
+  return ((regs / lp) * 100).toFixed(1) + '%';
+}
+function regConvClass(regs, lp) {
+  if (!lp) return 'muted';
+  const pct = (regs / lp) * 100;
+  if (pct >= 20) return 'green';
+  if (pct >= 10) return 'yellow';
+  return 'red';
 }
 
 function statusBadge(s) {
@@ -1561,7 +1573,7 @@ function renderTable() {
   const tbody = document.getElementById('campaignsTbody');
 
   if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="15"><div class="empty"><div class="empty-icon">🔍</div><div>Sin resultados</div></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="16"><div class="empty"><div class="empty-icon">🔍</div><div>Sin resultados</div></div></td></tr>`;
     return;
   }
 
@@ -1592,6 +1604,7 @@ function renderTable() {
         <td class="num ${roasClass(c.roas)}">${fmt.roas(c.roas)}</td>
         <td class="num" style="font-weight:${c.purchases>0?'600':'400'}">${c.purchases > 0 ? c.purchases : '<span class="muted">0</span>'}</td>
         <td class="num" style="color:${(c.registrations||0)>0?'var(--green)':'var(--muted)'}">${(c.registrations||0)||'<span class="muted">0</span>'}</td>
+        <td class="num ${regConvClass(c.registrations, c.lpViews)}">${fmtRegConv(c.registrations, c.lpViews)}</td>
         <td class="num ${cpaCls}">${fmt.usd(c.cpa)}</td>
         <td class="num ${cpaClass(c.cpl, 4)}">${fmt.usd(c.cpl)}</td>
         <td class="num ${freqCls}">${(c.frequency||0).toFixed(1)}</td>
@@ -1601,7 +1614,7 @@ function renderTable() {
 
     if (expanded) {
       const expandData = S.adData[c.id];
-      html += `<tr class="ads-row"><td colspan="15"><div class="ads-inner" id="ads-${c.id}">`;
+      html += `<tr class="ads-row"><td colspan="16"><div class="ads-inner" id="ads-${c.id}">`;
 
       // Tabs: AdSets | Ads
       html += `<div class="adsets-tabs">

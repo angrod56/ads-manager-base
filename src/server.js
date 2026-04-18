@@ -172,16 +172,19 @@ const GET = {
       // complete_registration = evento de pixel configurado por el usuario (coincide con Ads Manager)
       // lead = auto-tracked por Meta, puede inflar el número — NO usar para CPL
       const registrations = getActionValue(ins.actions || [], 'complete_registration') || 0;
+      const lpViews       = getActionValue(ins.actions || [], 'landing_page_view') || 0;
       const revenue       = getRevenue(ins.action_values || []);
       const roas          = getRoas(ins.purchase_roas || [], spend, revenue);
       const cpl           = calcCPA(spend, registrations);
       return {
         ...c,
         spend,
-        impressions: parseInt(ins.impressions || 0),
-        clicks:      parseInt(ins.clicks || 0),
+        impressions:   parseInt(ins.impressions || 0),
+        clicks:        parseInt(ins.clicks || 0),
         purchases,
         registrations,
+        lpViews,
+        regConv: lpViews > 0 ? registrations / lpViews : null,
         revenue,
         roas,
         cpl,
