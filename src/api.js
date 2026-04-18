@@ -29,13 +29,13 @@ export async function apiRequest(endpoint, params = {}, method = 'GET', body = n
     }
   }
 
-  const options = {
-    method,
-    headers: { 'Content-Type': 'application/json' },
-  };
+  const options = { method };
 
   if (method === 'POST' && body) {
-    options.body = JSON.stringify(body);
+    const form = new URLSearchParams();
+    for (const [k, v] of Object.entries(body)) form.set(k, v);
+    options.headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+    options.body = form.toString();
   }
 
   const response = await fetch(url.toString(), options);
