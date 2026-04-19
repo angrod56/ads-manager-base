@@ -3429,12 +3429,30 @@ async function initPush() {
   }
 }
 
-const _cashAudio = new Audio('/cash-register.wav');
-_cashAudio.preload = 'auto';
+let _cashAudio = null;
+
+// iOS requiere que el audio se inicialice dentro de un gesto del usuario
+function _initAudio() {
+  if (_cashAudio) return;
+  _cashAudio = new Audio('/cash-register.wav');
+  _cashAudio.preload = 'auto';
+  // "Tocar" silenciosamente para desbloquear el contexto de audio en iOS
+  _cashAudio.volume = 0;
+  _cashAudio.play().then(() => {
+    _cashAudio.pause();
+    _cashAudio.currentTime = 0;
+    _cashAudio.volume = 1;
+  }).catch(() => {});
+}
+
+// Desbloquear audio en el primer toque del usuario
+document.addEventListener('touchstart', _initAudio, { once: true });
+document.addEventListener('click',      _initAudio, { once: true });
 
 function playCashRegister() {
   try {
-    const snd = _cashAudio.cloneNode();
+    if (!_cashAudio) { _initAudio(); return; }
+    const snd = new Audio('/cash-register.wav');
     snd.volume = 1.0;
     snd.play().catch(() => {});
   } catch(e) {}
