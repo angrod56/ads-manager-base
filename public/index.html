@@ -3429,6 +3429,48 @@ async function initPush() {
   }
 }
 
+function playCashRegister() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+    // "Cha" — click mecánico
+    const clickBuf = ctx.createBuffer(1, ctx.sampleRate * 0.08, ctx.sampleRate);
+    const clickData = clickBuf.getChannelData(0);
+    for (let i = 0; i < clickData.length; i++)
+      clickData[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.01));
+    const click = ctx.createBufferSource();
+    click.buffer = clickBuf;
+    const clickGain = ctx.createGain();
+    clickGain.gain.value = 0.6;
+    click.connect(clickGain);
+    clickGain.connect(ctx.destination);
+    click.start(ctx.currentTime);
+
+    // "Ching" — campanilla
+    [1200, 1800, 2400].forEach((freq, i) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const t    = ctx.currentTime + 0.06 + i * 0.04;
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, t);
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.6, t + 0.4);
+      gain.gain.setValueAtTime(0.5, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.5);
+    });
+  } catch(e) { /* silencioso si el navegador bloquea */ }
+}
+
+// Escuchar mensajes del service worker para reproducir sonido
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', e => {
+    if (e.data?.type === 'SALE_SOUND') playCashRegister();
+  });
+}
+
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
