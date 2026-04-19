@@ -12,7 +12,7 @@ import {
 } from './campaigns.js';
 import {
   verifySession, listUsers, saveUserToken, touchLastLogin, setUserRole, deleteUser,
-  saveHotmartToken, supabase, supabaseAdmin,
+  saveHotmartToken, saveUserName, supabase, supabaseAdmin,
 } from './auth.js';
 import { verifyHotmartToken, processHotmartEvent, getSales } from './hotmart.js';
 import { saveSubscription, sendPushToUser } from './push.js';
@@ -717,12 +717,13 @@ const POST = {
 
   // ── Auth: registro ───────────────────────────────────────────────────────────
   '/api/auth/register': async (res, req) => {
-    const { email, password } = await body(req);
+    const { email, password, name } = await body(req);
     if (!email || !password) return err(res, 'email y password requeridos', 400);
     const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) { console.error('[register error]', error); return err(res, error.message, 400); }
     if (!data.session) return err(res, 'Confirma tu email antes de continuar', 400);
-    json(res, { session: data.session, user: { id: data.user.id, email } });
+    if (name) await saveUserName(data.user.id, name);
+    json(res, { session: data.session, user: { id: data.user.id, email, name: name || null } });
   },
 
   // ── Auth: guardar token de Meta ──────────────────────────────────────────────
@@ -749,6 +750,15 @@ const POST = {
     const { userId } = await body(req);
     if (!userId) return err(res, 'userId requerido', 400);
     await deleteUser(userId);
+    json(res, { ok: true });
+  },
+
+  // ── Auth: actualizar nombre ──────────────────────────────────────────────────
+  '/api/auth/save-name': async (res, req, user) => {
+    if (!user) return err(res, 'No autorizado', 401);
+    const { name } = await body(req);
+    if (!name) return err(res, 'name requerido', 400);
+    await saveUserName(user.id, name);
     json(res, { ok: true });
   },
 
