@@ -909,7 +909,9 @@ http.createServer(async (req, res) => {
     return res.end();
   }
 
-  if (path2 === '/' || path2 === '/index.html')
+  if (path2 === '/')
+    return serveFile(res, path.join(PUBLIC, 'landing.html'), 'text/html');
+  if (path2 === '/app' || path2 === '/index.html')
     return serveFile(res, path.join(PUBLIC, 'index.html'), 'text/html');
 
   // Archivos estáticos públicos

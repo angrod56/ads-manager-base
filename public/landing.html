@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meta Ads Manager — Controla tus campañas y ventas desde un solo lugar</title>
+  <meta name="description" content="Gestiona tus campañas de Meta Ads y recibe notificaciones de ventas de Hotmart en tiempo real. PWA instalable en tu móvil.">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #060818;
+      --surface: #0e1228;
+      --border: rgba(255,255,255,.08);
+      --text: #f0f4ff;
+      --muted: #8892b0;
+      --blue: #4f8ef7;
+      --purple: #9b5de5;
+      --pink: #f72585;
+      --orange: #ff6b35;
+      --green: #06d6a0;
+      --yellow: #ffd166;
+      --radius: 16px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ── Gradients ── */
+    .grad-text {
+      background: linear-gradient(135deg, #4f8ef7, #9b5de5, #f72585);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .grad-text-2 {
+      background: linear-gradient(135deg, #06d6a0, #4f8ef7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .grad-text-3 {
+      background: linear-gradient(135deg, #ff6b35, #ffd166);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ── Nav ── */
+    nav {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      z-index: 100;
+      padding: 16px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      backdrop-filter: blur(20px);
+      background: rgba(6,8,24,.7);
+      border-bottom: 1px solid var(--border);
+      transition: all .3s;
+    }
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 18px;
+      font-weight: 800;
+      text-decoration: none;
+      color: var(--text);
+    }
+    .nav-logo-dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #4f8ef7, #9b5de5);
+      box-shadow: 0 0 12px #4f8ef7;
+    }
+    .nav-links { display: flex; align-items: center; gap: 32px; }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: color .2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta {
+      background: linear-gradient(135deg, #4f8ef7, #9b5de5);
+      border: none;
+      border-radius: 50px;
+      padding: 10px 24px;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform .2s, box-shadow .2s;
+      box-shadow: 0 4px 20px rgba(79,142,247,.4);
+    }
+    .nav-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(79,142,247,.5); }
+
+    /* ── Sections ── */
+    section { position: relative; }
+    .container { max-width: 1140px; margin: 0 auto; padding: 0 24px; }
+
+    /* ── Hero ── */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      padding-top: 80px;
+      overflow: hidden;
+    }
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(79,142,247,.25) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 40% at 90% 50%, rgba(155,93,229,.2) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 10% 70%, rgba(247,37,133,.15) 0%, transparent 60%);
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+      position: relative;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(79,142,247,.15);
+      border: 1px solid rgba(79,142,247,.3);
+      border-radius: 50px;
+      padding: 6px 16px;
+      font-size: 13px;
+      color: var(--blue);
+      font-weight: 600;
+      margin-bottom: 24px;
+    }
+    .hero-badge span { width: 6px; height: 6px; border-radius: 50%; background: var(--blue); animation: pulse 1.5s infinite; }
+    .hero h1 {
+      font-size: clamp(36px, 5vw, 60px);
+      font-weight: 900;
+      line-height: 1.1;
+      margin-bottom: 24px;
+      letter-spacing: -1px;
+    }
+    .hero p {
+      font-size: 18px;
+      color: var(--muted);
+      line-height: 1.7;
+      margin-bottom: 40px;
+      max-width: 480px;
+    }
+    .hero-btns { display: flex; gap: 16px; flex-wrap: wrap; }
+    .btn-primary {
+      background: linear-gradient(135deg, #4f8ef7, #9b5de5);
+      border: none;
+      border-radius: 50px;
+      padding: 16px 36px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: transform .2s, box-shadow .2s;
+      box-shadow: 0 8px 30px rgba(79,142,247,.4);
+    }
+    .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(79,142,247,.5); }
+    .btn-secondary {
+      background: rgba(255,255,255,.05);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      padding: 16px 36px;
+      color: var(--text);
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all .2s;
+      backdrop-filter: blur(10px);
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.2); }
+
+    /* ── Hero visual ── */
+    .hero-visual {
+      position: relative;
+      display: flex;
+      justify-content: center;
+    }
+    .mockup {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 20px;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: 0 40px 80px rgba(0,0,0,.6), 0 0 60px rgba(79,142,247,.1);
+      position: relative;
+      animation: float 4s ease-in-out infinite;
+    }
+    .mockup-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .mockup-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .mockup-bar {
+      flex: 1;
+      height: 10px;
+      background: rgba(255,255,255,.06);
+      border-radius: 50px;
+      margin-left: 8px;
+    }
+    .mockup-kpis {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .mockup-kpi {
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+    }
+    .mockup-kpi-label { font-size: 10px; color: var(--muted); margin-bottom: 4px; }
+    .mockup-kpi-val { font-size: 18px; font-weight: 800; }
+    .mockup-chart {
+      background: rgba(255,255,255,.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 12px;
+      height: 80px;
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+    }
+    .mockup-bar-chart {
+      flex: 1;
+      border-radius: 4px 4px 0 0;
+      background: linear-gradient(to top, #4f8ef7, #9b5de5);
+      opacity: .7;
+      transition: height .3s;
+    }
+    .mockup-notification {
+      background: linear-gradient(135deg, rgba(6,214,160,.15), rgba(79,142,247,.15));
+      border: 1px solid rgba(6,214,160,.3);
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: slideIn .5s ease;
+    }
+    .notif-icon { font-size: 20px; }
+    .notif-text { font-size: 12px; }
+    .notif-text strong { display: block; font-size: 13px; color: var(--green); }
+
+    /* Floating badges */
+    .float-badge {
+      position: absolute;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+      box-shadow: 0 8px 30px rgba(0,0,0,.4);
+      backdrop-filter: blur(10px);
+    }
+    .float-badge-1 { top: -20px; right: -20px; color: var(--green); border-color: rgba(6,214,160,.3); animation: float 3s ease-in-out infinite; }
+    .float-badge-2 { bottom: 20px; left: -30px; color: var(--yellow); border-color: rgba(255,209,102,.3); animation: float 3.5s ease-in-out infinite reverse; }
+
+    /* ── Stats ── */
+    .stats {
+      padding: 60px 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 40px;
+      text-align: center;
+    }
+    .stat-num {
+      font-size: 42px;
+      font-weight: 900;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    .stat-label { font-size: 14px; color: var(--muted); }
+
+    /* ── Features ── */
+    .features { padding: 120px 0; }
+    .section-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--blue);
+      margin-bottom: 16px;
+    }
+    .section-title {
+      font-size: clamp(28px, 4vw, 48px);
+      font-weight: 900;
+      line-height: 1.15;
+      margin-bottom: 16px;
+      letter-spacing: -0.5px;
+    }
+    .section-sub { font-size: 18px; color: var(--muted); max-width: 560px; }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      margin-top: 64px;
+    }
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+      transition: transform .3s, border-color .3s, box-shadow .3s;
+      position: relative;
+      overflow: hidden;
+    }
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      opacity: 0;
+      transition: opacity .3s;
+    }
+    .feature-card:hover { transform: translateY(-6px); border-color: rgba(79,142,247,.3); box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+    .feature-card:hover::before { opacity: 1; }
+    .fc-blue::before  { background: linear-gradient(90deg, #4f8ef7, #9b5de5); }
+    .fc-green::before { background: linear-gradient(90deg, #06d6a0, #4f8ef7); }
+    .fc-pink::before  { background: linear-gradient(90deg, #f72585, #ff6b35); }
+    .fc-orange::before { background: linear-gradient(90deg, #ff6b35, #ffd166); }
+    .fc-purple::before { background: linear-gradient(90deg, #9b5de5, #f72585); }
+    .fc-teal::before  { background: linear-gradient(90deg, #06d6a0, #9b5de5); }
+
+    .feature-icon {
+      width: 52px; height: 52px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    .fi-blue   { background: rgba(79,142,247,.15); }
+    .fi-green  { background: rgba(6,214,160,.15); }
+    .fi-pink   { background: rgba(247,37,133,.15); }
+    .fi-orange { background: rgba(255,107,53,.15); }
+    .fi-purple { background: rgba(155,93,229,.15); }
+    .fi-teal   { background: rgba(6,214,160,.15); }
+
+    .feature-title { font-size: 18px; font-weight: 700; margin-bottom: 10px; }
+    .feature-desc  { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+    /* ── How it works ── */
+    .how { padding: 120px 0; background: radial-gradient(ellipse 80% 50% at 50% 50%, rgba(79,142,247,.06) 0%, transparent 70%); }
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 32px;
+      margin-top: 64px;
+      position: relative;
+    }
+    .steps::before {
+      content: '';
+      position: absolute;
+      top: 32px;
+      left: 10%;
+      right: 10%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--blue), var(--purple), var(--pink), transparent);
+      opacity: .4;
+    }
+    .step { text-align: center; }
+    .step-num {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      margin: 0 auto 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      font-weight: 900;
+      position: relative;
+      z-index: 1;
+    }
+    .step-num-1 { background: linear-gradient(135deg, #4f8ef7, #9b5de5); box-shadow: 0 8px 30px rgba(79,142,247,.4); }
+    .step-num-2 { background: linear-gradient(135deg, #9b5de5, #f72585); box-shadow: 0 8px 30px rgba(155,93,229,.4); }
+    .step-num-3 { background: linear-gradient(135deg, #f72585, #ff6b35); box-shadow: 0 8px 30px rgba(247,37,133,.4); }
+    .step-num-4 { background: linear-gradient(135deg, #06d6a0, #4f8ef7); box-shadow: 0 8px 30px rgba(6,214,160,.4); }
+    .step-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+    .step-desc  { font-size: 13px; color: var(--muted); }
+
+    /* ── Notification demo ── */
+    .notif-demo { padding: 120px 0; }
+    .notif-demo-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: center;
+    }
+    .notif-demo-visual {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .demo-notif {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      transition: transform .3s;
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    .demo-notif.visible { opacity: 1; transform: translateX(0); transition: all .5s ease; }
+    .demo-notif-icon { font-size: 28px; }
+    .demo-notif-body strong { display: block; font-size: 15px; margin-bottom: 2px; }
+    .demo-notif-body span  { font-size: 13px; color: var(--muted); }
+    .demo-notif-amount { margin-left: auto; font-size: 18px; font-weight: 800; white-space: nowrap; }
+
+    /* ── Gamification ── */
+    .gamification { padding: 120px 0; }
+    .milestones-preview {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-top: 48px;
+      justify-content: center;
+    }
+    .milestone-chip {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: transform .2s;
+    }
+    .milestone-chip:hover { transform: scale(1.05); }
+    .milestone-chip.active { border-color: rgba(6,214,160,.5); background: rgba(6,214,160,.1); color: var(--green); }
+
+    /* ── Pricing ── */
+    .pricing { padding: 120px 0; }
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      margin-top: 64px;
+    }
+    .pricing-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px 32px;
+      position: relative;
+      transition: transform .3s, box-shadow .3s;
+    }
+    .pricing-card:hover { transform: translateY(-8px); }
+    .pricing-card.featured {
+      border-color: rgba(79,142,247,.5);
+      box-shadow: 0 0 60px rgba(79,142,247,.15);
+      background: linear-gradient(135deg, rgba(79,142,247,.08), rgba(155,93,229,.08));
+    }
+    .pricing-badge {
+      position: absolute;
+      top: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, #4f8ef7, #9b5de5);
+      border-radius: 50px;
+      padding: 4px 20px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .pricing-plan { font-size: 14px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 16px; }
+    .pricing-price { font-size: 52px; font-weight: 900; line-height: 1; margin-bottom: 4px; }
+    .pricing-price sup { font-size: 24px; vertical-align: top; margin-top: 12px; }
+    .pricing-period { font-size: 14px; color: var(--muted); margin-bottom: 32px; }
+    .pricing-features { list-style: none; display: flex; flex-direction: column; gap: 14px; margin-bottom: 40px; }
+    .pricing-features li { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+    .pricing-features li::before { content: '✓'; color: var(--green); font-weight: 800; font-size: 15px; flex-shrink: 0; }
+    .pricing-features li.no::before { content: '✕'; color: rgba(255,255,255,.2); }
+    .pricing-features li.no { color: rgba(255,255,255,.3); }
+    .pricing-btn {
+      width: 100%;
+      padding: 14px;
+      border-radius: 50px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: all .2s;
+      text-decoration: none;
+      display: block;
+      text-align: center;
+    }
+    .pricing-btn-primary {
+      background: linear-gradient(135deg, #4f8ef7, #9b5de5);
+      color: #fff;
+      box-shadow: 0 8px 30px rgba(79,142,247,.3);
+    }
+    .pricing-btn-primary:hover { box-shadow: 0 12px 40px rgba(79,142,247,.5); transform: translateY(-2px); }
+    .pricing-btn-outline {
+      background: transparent;
+      border: 1px solid var(--border) !important;
+      color: var(--text);
+    }
+    .pricing-btn-outline:hover { background: rgba(255,255,255,.05); }
+    .pricing-btn-wa {
+      background: linear-gradient(135deg, #25d366, #128c7e);
+      color: #fff;
+      box-shadow: 0 8px 30px rgba(37,211,102,.3);
+    }
+    .pricing-btn-wa:hover { box-shadow: 0 12px 40px rgba(37,211,102,.5); transform: translateY(-2px); }
+
+    /* ── CTA Final ── */
+    .cta-final {
+      padding: 120px 0;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .cta-final-bg {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 80% 80% at 50% 50%, rgba(79,142,247,.12) 0%, transparent 70%);
+    }
+    .cta-final h2 { font-size: clamp(32px, 5vw, 56px); font-weight: 900; margin-bottom: 20px; letter-spacing: -1px; }
+    .cta-final p  { font-size: 18px; color: var(--muted); margin-bottom: 48px; }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 24px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    /* ── Animations ── */
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-12px); }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: .5; transform: scale(.8); }
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(20px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes countUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity .7s ease, transform .7s ease;
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .reveal-delay-1 { transition-delay: .1s; }
+    .reveal-delay-2 { transition-delay: .2s; }
+    .reveal-delay-3 { transition-delay: .3s; }
+    .reveal-delay-4 { transition-delay: .4s; }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      nav { padding: 14px 20px; }
+      .nav-links { display: none; }
+      .hero-grid { grid-template-columns: 1fr; }
+      .hero-visual { display: none; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .features-grid { grid-template-columns: 1fr; }
+      .steps { grid-template-columns: repeat(2, 1fr); }
+      .steps::before { display: none; }
+      .notif-demo-grid { grid-template-columns: 1fr; }
+      .pricing-grid { grid-template-columns: 1fr; max-width: 400px; margin: 64px auto 0; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Nav ── -->
+<nav id="navbar">
+  <a href="#" class="nav-logo">
+    <div class="nav-logo-dot"></div>
+    Meta Ads Manager
+  </a>
+  <div class="nav-links">
+    <a href="#features">Funciones</a>
+    <a href="#how">Cómo funciona</a>
+    <a href="#pricing">Precios</a>
+  </div>
+  <a href="/app" class="nav-cta">Empezar gratis →</a>
+</nav>
+
+<!-- ── Hero ── -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="container">
+    <div class="hero-grid">
+      <div>
+        <div class="hero-badge">
+          <span></span>
+          Plataforma todo en uno para afiliados y anunciantes
+        </div>
+        <h1>
+          Controla tus<br>
+          <span class="grad-text">campañas y ventas</span><br>
+          desde un solo lugar
+        </h1>
+        <p>
+          Gestiona tus Meta Ads, recibe notificaciones de ventas de Hotmart en tiempo real y escala tu negocio con datos claros — todo en una app instalable en tu móvil.
+        </p>
+        <div class="hero-btns">
+          <a href="/app" class="btn-primary">
+            🚀 Comenzar ahora
+          </a>
+          <a href="#features" class="btn-secondary">
+            Ver funciones ↓
+          </a>
+        </div>
+      </div>
+
+      <!-- Mockup -->
+      <div class="hero-visual">
+        <div class="mockup">
+          <div class="mockup-header">
+            <div class="mockup-dot" style="background:#f85149"></div>
+            <div class="mockup-dot" style="background:#d29922"></div>
+            <div class="mockup-dot" style="background:#3fb950"></div>
+            <div class="mockup-bar"></div>
+          </div>
+          <div class="mockup-kpis">
+            <div class="mockup-kpi">
+              <div class="mockup-kpi-label">ROAS</div>
+              <div class="mockup-kpi-val grad-text-2">4.2x</div>
+            </div>
+            <div class="mockup-kpi">
+              <div class="mockup-kpi-label">Inversión</div>
+              <div class="mockup-kpi-val" style="color:#4f8ef7">$1,240</div>
+            </div>
+            <div class="mockup-kpi">
+              <div class="mockup-kpi-label">Comisiones</div>
+              <div class="mockup-kpi-val grad-text-3">$847</div>
+            </div>
+          </div>
+          <div class="mockup-chart" id="mockupChart">
+            <div class="mockup-bar-chart" style="height:40%"></div>
+            <div class="mockup-bar-chart" style="height:65%"></div>
+            <div class="mockup-bar-chart" style="height:50%"></div>
+            <div class="mockup-bar-chart" style="height:80%"></div>
+            <div class="mockup-bar-chart" style="height:60%"></div>
+            <div class="mockup-bar-chart" style="height:90%"></div>
+            <div class="mockup-bar-chart" style="height:70%"></div>
+          </div>
+          <div class="mockup-notification">
+            <div class="notif-icon">💰</div>
+            <div class="notif-text">
+              <strong>Nueva venta — $47.00</strong>
+              Curso de Marketing Digital · Juan García
+            </div>
+          </div>
+        </div>
+        <div class="float-badge float-badge-1">✅ +$847 hoy</div>
+        <div class="float-badge float-badge-2">📲 PWA instalable</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Stats ── -->
+<section class="stats">
+  <div class="container">
+    <div class="stats-grid">
+      <div class="reveal">
+        <div class="stat-num grad-text" data-target="100">0</div>
+        <div class="stat-label">Clientes activos</div>
+      </div>
+      <div class="reveal reveal-delay-1">
+        <div class="stat-num grad-text-2" data-target="98">0</div>
+        <div class="stat-label">% uptime garantizado</div>
+      </div>
+      <div class="reveal reveal-delay-2">
+        <div class="stat-num grad-text-3" data-target="5">0</div>
+        <div class="stat-label">Segundos para recibir notificación</div>
+      </div>
+      <div class="reveal reveal-delay-3">
+        <div class="stat-num" style="color:var(--yellow)" data-target="1000000">0</div>
+        <div class="stat-label">En comisiones rastreadas</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Features ── -->
+<section class="features" id="features">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-label">Funcionalidades</div>
+      <h2 class="section-title">Todo lo que necesitas para<br><span class="grad-text">escalar tu negocio digital</span></h2>
+      <p class="section-sub">Una plataforma construida específicamente para afiliados y anunciantes que usan Meta Ads y Hotmart.</p>
+    </div>
+    <div class="features-grid">
+
+      <div class="feature-card fc-blue reveal reveal-delay-1">
+        <div class="feature-icon fi-blue">📊</div>
+        <div class="feature-title">Dashboard de Meta Ads</div>
+        <div class="feature-desc">Visualiza ROAS, CPC, CTR, CPL e inversión de todas tus campañas en tiempo real. Toma decisiones basadas en datos, no en intuición.</div>
+      </div>
+
+      <div class="feature-card fc-green reveal reveal-delay-2">
+        <div class="feature-icon fi-green">🔔</div>
+        <div class="feature-title">Notificaciones de ventas en tiempo real</div>
+        <div class="feature-desc">Recibe una notificación push con sonido en tu móvil cada vez que entra una venta de Hotmart. Incluso con la pantalla apagada.</div>
+      </div>
+
+      <div class="feature-card fc-pink reveal reveal-delay-3">
+        <div class="feature-icon fi-pink">📲</div>
+        <div class="feature-title">PWA instalable en tu móvil</div>
+        <div class="feature-desc">Instala la app en iPhone o Android sin necesidad de App Store. Funciona como una app nativa, siempre a mano en tu pantalla de inicio.</div>
+      </div>
+
+      <div class="feature-card fc-orange reveal">
+        <div class="feature-icon fi-orange">💎</div>
+        <div class="feature-title">Gamificación por comisiones</div>
+        <div class="feature-desc">Desbloquea hitos desde $1K hasta $1M en comisiones acumuladas. Mantén la motivación alta con metas visuales y celebraciones.</div>
+      </div>
+
+      <div class="feature-card fc-purple reveal reveal-delay-1">
+        <div class="feature-icon fi-purple">🔥</div>
+        <div class="feature-title">Integración con Hotmart</div>
+        <div class="feature-desc">Conecta tu cuenta de Hotmart con un webhook personalizado. Registra ventas, comisiones y reembolsos automáticamente.</div>
+      </div>
+
+      <div class="feature-card fc-teal reveal reveal-delay-2">
+        <div class="feature-icon fi-teal">⚡</div>
+        <div class="feature-title">Multi-cuenta Meta Ads</div>
+        <div class="feature-desc">Gestiona múltiples cuentas publicitarias desde una sola interfaz. Ideal para agencias y gestores de campañas.</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── How it works ── -->
+<section class="how" id="how">
+  <div class="container">
+    <div class="reveal" style="text-align:center">
+      <div class="section-label">Proceso</div>
+      <h2 class="section-title">En 4 pasos estás listo</h2>
+      <p class="section-sub" style="margin:0 auto">Sin configuraciones complicadas. Sin código. Sin fricciones.</p>
+    </div>
+    <div class="steps">
+      <div class="step reveal reveal-delay-1">
+        <div class="step-num step-num-1">1</div>
+        <div class="step-title">Compra tu plan</div>
+        <div class="step-desc">Elige el plan que se adapta a tu operación. Recibes acceso inmediato por email.</div>
+      </div>
+      <div class="step reveal reveal-delay-2">
+        <div class="step-num step-num-2">2</div>
+        <div class="step-title">Conecta Meta Ads</div>
+        <div class="step-desc">Pega tu token de acceso de Meta Business en 30 segundos. Listo.</div>
+      </div>
+      <div class="step reveal reveal-delay-3">
+        <div class="step-num step-num-3">3</div>
+        <div class="step-title">Conecta Hotmart</div>
+        <div class="step-desc">Configura el webhook con tu URL única. Tus ventas aparecen al instante.</div>
+      </div>
+      <div class="step reveal reveal-delay-4">
+        <div class="step-num step-num-4">4</div>
+        <div class="step-title">Recibe ventas 💰</div>
+        <div class="step-desc">Escucha el sonido de caja registradora cada vez que entra una comisión.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Notification Demo ── -->
+<section class="notif-demo">
+  <div class="container">
+    <div class="notif-demo-grid">
+      <div class="reveal">
+        <div class="section-label">Notificaciones</div>
+        <h2 class="section-title">Nunca te<br><span class="grad-text">pierdas una venta</span></h2>
+        <p style="color:var(--muted);font-size:16px;margin-top:16px;line-height:1.7">
+          Cada vez que alguien compra tu producto en Hotmart, recibes una notificación push con sonido de caja registradora — en tiempo real, en tu móvil, aunque tengas la pantalla bloqueada.
+        </p>
+        <div style="margin-top:32px;display:flex;gap:16px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted)">
+            <span style="color:var(--green)">✓</span> iPhone y Android
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted)">
+            <span style="color:var(--green)">✓</span> Sonido personalizado
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted)">
+            <span style="color:var(--green)">✓</span> Funciona en segundo plano
+          </div>
+        </div>
+      </div>
+      <div class="notif-demo-visual" id="notifDemo">
+        <div class="demo-notif" style="border-color:rgba(6,214,160,.3)">
+          <div class="demo-notif-icon">💰</div>
+          <div class="demo-notif-body">
+            <strong>Nueva venta aprobada</strong>
+            <span>Curso Meta Ads · María López</span>
+          </div>
+          <div class="demo-notif-amount grad-text-2">$97.00</div>
+        </div>
+        <div class="demo-notif" style="border-color:rgba(79,142,247,.3)">
+          <div class="demo-notif-icon">🔥</div>
+          <div class="demo-notif-body">
+            <strong>Comisión recibida</strong>
+            <span>Guía de Anatomía · Pedro Ruiz</span>
+          </div>
+          <div class="demo-notif-amount" style="color:var(--blue)">$8.73</div>
+        </div>
+        <div class="demo-notif" style="border-color:rgba(255,107,53,.3)">
+          <div class="demo-notif-icon">⚡</div>
+          <div class="demo-notif-body">
+            <strong>¡Hito desbloqueado!</strong>
+            <span>Alcanzaste $1,000 en comisiones 🎉</span>
+          </div>
+          <div class="demo-notif-amount grad-text-3">$1K</div>
+        </div>
+        <div class="demo-notif" style="border-color:rgba(155,93,229,.3)">
+          <div class="demo-notif-icon">💎</div>
+          <div class="demo-notif-body">
+            <strong>Nueva venta — Plan Pro</strong>
+            <span>Marketing Digital · Ana Gómez</span>
+          </div>
+          <div class="demo-notif-amount" style="color:var(--purple)">$197.00</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Gamification ── -->
+<section class="gamification">
+  <div class="container" style="text-align:center">
+    <div class="reveal">
+      <div class="section-label">Gamificación</div>
+      <h2 class="section-title">Desbloquea hitos y<br><span class="grad-text-3">celebra cada logro</span></h2>
+      <p class="section-sub" style="margin:0 auto">Desde tu primera comisión hasta el millón de dólares — cada meta tiene su recompensa visual.</p>
+    </div>
+    <div class="milestones-preview reveal">
+      <div class="milestone-chip active">🌱 $1,000</div>
+      <div class="milestone-chip">🔥 $5,000</div>
+      <div class="milestone-chip">💪 $10,000</div>
+      <div class="milestone-chip">💎 $25,000</div>
+      <div class="milestone-chip">🚀 $50,000</div>
+      <div class="milestone-chip">👑 $100,000</div>
+      <div class="milestone-chip">🏆 $250,000</div>
+      <div class="milestone-chip">🌎 $500,000</div>
+      <div class="milestone-chip">💰 $1,000,000</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Pricing ── -->
+<section class="pricing" id="pricing">
+  <div class="container">
+    <div class="reveal" style="text-align:center">
+      <div class="section-label">Precios</div>
+      <h2 class="section-title">Planes simples,<br><span class="grad-text">sin sorpresas</span></h2>
+      <p class="section-sub" style="margin:0 auto">Sin contratos. Sin configuración técnica. Cancela cuando quieras.</p>
+    </div>
+    <div class="pricing-grid">
+
+      <!-- Básico -->
+      <div class="pricing-card reveal reveal-delay-1">
+        <div class="pricing-plan">Básico</div>
+        <div class="pricing-price"><sup>$</sup>19</div>
+        <div class="pricing-period">por mes · facturado mensualmente</div>
+        <ul class="pricing-features">
+          <li>Hasta 5 cuentas de Meta Ads</li>
+          <li>Notificaciones push de ventas</li>
+          <li>Integración con Hotmart</li>
+          <li>Dashboard completo de campañas</li>
+          <li>App instalable en móvil (PWA)</li>
+          <li>Gamificación con hitos</li>
+          <li class="no">Multi-cuenta avanzado</li>
+        </ul>
+        <a href="https://pay.hotmart.com/N105458310E?off=dqv9dxqz&checkoutMode=6" target="_blank" class="pricing-btn pricing-btn-outline">
+          Empezar con Básico
+        </a>
+      </div>
+
+      <!-- Pro -->
+      <div class="pricing-card featured reveal reveal-delay-2">
+        <div class="pricing-badge">⭐ Más popular</div>
+        <div class="pricing-plan">Pro</div>
+        <div class="pricing-price grad-text"><sup style="-webkit-text-fill-color:unset;background:none">$</sup>49</div>
+        <div class="pricing-period">por mes · facturado mensualmente</div>
+        <ul class="pricing-features">
+          <li>Hasta 10 cuentas de Meta Ads</li>
+          <li>Notificaciones push de ventas</li>
+          <li>Integración con Hotmart</li>
+          <li>Dashboard completo de campañas</li>
+          <li>App instalable en móvil (PWA)</li>
+          <li>Gamificación con hitos</li>
+          <li>Multi-cuenta avanzado</li>
+        </ul>
+        <a href="https://pay.hotmart.com/N105458310E?off=n3dlwudm&checkoutMode=6" target="_blank" class="pricing-btn pricing-btn-primary">
+          Empezar con Pro →
+        </a>
+      </div>
+
+      <!-- Agencia -->
+      <div class="pricing-card reveal reveal-delay-3">
+        <div class="pricing-plan">Agencia</div>
+        <div class="pricing-price grad-text-3">∞</div>
+        <div class="pricing-period">precio a convenir con el equipo</div>
+        <ul class="pricing-features">
+          <li>Cuentas de Meta Ads ilimitadas</li>
+          <li>Notificaciones push de ventas</li>
+          <li>Integración con Hotmart</li>
+          <li>Dashboard completo de campañas</li>
+          <li>App instalable en móvil (PWA)</li>
+          <li>Gamificación con hitos</li>
+          <li>Soporte prioritario</li>
+        </ul>
+        <a href="https://wa.me/573001234567?text=Hola%2C%20me%20interesa%20el%20Plan%20Agencia%20de%20Meta%20Ads%20Manager" target="_blank" class="pricing-btn pricing-btn-wa">
+          💬 Hablar por WhatsApp
+        </a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA Final ── -->
+<section class="cta-final">
+  <div class="cta-final-bg"></div>
+  <div class="container" style="position:relative">
+    <div class="reveal">
+      <h2>¿Listo para escalar<br><span class="grad-text">tu negocio digital?</span></h2>
+      <p>Únete hoy y empieza a ver tus ventas y campañas en tiempo real.</p>
+      <a href="/app" class="btn-primary" style="font-size:18px;padding:18px 48px;margin:0 auto;display:inline-flex">
+        🚀 Empezar ahora
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ── Footer ── -->
+<footer>
+  <p>© 2026 Meta Ads Manager · Todos los derechos reservados</p>
+</footer>
+
+<script>
+  // ── Reveal on scroll
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
+  }, { threshold: 0.15 });
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // ── Counter animation
+  function animateCounter(el, target, prefix = '', suffix = '') {
+    const isLarge = target >= 1000;
+    let start = 0;
+    const duration = 2000;
+    const step = 16;
+    const increment = target / (duration / step);
+    const timer = setInterval(() => {
+      start = Math.min(start + increment, target);
+      if (isLarge) {
+        el.textContent = prefix + '$' + Math.floor(start / 1000) + 'K+' + suffix;
+      } else if (target === 98) {
+        el.textContent = prefix + Math.floor(start) + '%' + suffix;
+      } else if (target === 5) {
+        el.textContent = prefix + '<' + Math.ceil(target) + 's' + suffix;
+        clearInterval(timer); return;
+      } else {
+        el.textContent = prefix + Math.floor(start) + '+' + suffix;
+      }
+      if (start >= target) clearInterval(timer);
+    }, step);
+  }
+
+  const statObserver = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        const target = parseInt(e.target.dataset.target);
+        animateCounter(e.target, target);
+        statObserver.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.5 });
+  document.querySelectorAll('[data-target]').forEach(el => statObserver.observe(el));
+
+  // ── Animate notifications
+  const notifObserver = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        const cards = e.target.querySelectorAll('.demo-notif');
+        cards.forEach((card, i) => {
+          setTimeout(() => card.classList.add('visible'), i * 300);
+        });
+        notifObserver.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.3 });
+  const notifDemo = document.getElementById('notifDemo');
+  if (notifDemo) notifObserver.observe(notifDemo);
+
+  // ── Animate chart bars
+  setInterval(() => {
+    document.querySelectorAll('.mockup-bar-chart').forEach(bar => {
+      bar.style.height = (Math.random() * 70 + 20) + '%';
+    });
+  }, 2000);
+
+  // ── Milestone chips animation
+  const chips = document.querySelectorAll('.milestone-chip');
+  let activeIdx = 0;
+  setInterval(() => {
+    chips[activeIdx].classList.remove('active');
+    activeIdx = (activeIdx + 1) % chips.length;
+    chips[activeIdx].classList.add('active');
+  }, 1200);
+
+  // ── Navbar scroll effect
+  window.addEventListener('scroll', () => {
+    document.getElementById('navbar').style.background =
+      window.scrollY > 50 ? 'rgba(6,8,24,.95)' : 'rgba(6,8,24,.7)';
+  });
+</script>
+</body>
+</html>
