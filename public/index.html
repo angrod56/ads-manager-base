@@ -3504,7 +3504,12 @@ function playCashRegister() {
 // Escuchar mensajes del service worker para reproducir sonido
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('message', e => {
-    if (e.data?.type === 'SALE_SOUND') playCashRegister();
+    if (e.data?.type === 'SALE_SOUND') {
+      playCashRegister();
+      // Visual feedback temporal para diagnóstico
+      document.title = '💰 VENTA! ' + new Date().toLocaleTimeString();
+      setTimeout(() => { document.title = 'Meta Ads Manager'; }, 3000);
+    }
   });
 }
 
