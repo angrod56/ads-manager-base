@@ -2814,13 +2814,25 @@ async function init() {
   loadOverview();
 }
 
-// Arranque: mostrar setup si no hay token, app si hay
-if (S.token) {
-  document.getElementById('mainApp').style.display = 'block';
-  init().catch(e => showSetup('Error al cargar: ' + e.message));
-} else {
-  showSetup();
-}
+// Arranque: si hay token en localStorage arranca directo, si no consulta el servidor
+(async () => {
+  if (!S.token) {
+    try {
+      const cfg = await fetch('/api/config').then(r => r.json());
+      if (cfg.defaultToken) {
+        S.token = cfg.defaultToken;
+        localStorage.setItem('meta_token', S.token);
+        if (cfg.defaultAccount) localStorage.setItem('meta_account', cfg.defaultAccount);
+      }
+    } catch {}
+  }
+  if (S.token) {
+    document.getElementById('mainApp').style.display = 'block';
+    init().catch(e => showSetup('Error al cargar: ' + e.message));
+  } else {
+    showSetup();
+  }
+})();
 
 // Botón de configuración en header → vuelve a setup
 document.getElementById('settingsBtn')?.addEventListener('click', () => showSetup());

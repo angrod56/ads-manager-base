@@ -55,7 +55,10 @@ function dateOpts(q, fallback = 'last_30d') {
 const GET = {
 
   '/api/config': async (res) => {
-    json(res, { defaultAccount: process.env.META_AD_ACCOUNT_ID || null });
+    json(res, {
+      defaultAccount: process.env.META_AD_ACCOUNT_ID || null,
+      defaultToken:   process.env.META_ACCESS_TOKEN   || null,
+    });
   },
 
   '/api/accounts': async (res, q) => {
