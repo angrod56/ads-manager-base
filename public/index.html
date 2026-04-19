@@ -870,29 +870,63 @@
 <body>
 
 <!-- ── Setup Screen ───────────────────────────────────────────────────────── -->
-<div id="setupScreen" style="position:fixed;inset:0;background:var(--bg);z-index:9999;align-items:center;justify-content:center;display:none">
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:40px;max-width:460px;width:90%;display:flex;flex-direction:column;gap:20px">
+<!-- ── Auth Screen ────────────────────────────────────────────────────────── -->
+<div id="authScreen" style="position:fixed;inset:0;background:var(--bg);z-index:9999;align-items:center;justify-content:center;display:none">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:40px;max-width:420px;width:90%;display:flex;flex-direction:column;gap:20px">
     <div style="display:flex;align-items:center;gap:12px">
       <div class="logo-dot" style="width:14px;height:14px;border-radius:50%;background:var(--blue)"></div>
       <span style="font-size:18px;font-weight:700;color:var(--text)">Meta Ads Manager</span>
     </div>
+
+    <!-- Tabs login/registro -->
+    <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+      <button id="tabLogin" onclick="authTab('login')"
+        style="flex:1;padding:9px;font-size:13px;font-weight:600;background:var(--blue);color:#fff;border:none;cursor:pointer">
+        Iniciar sesión
+      </button>
+      <button id="tabRegister" onclick="authTab('register')"
+        style="flex:1;padding:9px;font-size:13px;font-weight:600;background:transparent;color:var(--muted);border:none;cursor:pointer">
+        Crear cuenta
+      </button>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <input id="authEmail" type="email" placeholder="Email"
+        style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 12px;color:var(--text);font-size:13px">
+      <input id="authPassword" type="password" placeholder="Contraseña"
+        onkeydown="if(event.key==='Enter')doAuth()"
+        style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 12px;color:var(--text);font-size:13px">
+    </div>
+
+    <div id="authError" style="display:none;color:var(--red);font-size:13px;padding:8px 12px;background:rgba(255,80,80,.1);border-radius:6px"></div>
+
+    <button id="authBtn" onclick="doAuth()"
+      style="background:var(--blue);border:none;border-radius:8px;padding:12px;color:#fff;font-size:14px;font-weight:600;cursor:pointer">
+      Iniciar sesión
+    </button>
+  </div>
+</div>
+
+<!-- ── Token Setup Screen (post-login si no tiene token Meta) ─────────────── -->
+<div id="tokenScreen" style="position:fixed;inset:0;background:var(--bg);z-index:9998;align-items:center;justify-content:center;display:none">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:40px;max-width:460px;width:90%;display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="logo-dot" style="width:14px;height:14px;border-radius:50%;background:var(--blue)"></div>
+      <span style="font-size:18px;font-weight:700;color:var(--text)">Conectar Meta Ads</span>
+    </div>
     <p style="color:var(--muted);font-size:14px;line-height:1.5;margin:0">
-      Conecta tu cuenta de Meta para empezar. Pega tu token de acceso de larga duración y el ID de tu cuenta publicitaria.
+      Pega tu token de acceso de larga duración de Meta Business.
     </p>
     <div style="display:flex;flex-direction:column;gap:6px">
       <label style="font-size:12px;color:var(--muted);font-weight:600">TOKEN DE ACCESO</label>
       <input id="setupToken" type="password" placeholder="EAAxxxxxxxxxxxxxxx…"
         style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 12px;color:var(--text);font-size:13px;font-family:monospace">
-      <span style="font-size:11px;color:var(--muted)">Genera un token de larga duración en Meta for Developers → Graph API Explorer</span>
+      <span style="font-size:11px;color:var(--muted)">Graph API Explorer → Generate Token → selecciona tu app</span>
     </div>
-    <div style="display:flex;flex-direction:column;gap:6px">
-      <label style="font-size:12px;color:var(--muted);font-weight:600">ID DE CUENTA PUBLICITARIA <span style="font-weight:400">(opcional, se detecta automáticamente)</span></label>
-      <input id="setupAccount" type="text" placeholder="act_123456789"
-        style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 12px;color:var(--text);font-size:13px;font-family:monospace">
-    </div>
-    <div id="setupError" style="display:none;color:var(--red);font-size:13px;padding:8px 12px;background:rgba(255,80,80,.1);border-radius:6px"></div>
-    <button id="setupBtn" onclick="saveSetup()" style="background:var(--blue);border:none;border-radius:8px;padding:12px;color:#fff;font-size:14px;font-weight:600;cursor:pointer">
-      Conectar cuenta
+    <div id="tokenError" style="display:none;color:var(--red);font-size:13px;padding:8px 12px;background:rgba(255,80,80,.1);border-radius:6px"></div>
+    <button id="tokenBtn" onclick="saveMetaToken()"
+      style="background:var(--blue);border:none;border-radius:8px;padding:12px;color:#fff;font-size:14px;font-weight:600;cursor:pointer">
+      Guardar y continuar
     </button>
   </div>
 </div>
@@ -925,7 +959,9 @@
       <button id="applyDateBtn" onclick="applyCustomDate()" style="font-size:12px;padding:5px 12px;background:var(--blue);border-color:var(--blue);color:#fff">Aplicar</button>
     </div>
     <button id="refreshBtn">↺ Actualizar</button>
-    <button id="settingsBtn" title="Cambiar token / cuenta" style="padding:6px 10px;font-size:14px;background:transparent;border-color:var(--border)">⚙</button>
+    <button id="settingsBtn" title="Cambiar token Meta" style="padding:6px 10px;font-size:14px;background:transparent;border-color:var(--border)">⚙</button>
+    <span id="userBadge" style="font-size:12px;color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+    <button id="logoutBtn" onclick="logout()" style="font-size:12px;padding:6px 10px;background:transparent;border-color:var(--border)">Salir</button>
     <span class="last-update" id="lastUpdate"></span>
   </div>
 </header>
@@ -960,6 +996,9 @@
   <div class="sidebar-section-label">Optimización</div>
   <div class="nav-item" data-section="recommendations" onclick="showSection('recommendations')">
     <span class="nav-icon">🎯</span> Recomendaciones
+  </div>
+  <div id="adminNavItem" class="nav-item" data-section="admin" onclick="showSection('admin')" style="display:none">
+    <span class="nav-icon">👥</span> Usuarios
   </div>
 </nav>
 
@@ -1139,6 +1178,17 @@
 
   </div><!-- /section-recommendations -->
 
+  <!-- ── SECTION: Admin ── -->
+  <div class="section" id="section-admin">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h3 style="margin:0;font-size:15px">Usuarios registrados</h3>
+        <button onclick="loadAdminUsers()" style="font-size:12px;padding:6px 12px">↺ Actualizar</button>
+      </div>
+      <div id="adminUsersTable">Cargando…</div>
+    </div>
+  </div><!-- /section-admin -->
+
 </main>
 </div><!-- /app-layout -->
 
@@ -1171,7 +1221,10 @@
 //  STATE
 // ═══════════════════════════════════════════════════════════════════
 const S = {
-  token: localStorage.getItem('meta_token') || '',
+  token: '',          // meta token (viene del perfil en Supabase)
+  jwt: localStorage.getItem('jwt') || '',  // sesión de Supabase
+  user: null,         // perfil del usuario logueado
+  authMode: 'login',  // 'login' | 'register'
   account: null,
   currency: 'USD',
   accounts: [],
@@ -1192,8 +1245,9 @@ const S = {
 //  API
 // ═══════════════════════════════════════════════════════════════════
 async function api(path) {
-  const sep = path.includes('?') ? '&' : '?';
-  const r = await fetch(path + sep + `token=${encodeURIComponent(S.token)}`);
+  const r = await fetch(path, {
+    headers: S.jwt ? { 'Authorization': `Bearer ${S.jwt}` } : {},
+  });
   const d = await r.json();
   if (d.error) throw new Error(d.error);
   return d;
@@ -1748,12 +1802,10 @@ async function loadAdsetData(campaignId) {
 
 // apiFetch helper (raw fetch for non-GET)
 async function apiFetch(url, opts) {
-  // Inyectar token en el body de los POST
-  if (opts?.body) {
-    const b = JSON.parse(opts.body);
-    b.token = S.token;
-    opts = { ...opts, body: JSON.stringify(b) };
-  }
+  opts = {
+    ...opts,
+    headers: { ...(opts?.headers || {}), 'Authorization': `Bearer ${S.jwt}` },
+  };
   const r = await fetch(url, opts);
   if (!r.ok) throw new Error(await r.text());
   return r.json();
@@ -2716,48 +2768,182 @@ function showSection(name) {
 // ═══════════════════════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════════════════════
-function showSetup(msg) {
-  document.getElementById('mainApp').style.display = 'none';
-  const screen = document.getElementById('setupScreen');
-  screen.style.display = 'flex';
-  if (S.token) document.getElementById('setupToken').value = S.token;
+// ── Auth UI ──────────────────────────────────────────────────────────────────
+function authTab(mode) {
+  S.authMode = mode;
+  const isLogin = mode === 'login';
+  document.getElementById('tabLogin').style.background    = isLogin ? 'var(--blue)' : 'transparent';
+  document.getElementById('tabLogin').style.color         = isLogin ? '#fff' : 'var(--muted)';
+  document.getElementById('tabRegister').style.background = !isLogin ? 'var(--blue)' : 'transparent';
+  document.getElementById('tabRegister').style.color      = !isLogin ? '#fff' : 'var(--muted)';
+  document.getElementById('authBtn').textContent = isLogin ? 'Iniciar sesión' : 'Crear cuenta';
+  document.getElementById('authError').style.display = 'none';
+}
+
+function showAuth(msg) {
+  document.getElementById('mainApp').style.display   = 'none';
+  document.getElementById('tokenScreen').style.display = 'none';
+  document.getElementById('authScreen').style.display  = 'flex';
   if (msg) {
-    const el = document.getElementById('setupError');
+    const el = document.getElementById('authError');
     el.textContent = msg;
     el.style.display = 'block';
   }
 }
 
-async function saveSetup() {
-  const token   = document.getElementById('setupToken').value.trim();
-  const account = document.getElementById('setupAccount').value.trim();
-  if (!token) return;
+async function doAuth() {
+  const email    = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  if (!email || !password) return;
 
-  const btn = document.getElementById('setupBtn');
-  btn.textContent = 'Verificando…';
+  const btn = document.getElementById('authBtn');
+  btn.textContent = 'Cargando…';
   btn.disabled = true;
 
-  // Verificar token consultando cuentas
-  S.token = token;
   try {
-    const accounts = await api('/api/accounts');
-    if (!accounts.length) throw new Error('No se encontraron cuentas publicitarias para este token');
-    localStorage.setItem('meta_token', token);
-    if (account) localStorage.setItem('meta_account', account);
-    document.getElementById('setupScreen').style.display = 'none';
-    document.getElementById('mainApp').style.display = 'block';
-    await init();
+    const endpoint = S.authMode === 'login' ? '/api/auth/login' : '/api/auth/register';
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    S.jwt  = data.session.access_token;
+    S.user = data.user;
+    localStorage.setItem('jwt', S.jwt);
+
+    document.getElementById('authScreen').style.display = 'none';
+
+    if (!data.user?.meta_token) {
+      // Nuevo usuario sin token → pantalla de configuración Meta
+      document.getElementById('tokenScreen').style.display = 'flex';
+    } else {
+      S.token = data.user.meta_token;
+      await launchApp();
+    }
   } catch(e) {
-    S.token = localStorage.getItem('meta_token') || '';
-    showSetup('Token inválido o sin permisos: ' + e.message);
+    showAuth(e.message);
   } finally {
-    btn.textContent = 'Conectar cuenta';
+    btn.textContent = S.authMode === 'login' ? 'Iniciar sesión' : 'Crear cuenta';
     btn.disabled = false;
   }
 }
 
+async function saveMetaToken() {
+  const token = document.getElementById('setupToken').value.trim();
+  if (!token) return;
+
+  const btn = document.getElementById('tokenBtn');
+  btn.textContent = 'Verificando…';
+  btn.disabled = true;
+
+  try {
+    S.token = token;
+    const accounts = await api('/api/accounts');
+    if (!accounts.length) throw new Error('No se encontraron cuentas para este token');
+
+    await fetch('/api/auth/save-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${S.jwt}` },
+      body: JSON.stringify({ metaToken: token }),
+    });
+
+    document.getElementById('tokenScreen').style.display = 'none';
+    await launchApp();
+  } catch(e) {
+    const el = document.getElementById('tokenError');
+    el.textContent = e.message;
+    el.style.display = 'block';
+  } finally {
+    btn.textContent = 'Guardar y continuar';
+    btn.disabled = false;
+  }
+}
+
+function logout() {
+  localStorage.removeItem('jwt');
+  S.jwt = '';
+  S.user = null;
+  S.token = '';
+  showAuth();
+}
+
+// ── Admin ─────────────────────────────────────────────────────────────────────
+async function loadAdminUsers() {
+  const el = document.getElementById('adminUsersTable');
+  try {
+    const users = await api('/api/admin/users');
+    if (!users.length) { el.innerHTML = '<p class="muted">Sin usuarios registrados</p>'; return; }
+    el.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead><tr style="color:var(--muted);font-size:11px;text-align:left">
+          <th style="padding:8px 4px">Email</th>
+          <th style="padding:8px 4px">Rol</th>
+          <th style="padding:8px 4px">Cuenta Meta</th>
+          <th style="padding:8px 4px">Registro</th>
+          <th style="padding:8px 4px">Último acceso</th>
+          <th style="padding:8px 4px">Acciones</th>
+        </tr></thead>
+        <tbody>
+          ${users.map(u => `
+            <tr style="border-top:1px solid var(--border)">
+              <td style="padding:8px 4px">${u.email}</td>
+              <td style="padding:8px 4px">
+                <span style="background:${u.role==='admin'?'var(--blue)':'var(--border)'};color:${u.role==='admin'?'#fff':'var(--text)'};padding:2px 8px;border-radius:4px;font-size:11px">
+                  ${u.role}
+                </span>
+              </td>
+              <td style="padding:8px 4px;font-family:monospace;font-size:11px;color:var(--muted)">${u.meta_account_id || '—'}</td>
+              <td style="padding:8px 4px;color:var(--muted);font-size:11px">${u.created_at ? new Date(u.created_at).toLocaleDateString('es') : '—'}</td>
+              <td style="padding:8px 4px;color:var(--muted);font-size:11px">${u.last_login ? new Date(u.last_login).toLocaleDateString('es') : '—'}</td>
+              <td style="padding:8px 4px;display:flex;gap:6px">
+                ${u.role !== 'admin'
+                  ? `<button onclick="adminSetRole('${u.id}','admin')" style="font-size:11px;padding:3px 8px">→ Admin</button>`
+                  : `<button onclick="adminSetRole('${u.id}','client')" style="font-size:11px;padding:3px 8px">→ Cliente</button>`}
+                <button onclick="adminDeleteUser('${u.id}')" style="font-size:11px;padding:3px 8px;background:rgba(255,80,80,.15);border-color:var(--red);color:var(--red)">Eliminar</button>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } catch(e) {
+    el.innerHTML = `<p style="color:var(--red)">${e.message}</p>`;
+  }
+}
+
+async function adminSetRole(userId, role) {
+  await apiFetch('/api/admin/set-role', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, role }),
+  });
+  loadAdminUsers();
+}
+
+async function adminDeleteUser(userId) {
+  if (!confirm('¿Eliminar este usuario?')) return;
+  await apiFetch('/api/admin/delete-user', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId }),
+  });
+  loadAdminUsers();
+}
+
+async function launchApp() {
+  document.getElementById('mainApp').style.display = 'block';
+
+  // Mostrar email del usuario
+  if (S.user) {
+    document.getElementById('userBadge').textContent = S.user.email;
+    // Mostrar nav de admin si corresponde
+    if (S.user.role === 'admin')
+      document.getElementById('adminNavItem').style.display = 'flex';
+  }
+
+  await init();
+}
+
 async function init() {
-  // Cargar cuentas
   const [accounts, config] = await Promise.all([
     api('/api/accounts'),
     api('/api/config'),
@@ -2770,8 +2956,8 @@ async function init() {
     `<option value="${a.id}">${a.name} — ${a.currency} (${a.id})</option>`
   ).join('');
 
-  // Pre-seleccionar: localStorage > config > primera cuenta
-  const savedAccount = localStorage.getItem('meta_account');
+  // Pre-seleccionar: perfil Supabase > localStorage > config
+  const savedAccount = S.user?.meta_account_id || localStorage.getItem('meta_account');
   if (savedAccount && accounts.find(a => a.id === savedAccount)) sel.value = savedAccount;
   else if (config.defaultAccount) sel.value = config.defaultAccount;
   S.account  = sel.value;
@@ -2814,28 +3000,34 @@ async function init() {
   loadOverview();
 }
 
-// Arranque: si hay token en localStorage arranca directo, si no consulta el servidor
+// Arranque: verificar JWT guardado → obtener perfil → lanzar app
 (async () => {
-  if (!S.token) {
-    try {
-      const cfg = await fetch('/api/config').then(r => r.json());
-      if (cfg.defaultToken) {
-        S.token = cfg.defaultToken;
-        localStorage.setItem('meta_token', S.token);
-        if (cfg.defaultAccount) localStorage.setItem('meta_account', cfg.defaultAccount);
-      }
-    } catch {}
-  }
-  if (S.token) {
-    document.getElementById('mainApp').style.display = 'block';
-    init().catch(e => showSetup('Error al cargar: ' + e.message));
-  } else {
-    showSetup();
+  if (!S.jwt) return showAuth();
+
+  try {
+    const r = await fetch('/api/auth/me', {
+      headers: { 'Authorization': `Bearer ${S.jwt}` },
+    });
+    if (!r.ok) throw new Error('Sesión expirada');
+    const user = await r.json();
+    S.user  = user;
+    S.token = user.meta_token || '';
+
+    if (!S.token) {
+      document.getElementById('tokenScreen').style.display = 'flex';
+    } else {
+      await launchApp();
+    }
+  } catch {
+    localStorage.removeItem('jwt');
+    S.jwt = '';
+    showAuth();
   }
 })();
 
-// Botón de configuración en header → vuelve a setup
-document.getElementById('settingsBtn')?.addEventListener('click', () => showSetup());
+document.getElementById('settingsBtn')?.addEventListener('click', () => {
+  document.getElementById('tokenScreen').style.display = 'flex';
+});
 
 // Efecto de luz que sigue el cursor en los botones
 document.addEventListener('mousemove', e => {

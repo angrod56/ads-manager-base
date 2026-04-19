@@ -15,6 +15,7 @@
     "dashboard": "node src/server.js"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.103.3",
     "dotenv": "^16.4.5"
   },
   "engines": {

@@ -10,6 +10,10 @@ import {
   getActionValue, calcCPA, getRevenue, getRoas,
   getAdPreview, getAdCreative,
 } from './campaigns.js';
+import {
+  verifySession, listUsers, saveUserToken, touchLastLogin, setUserRole, deleteUser,
+  supabase,
+} from './auth.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
@@ -625,6 +629,18 @@ const GET = {
       ctr:  c.impressions > 0 ? (c.clicks / c.impressions) * 100 : 0,
     })).sort((a, b) => b.purchases - a.purchases || b.spend - a.spend));
   },
+
+  // ── Auth: perfil del usuario actual ─────────────────────────────────────────
+  '/api/auth/me': async (res, q, user) => {
+    if (!user) return err(res, 'No autorizado', 401);
+    json(res, user);
+  },
+
+  // ── Admin: lista de usuarios ─────────────────────────────────────────────────
+  '/api/admin/users': async (res, q, user) => {
+    if (!user || user.role !== 'admin') return err(res, 'No autorizado', 403);
+    json(res, await listUsers());
+  },
 };
 
 // ── Rutas POST ────────────────────────────────────────────────────────────────
@@ -655,6 +671,54 @@ const POST = {
     const fail = results.filter(r => r.status === 'rejected').length;
     json(res, { ok, fail, total: ids.length });
   },
+
+  // ── Auth: login ──────────────────────────────────────────────────────────────
+  '/api/auth/login': async (res, req) => {
+    const { email, password } = await body(req);
+    if (!email || !password) return err(res, 'email y password requeridos', 400);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return err(res, error.message, 401);
+    await touchLastLogin(data.user.id);
+    const { data: profile } = await supabase
+      .from('profiles').select('*').eq('id', data.user.id).single();
+    json(res, { session: data.session, user: profile });
+  },
+
+  // ── Auth: registro ───────────────────────────────────────────────────────────
+  '/api/auth/register': async (res, req) => {
+    const { email, password } = await body(req);
+    if (!email || !password) return err(res, 'email y password requeridos', 400);
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) return err(res, error.message, 400);
+    json(res, { session: data.session, user: { id: data.user.id, email } });
+  },
+
+  // ── Auth: guardar token de Meta ──────────────────────────────────────────────
+  '/api/auth/save-token': async (res, req, user) => {
+    if (!user) return err(res, 'No autorizado', 401);
+    const { metaToken, metaAccountId } = await body(req);
+    if (!metaToken) return err(res, 'metaToken requerido', 400);
+    await saveUserToken(user.id, metaToken, metaAccountId);
+    json(res, { ok: true });
+  },
+
+  // ── Admin: cambiar role ──────────────────────────────────────────────────────
+  '/api/admin/set-role': async (res, req, user) => {
+    if (!user || user.role !== 'admin') return err(res, 'No autorizado', 403);
+    const { userId, role } = await body(req);
+    if (!userId || !role) return err(res, 'userId y role requeridos', 400);
+    await setUserRole(userId, role);
+    json(res, { ok: true });
+  },
+
+  // ── Admin: eliminar usuario ───────────────────────────────────────────────────
+  '/api/admin/delete-user': async (res, req, user) => {
+    if (!user || user.role !== 'admin') return err(res, 'No autorizado', 403);
+    const { userId } = await body(req);
+    if (!userId) return err(res, 'userId requerido', 400);
+    await deleteUser(userId);
+    json(res, { ok: true });
+  },
 };
 
 // ── Servidor ──────────────────────────────────────────────────────────────────
@@ -672,9 +736,20 @@ http.createServer(async (req, res) => {
   if (path2 === '/' || path2 === '/index.html')
     return serveFile(res, path.join(PUBLIC, 'index.html'), 'text/html');
 
+  // Rutas públicas (no requieren sesión)
+  const PUBLIC_ROUTES = ['/api/auth/login', '/api/auth/register', '/api/config'];
+
   try {
-    if (req.method === 'GET' && GET[path2]) return await GET[path2](res, q);
-    if (req.method === 'POST' && POST[path2]) return await POST[path2](res, req);
+    // Verificar sesión para rutas privadas
+    let user = null;
+    if (!PUBLIC_ROUTES.includes(path2)) {
+      user = await verifySession(req);
+      // Si tiene sesión, usar su meta_token guardado (a menos que envíe uno propio)
+      if (user?.meta_token && !q.token) q.token = user.meta_token;
+    }
+
+    if (req.method === 'GET' && GET[path2]) return await GET[path2](res, q, user);
+    if (req.method === 'POST' && POST[path2]) return await POST[path2](res, req, user);
   } catch (e) {
     console.error(`[Error] ${path2}:`, e.message);
     return err(res, e.message);
