@@ -642,7 +642,10 @@ const GET = {
   // ── Ventas Hotmart ───────────────────────────────────────────────────────────
   '/api/sales': async (res, q, user) => {
     if (!user) return err(res, 'No autorizado', 401);
-    const sales = await getSales(user.id, q.since, q.until);
+    const [sales, allSales] = await Promise.all([
+      getSales(user.id, q.since, q.until),
+      getSales(user.id),
+    ]);
 
     const approved  = sales.filter(s => s.status === 'approved');
     const refunded  = sales.filter(s => s.status === 'refunded' || s.status === 'chargeback');
@@ -652,6 +655,10 @@ const GET = {
     const refunds    = refunded.reduce((a, s) => a + (s.commission || s.amount || 0), 0);
     const netRevenue = revenue - refunds;
     const avgTicket  = approved.length ? revenue / approved.length : 0;
+
+    // Total histórico de comisiones para gamificación
+    const allApproved = allSales.filter(s => s.status === 'approved');
+    const totalEarned = allApproved.reduce((a, s) => a + (s.commission || s.amount || 0), 0);
 
     json(res, {
       sales,
@@ -663,6 +670,7 @@ const GET = {
         avgTicket,
         pending:    pending.length,
         refunded:   refunded.length,
+        totalEarned,
       },
     });
   },

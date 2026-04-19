@@ -1205,7 +1205,16 @@
       <div class="kpi-card"><div class="kpi-label">Ventas aprobadas</div><div class="kpi-value" id="sk-total">—</div></div>
       <div class="kpi-card"><div class="kpi-label">Comisión promedio</div><div class="kpi-value" id="sk-ticket">—</div></div>
       <div class="kpi-card"><div class="kpi-label">Reembolsos</div><div class="kpi-value" id="sk-refunds" style="color:var(--red)">—</div></div>
-      <div class="kpi-card"><div class="kpi-label">ROAS real</div><div class="kpi-value" id="sk-roas">—</div></div>
+    </div>
+
+    <!-- Gamificación -->
+    <div class="card" style="margin-bottom:16px" id="salesMilestones">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+        <span style="font-size:18px">🏆</span>
+        <h3 style="margin:0;font-size:15px">Tus logros</h3>
+        <span style="font-size:12px;color:var(--muted);margin-left:4px">Comisiones acumuladas histórico</span>
+      </div>
+      <div id="milestonesGrid" style="display:flex;flex-direction:column;gap:12px"></div>
     </div>
 
     <!-- Tabla de ventas -->
@@ -3136,6 +3145,55 @@ async function saveHottok() {
   }
 }
 
+const MILESTONES = [
+  { amount: 1000,   icon: '🌱', title: 'Primer Mil',      desc: 'Tus primeros $1,000 en comisiones' },
+  { amount: 5000,   icon: '🔥', title: 'En Llamas',       desc: '$5,000 acumulados — ¡vas en serio!' },
+  { amount: 10000,  icon: '💪', title: 'Imparable',       desc: '$10,000 — el 1% de los afiliados llega aquí' },
+  { amount: 25000,  icon: '💎', title: 'Diamante',        desc: '$25,000 — nivel de élite' },
+  { amount: 50000,  icon: '🚀', title: 'Despegue Total',  desc: '$50,000 — eres un referente' },
+  { amount: 100000, icon: '👑', title: 'Six Figure',      desc: '$100,000 — bienvenido al club de los 6 dígitos' },
+];
+
+function renderMilestones(totalEarned) {
+  const grid = document.getElementById('milestonesGrid');
+  if (!grid) return;
+
+  // Encontrar el hito activo actual
+  const currentIdx = MILESTONES.findIndex(m => totalEarned < m.amount);
+  const nextMilestone = currentIdx >= 0 ? MILESTONES[currentIdx] : null;
+  const prevAmount = currentIdx > 0 ? MILESTONES[currentIdx - 1].amount : 0;
+
+  grid.innerHTML = MILESTONES.map((m, i) => {
+    const unlocked = totalEarned >= m.amount;
+    const isNext   = i === currentIdx;
+    const progress = isNext
+      ? Math.min(100, ((totalEarned - prevAmount) / (m.amount - prevAmount)) * 100)
+      : unlocked ? 100 : 0;
+
+    return `
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;
+        background:${unlocked ? 'rgba(37,99,235,.12)' : 'var(--bg)'};
+        border:1px solid ${unlocked ? 'var(--blue)' : 'var(--border)'};
+        opacity:${!unlocked && !isNext ? '0.45' : '1'}">
+        <div style="font-size:28px;min-width:36px;text-align:center;filter:${unlocked ? 'none' : 'grayscale(1)'}">${unlocked ? m.icon : (isNext ? m.icon : '🔒')}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <span style="font-weight:700;font-size:13px;color:${unlocked ? 'var(--blue)' : 'var(--text)'}">${m.title}</span>
+            <span style="font-size:11px;color:var(--muted);font-weight:600">${fmt.usd(m.amount)}</span>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px">${m.desc}</div>
+          <div style="background:var(--border);border-radius:99px;height:5px;overflow:hidden">
+            <div style="height:100%;border-radius:99px;width:${progress}%;background:${unlocked ? 'var(--blue)' : '#f59e0b'};transition:width .6s ease"></div>
+          </div>
+          ${isNext ? `<div style="font-size:10px;color:var(--muted);margin-top:3px">
+            ${fmt.usd(totalEarned)} / ${fmt.usd(m.amount)} — faltan ${fmt.usd(m.amount - totalEarned)}
+          </div>` : ''}
+          ${unlocked ? `<div style="font-size:10px;color:var(--blue);margin-top:3px">✓ Logro desbloqueado</div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
 async function loadSales() {
   try {
     const params = dateParams();
@@ -3148,10 +3206,7 @@ async function loadSales() {
     document.getElementById('sk-ticket').textContent  = fmt.usd(s.avgTicket);
     document.getElementById('sk-refunds').textContent = s.refunded > 0 ? `-${fmt.usd(s.refunds)} (${s.refunded})` : '0';
 
-    // ROAS real = revenue Hotmart / gasto Meta
-    const spend = S.totals?.spend || 0;
-    const roas  = spend > 0 && s.revenue > 0 ? (s.revenue / spend).toFixed(2) + 'x' : '—';
-    document.getElementById('sk-roas').textContent = roas;
+    renderMilestones(s.totalEarned || 0);
 
     const tbody = document.getElementById('salesTbody');
     if (!data.sales.length) {
