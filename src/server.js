@@ -851,6 +851,7 @@ http.createServer(async (req, res) => {
     '/icon-192.svg':        ['image/svg+xml',    'icon-192.svg'],
     '/icon-512.svg':        ['image/svg+xml',    'icon-512.svg'],
     '/cash-register.wav':   ['audio/wav',        'cash-register.wav'],
+    '/cash-register.mp3':   ['audio/mpeg',       'cash-register.mp3'],
   };
   if (staticFiles[path2]) {
     const [mime, file] = staticFiles[path2];

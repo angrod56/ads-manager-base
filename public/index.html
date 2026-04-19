@@ -3434,6 +3434,12 @@ async function initPush() {
 
 function playCashRegister() {
   try {
+    const snd = new Audio('/cash-register.mp3');
+    snd.volume = 1.0;
+    snd.play().catch(() => {});
+    return;
+  } catch(e) {}
+  try {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     const ctx = new AC();
