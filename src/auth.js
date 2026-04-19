@@ -10,10 +10,6 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_KEY) {
   process.exit(1);
 }
 
-console.log('[Supabase] URL:', SUPABASE_URL);
-console.log('[Supabase] ANON_KEY length:', SUPABASE_ANON_KEY?.length, '| starts:', SUPABASE_ANON_KEY?.slice(0,20));
-console.log('[Supabase] SERVICE_KEY length:', SUPABASE_SERVICE_KEY?.length, '| starts:', SUPABASE_SERVICE_KEY?.slice(0,20));
-
 // Cliente anon — para signUp / signIn (operaciones de usuario)
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
