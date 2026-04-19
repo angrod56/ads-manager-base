@@ -15,6 +15,7 @@ import {
   saveHotmartToken, supabase, supabaseAdmin,
 } from './auth.js';
 import { verifyHotmartToken, processHotmartEvent, getSales } from './hotmart.js';
+import { saveSubscription, sendPushToUser } from './push.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
@@ -63,6 +64,7 @@ const GET = {
     json(res, {
       defaultAccount: process.env.META_AD_ACCOUNT_ID || null,
       defaultToken:   process.env.META_ACCESS_TOKEN   || null,
+      vapidPublicKey: process.env.VAPID_PUBLIC_KEY    || null,
     });
   },
 
@@ -750,6 +752,15 @@ const POST = {
     json(res, { ok: true });
   },
 
+  // ── Push: guardar suscripción ────────────────────────────────────────────────
+  '/api/push/subscribe': async (res, req, user) => {
+    if (!user) return err(res, 'No autorizado', 401);
+    const { subscription } = await body(req);
+    if (!subscription) return err(res, 'subscription requerida', 400);
+    await saveSubscription(user.id, subscription);
+    json(res, { ok: true });
+  },
+
   // ── Hotmart: guardar Hottok del usuario ─────────────────────────────────────
   '/api/hotmart/save-token': async (res, req, user) => {
     if (!user) return err(res, 'No autorizado', 401);
@@ -783,6 +794,20 @@ const POST = {
 
     const payload = await body(req);
     const result = await processHotmartEvent(payload, ownerId);
+
+    // Notificación push si la venta fue aprobada
+    if (result.ok && result.sale && ['approved'].includes(result.sale.status)) {
+      const sale = result.sale;
+      const commission = payload.data?.commissions?.[0]?.value;
+      const amount = commission ?? sale.amount;
+      const currency = payload.data?.commissions?.[0]?.currency_value ?? sale.currency;
+      const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD' });
+      sendPushToUser(ownerId, {
+        title: '🎉 Nueva venta aprobada',
+        body: `${sale.product_name} | Comisión: ${fmt.format(amount)}`,
+      }).catch(e => console.error('[Push]', e.message));
+    }
+
     json(res, result);
   },
 };
@@ -801,6 +826,18 @@ http.createServer(async (req, res) => {
 
   if (path2 === '/' || path2 === '/index.html')
     return serveFile(res, path.join(PUBLIC, 'index.html'), 'text/html');
+
+  // Archivos estáticos públicos
+  const staticFiles = {
+    '/sw.js':        ['text/javascript',  'sw.js'],
+    '/manifest.json':['application/json', 'manifest.json'],
+    '/icon-192.svg': ['image/svg+xml',    'icon-192.svg'],
+    '/icon-512.svg': ['image/svg+xml',    'icon-512.svg'],
+  };
+  if (staticFiles[path2]) {
+    const [mime, file] = staticFiles[path2];
+    return serveFile(res, path.join(PUBLIC, file), mime);
+  }
 
   // Rutas públicas (no requieren sesión)
   const PUBLIC_ROUTES = ['/api/auth/login', '/api/auth/register', '/api/config', '/webhook/hotmart'];

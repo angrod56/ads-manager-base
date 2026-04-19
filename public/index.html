@@ -4,6 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Meta Ads Manager</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Ads Manager">
+  <link rel="apple-touch-icon" href="/icon-192.svg">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3193,6 +3200,7 @@ async function launchApp() {
   }
 
   await init();
+  initPush();
 }
 
 async function init() {
@@ -3277,6 +3285,50 @@ async function init() {
   }
 })();
 
+
+// ── PWA: Service Worker + Push Notifications ─────────────────────────────────
+let _vapidPublicKey = null;
+
+async function initPush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+
+  try {
+    const reg = await navigator.serviceWorker.register('/sw.js');
+
+    // Obtener VAPID public key del servidor
+    if (!_vapidPublicKey) {
+      const cfg = await fetch('/api/config').then(r => r.json());
+      _vapidPublicKey = cfg.vapidPublicKey;
+    }
+    if (!_vapidPublicKey) return;
+
+    // Pedir permiso de notificaciones
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') return;
+
+    // Suscribirse al push
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(_vapidPublicKey),
+    });
+
+    // Guardar suscripción en el servidor
+    await fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${S.jwt}` },
+      body: JSON.stringify({ subscription: sub }),
+    });
+  } catch(e) {
+    console.warn('[Push]', e.message);
+  }
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
 
 // Efecto de luz que sigue el cursor en los botones
 document.addEventListener('mousemove', e => {
