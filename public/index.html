@@ -1000,6 +1000,10 @@
   <div class="nav-item" data-section="sales" onclick="showSection('sales')">
     <span class="nav-icon">💰</span> Ventas
   </div>
+  <div class="sidebar-divider"></div>
+  <div class="nav-item" data-section="config" onclick="showSection('config')">
+    <span class="nav-icon">⚙️</span> Configuración
+  </div>
   <div id="adminNavItem" class="nav-item" data-section="admin" onclick="showSection('admin')" style="display:none">
     <span class="nav-icon">👥</span> Usuarios
   </div>
@@ -1194,30 +1198,6 @@
       <div class="kpi-card"><div class="kpi-label">ROAS real</div><div class="kpi-value" id="sk-roas">—</div></div>
     </div>
 
-    <!-- Configuración webhook Hotmart -->
-    <div class="card" id="hotmartSetupCard" style="margin-bottom:16px;border:1px solid var(--border)">
-      <h3 style="margin:0 0 12px;font-size:15px">⚙️ Configuración Hotmart</h3>
-      <p style="color:var(--muted);font-size:13px;margin:0 0 16px">Configura tu webhook en <strong>Hotmart → Ferramentas → Webhook</strong> con los datos de abajo.</p>
-
-      <div style="margin-bottom:14px">
-        <div style="font-size:12px;color:var(--muted);margin-bottom:6px">URL del Webhook</div>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <code id="hotmartWebhookUrl" style="background:var(--bg);border:1px solid var(--border);padding:8px 12px;border-radius:6px;font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</code>
-          <button onclick="copyWebhookUrl()" style="font-size:12px;padding:8px 14px;white-space:nowrap">📋 Copiar</button>
-        </div>
-      </div>
-
-      <div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Hottok (token de verificación)</div>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <input id="hottokInput" type="text" placeholder="Pega aquí tu Hottok de Hotmart"
-            style="flex:1;min-width:0;padding:8px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;font-family:monospace">
-          <button onclick="saveHottok()" style="font-size:12px;padding:8px 14px;white-space:nowrap">Guardar</button>
-        </div>
-        <p style="color:var(--muted);font-size:11px;margin:8px 0 0">Lo encuentras en Hotmart al crear o editar el webhook, en el campo <em>Hottok</em>.</p>
-      </div>
-    </div>
-
     <!-- Tabla de ventas -->
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
@@ -1244,6 +1224,104 @@
     </div>
 
   </div><!-- /section-sales -->
+
+  <!-- ── SECTION: Configuración ── -->
+  <div class="section" id="section-config">
+
+    <!-- Meta Ads -->
+    <div class="card" style="margin-bottom:20px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+        <span style="font-size:22px">📘</span>
+        <div>
+          <div style="font-size:16px;font-weight:700">Meta Ads</div>
+          <div style="font-size:12px;color:var(--muted)">Conecta tu cuenta publicitaria de Facebook/Instagram</div>
+        </div>
+      </div>
+
+      <!-- Paso a paso -->
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
+        <div style="display:flex;gap:12px;align-items:flex-start">
+          <div style="min-width:24px;height:24px;border-radius:50%;background:var(--blue);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">1</div>
+          <div style="font-size:13px;color:var(--muted);line-height:1.5">Ve a <strong style="color:var(--text)">Meta for Developers → Graph API Explorer</strong></div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:flex-start">
+          <div style="min-width:24px;height:24px;border-radius:50%;background:var(--blue);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">2</div>
+          <div style="font-size:13px;color:var(--muted);line-height:1.5">Selecciona tu app y haz click en <strong style="color:var(--text)">Generate Access Token</strong></div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:flex-start">
+          <div style="min-width:24px;height:24px;border-radius:50%;background:var(--blue);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">3</div>
+          <div style="font-size:13px;color:var(--muted);line-height:1.5">Otorga permisos: <strong style="color:var(--text)">ads_read, ads_management, business_management</strong></div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:flex-start">
+          <div style="min-width:24px;height:24px;border-radius:50%;background:var(--blue);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">4</div>
+          <div style="font-size:13px;color:var(--muted);line-height:1.5">Copia el token y pégalo abajo</div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <label style="font-size:12px;color:var(--muted);font-weight:600">TOKEN DE ACCESO</label>
+        <input id="cfgMetaToken" type="password" placeholder="EAAxxxxxxxxxxxxxxx…"
+          style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 12px;color:var(--text);font-size:13px;font-family:monospace">
+        <div id="cfgMetaError" style="display:none;color:var(--red);font-size:12px;padding:6px 10px;background:rgba(255,80,80,.1);border-radius:6px"></div>
+        <button onclick="saveConfigMetaToken()"
+          style="background:var(--blue);border:none;border-radius:8px;padding:10px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px">
+          Guardar token de Meta
+        </button>
+        <div id="cfgMetaOk" style="display:none;color:#4caf50;font-size:13px;text-align:center">✓ Token guardado correctamente</div>
+      </div>
+    </div>
+
+    <!-- Hotmart -->
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+        <span style="font-size:22px">🔥</span>
+        <div>
+          <div style="font-size:16px;font-weight:700">Hotmart</div>
+          <div style="font-size:12px;color:var(--muted)">Conecta tu cuenta para ver tus ventas en el dashboard</div>
+        </div>
+      </div>
+
+      <!-- Paso a paso -->
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
+        <div style="display:flex;gap:12px;align-items:flex-start">
+          <div style="min-width:24px;height:24px;border-radius:50%;background:#ff4c00;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">1</div>
+          <div style="font-size:13px;color:var(--muted);line-height:1.5">Inicia sesión en <strong style="color:var(--text)">Hotmart</strong> y ve a <strong style="color:var(--text)">Ferramentas → Webhook</strong></div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:flex-start">
+          <div style="min-width:24px;height:24px;border-radius:50%;background:#ff4c00;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">2</div>
+          <div style="font-size:13px;color:var(--muted);line-height:1.5">Haz click en <strong style="color:var(--text)">Adicionar webhook</strong></div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:flex-start">
+          <div style="min-width:24px;height:24px;border-radius:50%;background:#ff4c00;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">3</div>
+          <div style="font-size:13px;color:var(--muted);line-height:1.5">En el campo <strong style="color:var(--text)">URL</strong> pega tu URL de webhook:</div>
+        </div>
+        <div style="margin-left:36px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <code id="hotmartWebhookUrl" style="background:var(--bg);border:1px solid var(--border);padding:8px 12px;border-radius:6px;font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</code>
+          <button onclick="copyWebhookUrl()" style="font-size:12px;padding:8px 14px;white-space:nowrap">📋 Copiar</button>
+        </div>
+        <div style="display:flex;gap:12px;align-items:flex-start">
+          <div style="min-width:24px;height:24px;border-radius:50%;background:#ff4c00;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">4</div>
+          <div style="font-size:13px;color:var(--muted);line-height:1.5">Copia el <strong style="color:var(--text)">Hottok</strong> que aparece en Hotmart y pégalo abajo</div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:flex-start">
+          <div style="min-width:24px;height:24px;border-radius:50%;background:#ff4c00;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">5</div>
+          <div style="font-size:13px;color:var(--muted);line-height:1.5">Selecciona los eventos: <strong style="color:var(--text)">PURCHASE_APPROVED, PURCHASE_COMPLETE, PURCHASE_CANCELED, PURCHASE_REFUNDED</strong> y guarda</div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <label style="font-size:12px;color:var(--muted);font-weight:600">HOTTOK (token de verificación)</label>
+        <input id="hottokInput" type="text" placeholder="Pega aquí tu Hottok de Hotmart"
+          style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 12px;color:var(--text);font-size:13px;font-family:monospace">
+        <button onclick="saveHottok()"
+          style="background:#ff4c00;border:none;border-radius:8px;padding:10px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px">
+          Guardar Hottok
+        </button>
+        <div id="cfgHotmartOk" style="display:none;color:#4caf50;font-size:13px;text-align:center">✓ Hottok guardado correctamente</div>
+      </div>
+    </div>
+
+  </div><!-- /section-config -->
 
   <!-- ── SECTION: Admin ── -->
   <div class="section" id="section-admin">
@@ -2831,6 +2909,7 @@ function showSection(name) {
     if (content && content.textContent.includes('Haz click')) loadRecommendations();
   }
   if (name === 'sales') loadSales();
+  if (name === 'config') loadConfig();
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -2945,8 +3024,44 @@ function copyWebhookUrl() {
   navigator.clipboard.writeText(url).then(() => alert('URL copiada al portapapeles'));
 }
 
+function loadConfig() {
+  if (!S.user?.id) return;
+  // URL webhook
+  document.getElementById('hotmartWebhookUrl').textContent =
+    `${location.origin}/webhook/hotmart?user_id=${S.user.id}`;
+  // Precargar Hottok si ya está guardado
+  if (S.user.hotmart_token)
+    document.getElementById('hottokInput').value = S.user.hotmart_token;
+}
+
+async function saveConfigMetaToken() {
+  const token = document.getElementById('cfgMetaToken').value.trim();
+  const errEl = document.getElementById('cfgMetaError');
+  const okEl  = document.getElementById('cfgMetaOk');
+  errEl.style.display = 'none';
+  okEl.style.display  = 'none';
+  if (!token) { errEl.textContent = 'Ingresa el token'; errEl.style.display = 'block'; return; }
+  try {
+    S.token = token;
+    const accounts = await api('/api/accounts');
+    if (!accounts.length) throw new Error('No se encontraron cuentas para este token');
+    await fetch('/api/auth/save-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${S.jwt}` },
+      body: JSON.stringify({ metaToken: token }),
+    });
+    S.user.meta_token = token;
+    okEl.style.display = 'block';
+  } catch(e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  }
+}
+
 async function saveHottok() {
   const hottok = document.getElementById('hottokInput').value.trim();
+  const okEl   = document.getElementById('cfgHotmartOk');
+  okEl.style.display = 'none';
   if (!hottok) return alert('Ingresa tu Hottok');
   try {
     const r = await fetch('/api/hotmart/save-token', {
@@ -2957,20 +3072,13 @@ async function saveHottok() {
     const d = await r.json();
     if (d.error) throw new Error(d.error);
     S.user.hotmart_token = hottok;
-    alert('Hottok guardado correctamente');
+    okEl.style.display = 'block';
   } catch(e) {
     alert('Error al guardar: ' + e.message);
   }
 }
 
 async function loadSales() {
-  // Mostrar URL de webhook y precargar Hottok si ya está guardado
-  if (S.user?.id) {
-    document.getElementById('hotmartWebhookUrl').textContent =
-      `${location.origin}/webhook/hotmart?user_id=${S.user.id}`;
-    if (S.user.hotmart_token)
-      document.getElementById('hottokInput').value = S.user.hotmart_token;
-  }
   try {
     const params = dateParams();
     const data = await api(`/api/sales?${params}`);
