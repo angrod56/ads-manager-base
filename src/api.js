@@ -2,26 +2,14 @@ import 'dotenv/config';
 
 const BASE_URL = 'https://graph.facebook.com';
 const VERSION = process.env.META_API_VERSION || 'v21.0';
-const TOKEN = process.env.META_ACCESS_TOKEN;
+const ENV_TOKEN = process.env.META_ACCESS_TOKEN;
 
-if (!TOKEN || TOKEN === 'your_token_here') {
-  console.error('[ERROR] META_ACCESS_TOKEN no configurado en .env');
-  process.exit(1);
-}
+export async function apiRequest(endpoint, params = {}, method = 'GET', body = null, token = null) {
+  const activeToken = token || ENV_TOKEN;
+  if (!activeToken) throw new Error('No hay token de Meta configurado');
 
-/**
- * Cliente base para Meta Marketing API.
- * Todas las funciones del proyecto pasan por aquí.
- *
- * @param {string} endpoint - Ruta relativa, ej: '/me/adaccounts'
- * @param {Object} params   - Query params adicionales
- * @param {string} method   - HTTP method (GET | POST)
- * @param {Object} body     - Body para POST requests
- */
-export async function apiRequest(endpoint, params = {}, method = 'GET', body = null) {
   const url = new URL(`${BASE_URL}/${VERSION}${endpoint}`);
-
-  url.searchParams.set('access_token', TOKEN);
+  url.searchParams.set('access_token', activeToken);
 
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined && value !== null) {
@@ -49,19 +37,11 @@ export async function apiRequest(endpoint, params = {}, method = 'GET', body = n
   return json;
 }
 
-/**
- * Pagina automáticamente todos los resultados de un endpoint.
- * Útil para endpoints con muchos registros.
- *
- * @param {string} endpoint
- * @param {Object} params
- * @returns {Array} Todos los items acumulados
- */
-export async function paginateAll(endpoint, params = {}) {
+export async function paginateAll(endpoint, params = {}, token = null) {
   let results = [];
   let nextUrl = null;
 
-  const first = await apiRequest(endpoint, params);
+  const first = await apiRequest(endpoint, params, 'GET', null, token);
   results = results.concat(first.data || []);
   nextUrl = first.paging?.next || null;
 

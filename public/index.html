@@ -869,6 +869,37 @@
 </head>
 <body>
 
+<!-- ── Setup Screen ───────────────────────────────────────────────────────── -->
+<div id="setupScreen" style="position:fixed;inset:0;background:var(--bg);z-index:9999;align-items:center;justify-content:center;display:none">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:40px;max-width:460px;width:90%;display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="logo-dot" style="width:14px;height:14px;border-radius:50%;background:var(--blue)"></div>
+      <span style="font-size:18px;font-weight:700;color:var(--text)">Meta Ads Manager</span>
+    </div>
+    <p style="color:var(--muted);font-size:14px;line-height:1.5;margin:0">
+      Conecta tu cuenta de Meta para empezar. Pega tu token de acceso de larga duración y el ID de tu cuenta publicitaria.
+    </p>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <label style="font-size:12px;color:var(--muted);font-weight:600">TOKEN DE ACCESO</label>
+      <input id="setupToken" type="password" placeholder="EAAxxxxxxxxxxxxxxx…"
+        style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 12px;color:var(--text);font-size:13px;font-family:monospace">
+      <span style="font-size:11px;color:var(--muted)">Genera un token de larga duración en Meta for Developers → Graph API Explorer</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <label style="font-size:12px;color:var(--muted);font-weight:600">ID DE CUENTA PUBLICITARIA <span style="font-weight:400">(opcional, se detecta automáticamente)</span></label>
+      <input id="setupAccount" type="text" placeholder="act_123456789"
+        style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 12px;color:var(--text);font-size:13px;font-family:monospace">
+    </div>
+    <div id="setupError" style="display:none;color:var(--red);font-size:13px;padding:8px 12px;background:rgba(255,80,80,.1);border-radius:6px"></div>
+    <button id="setupBtn" onclick="saveSetup()" style="background:var(--blue);border:none;border-radius:8px;padding:12px;color:#fff;font-size:14px;font-weight:600;cursor:pointer">
+      Conectar cuenta
+    </button>
+  </div>
+</div>
+
+<!-- ── Main App (oculto hasta que haya token) ─────────────────────────────── -->
+<div id="mainApp" style="display:none">
+
 <!-- ── Header ─────────────────────────────────────────────────────────────── -->
 <header class="header">
   <div class="logo">
@@ -894,6 +925,7 @@
       <button id="applyDateBtn" onclick="applyCustomDate()" style="font-size:12px;padding:5px 12px;background:var(--blue);border-color:var(--blue);color:#fff">Aplicar</button>
     </div>
     <button id="refreshBtn">↺ Actualizar</button>
+    <button id="settingsBtn" title="Cambiar token / cuenta" style="padding:6px 10px;font-size:14px;background:transparent;border-color:var(--border)">⚙</button>
     <span class="last-update" id="lastUpdate"></span>
   </div>
 </header>
@@ -1139,19 +1171,20 @@
 //  STATE
 // ═══════════════════════════════════════════════════════════════════
 const S = {
+  token: localStorage.getItem('meta_token') || '',
   account: null,
-  currency: 'USD',   // moneda de la cuenta seleccionada
-  accounts: [],      // lista completa de cuentas (para lookup de moneda)
+  currency: 'USD',
+  accounts: [],
   date: 'last_30d',
-  since: null,       // rango personalizado inicio (YYYY-MM-DD)
-  until: null,       // rango personalizado fin   (YYYY-MM-DD)
+  since: null,
+  until: null,
   campaigns: [],
   totals: null,
   sort: { by: 'spend', dir: 'desc' },
   filter: '',
   statusFilter: 'ALL',
   expanded: new Set(),
-  adData: {},       // campaignId -> ads array
+  adData: {},
   loading: false,
 };
 
@@ -1159,7 +1192,8 @@ const S = {
 //  API
 // ═══════════════════════════════════════════════════════════════════
 async function api(path) {
-  const r = await fetch(path);
+  const sep = path.includes('?') ? '&' : '?';
+  const r = await fetch(path + sep + `token=${encodeURIComponent(S.token)}`);
   const d = await r.json();
   if (d.error) throw new Error(d.error);
   return d;
@@ -1714,6 +1748,12 @@ async function loadAdsetData(campaignId) {
 
 // apiFetch helper (raw fetch for non-GET)
 async function apiFetch(url, opts) {
+  // Inyectar token en el body de los POST
+  if (opts?.body) {
+    const b = JSON.parse(opts.body);
+    b.token = S.token;
+    opts = { ...opts, body: JSON.stringify(b) };
+  }
   const r = await fetch(url, opts);
   if (!r.ok) throw new Error(await r.text());
   return r.json();
@@ -2676,6 +2716,46 @@ function showSection(name) {
 // ═══════════════════════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════════════════════
+function showSetup(msg) {
+  document.getElementById('mainApp').style.display = 'none';
+  const screen = document.getElementById('setupScreen');
+  screen.style.display = 'flex';
+  if (S.token) document.getElementById('setupToken').value = S.token;
+  if (msg) {
+    const el = document.getElementById('setupError');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+}
+
+async function saveSetup() {
+  const token   = document.getElementById('setupToken').value.trim();
+  const account = document.getElementById('setupAccount').value.trim();
+  if (!token) return;
+
+  const btn = document.getElementById('setupBtn');
+  btn.textContent = 'Verificando…';
+  btn.disabled = true;
+
+  // Verificar token consultando cuentas
+  S.token = token;
+  try {
+    const accounts = await api('/api/accounts');
+    if (!accounts.length) throw new Error('No se encontraron cuentas publicitarias para este token');
+    localStorage.setItem('meta_token', token);
+    if (account) localStorage.setItem('meta_account', account);
+    document.getElementById('setupScreen').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+    await init();
+  } catch(e) {
+    S.token = localStorage.getItem('meta_token') || '';
+    showSetup('Token inválido o sin permisos: ' + e.message);
+  } finally {
+    btn.textContent = 'Conectar cuenta';
+    btn.disabled = false;
+  }
+}
+
 async function init() {
   // Cargar cuentas
   const [accounts, config] = await Promise.all([
@@ -2690,8 +2770,10 @@ async function init() {
     `<option value="${a.id}">${a.name} — ${a.currency} (${a.id})</option>`
   ).join('');
 
-  // Pre-seleccionar cuenta por defecto
-  if (config.defaultAccount) sel.value = config.defaultAccount;
+  // Pre-seleccionar: localStorage > config > primera cuenta
+  const savedAccount = localStorage.getItem('meta_account');
+  if (savedAccount && accounts.find(a => a.id === savedAccount)) sel.value = savedAccount;
+  else if (config.defaultAccount) sel.value = config.defaultAccount;
   S.account  = sel.value;
   S.currency = accounts.find(a => a.id === S.account)?.currency || 'USD';
   S.date     = document.getElementById('dateSelect').value;
@@ -2700,6 +2782,7 @@ async function init() {
   sel.addEventListener('change', e => {
     S.account  = e.target.value;
     S.currency = S.accounts.find(a => a.id === S.account)?.currency || 'USD';
+    localStorage.setItem('meta_account', S.account);
     loadOverview();
   });
   document.getElementById('dateSelect').addEventListener('change', e => {
@@ -2731,10 +2814,16 @@ async function init() {
   loadOverview();
 }
 
-init().catch(e => {
-  document.querySelector('.main').innerHTML =
-    `<div class="card empty"><div class="empty-icon">❌</div><div>${e.message}</div></div>`;
-});
+// Arranque: mostrar setup si no hay token, app si hay
+if (S.token) {
+  document.getElementById('mainApp').style.display = 'block';
+  init().catch(e => showSetup('Error al cargar: ' + e.message));
+} else {
+  showSetup();
+}
+
+// Botón de configuración en header → vuelve a setup
+document.getElementById('settingsBtn')?.addEventListener('click', () => showSetup());
 
 // Efecto de luz que sigue el cursor en los botones
 document.addEventListener('mousemove', e => {
@@ -2745,5 +2834,6 @@ document.addEventListener('mousemove', e => {
   btn.style.setProperty('--my', ((e.clientY - r.top)  / r.height * 100) + '%');
 });
 </script>
+</div><!-- /mainApp -->
 </body>
 </html>

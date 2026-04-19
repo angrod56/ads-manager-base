@@ -58,25 +58,25 @@ const GET = {
     json(res, { defaultAccount: process.env.META_AD_ACCOUNT_ID || null });
   },
 
-  '/api/accounts': async (res) => {
-    json(res, await listAccounts());
+  '/api/accounts': async (res, q) => {
+    json(res, await listAccounts(q.token));
   },
 
   '/api/campaigns': async (res, q) => {
     if (!q.account) return err(res, 'account requerido', 400);
-    json(res, await listCampaigns(q.account, q.status || 'ALL'));
+    json(res, await listCampaigns(q.account, q.status || 'ALL', q.token));
   },
 
   '/api/adsets': async (res, q) => {
     if (!q.account) return err(res, 'account requerido', 400);
-    json(res, await listAdSets(q.account, q.campaign || null, q.status || 'ALL'));
+    json(res, await listAdSets(q.account, q.campaign || null, q.status || 'ALL', q.token));
   },
 
   '/api/ads': async (res, q) => {
     if (!q.account) return err(res, 'account requerido', 400);
     const parentId = q.adset || q.campaign || q.account;
     const type = q.adset ? 'adset' : q.campaign ? 'campaign' : 'account';
-    json(res, await listAds(parentId, type, q.status || 'ALL'));
+    json(res, await listAds(parentId, type, q.status || 'ALL', q.token));
   },
 
   '/api/insights': async (res, q) => {
@@ -87,7 +87,7 @@ const GET = {
       since: q.since, until: q.until,
       level: q.level || 'ad',
       breakdowns: q.breakdowns,
-    });
+    }, q.token);
     json(res, data);
   },
 
@@ -96,8 +96,8 @@ const GET = {
     if (!q.account) return err(res, 'account requerido', 400);
 
     const [campaigns, insights] = await Promise.all([
-      listCampaigns(q.account, 'ALL'),
-      getInsights(q.account, { ...dateOpts(q), level: 'campaign' }),
+      listCampaigns(q.account, 'ALL', q.token),
+      getInsights(q.account, { ...dateOpts(q), level: 'campaign' }, q.token),
     ]);
 
     const iMap = {};
@@ -158,8 +158,8 @@ const GET = {
     if (!q.account) return err(res, 'account requerido', 400);
 
     const [campaigns, insights] = await Promise.all([
-      listCampaigns(q.account, 'ALL'),
-      getInsights(q.account, { ...dateOpts(q), level: 'campaign' }),
+      listCampaigns(q.account, 'ALL', q.token),
+      getInsights(q.account, { ...dateOpts(q), level: 'campaign' }, q.token),
     ]);
 
     const iMap = {};
@@ -216,18 +216,12 @@ const GET = {
     // Período anterior para comparación
     let prevTotals = null;
     if (q.compare === '1') {
-      const prevInsights = await getInsights(q.account, {
-        datePreset: q.date || 'last_30d',
-        level: 'campaign',
-        // shift period: use time_range based on date length
-      });
-      // Calculamos período anterior con since/until
       const now   = new Date();
       const days  = q.date === 'last_7d' ? 7 : q.date === 'last_3d' ? 3 : 30;
       const until = new Date(now); until.setDate(until.getDate() - days);
       const since = new Date(until); since.setDate(since.getDate() - days);
       const fmt   = d => d.toISOString().slice(0, 10);
-      const prevIns = await getInsights(q.account, { since: fmt(since), until: fmt(until), level: 'campaign' });
+      const prevIns = await getInsights(q.account, { since: fmt(since), until: fmt(until), level: 'campaign' }, q.token);
       prevTotals = prevIns.reduce(
         (a, r) => ({
           spend:       a.spend + parseFloat(r.spend || 0),
@@ -251,8 +245,8 @@ const GET = {
   '/api/adset-metrics': async (res, q) => {
     if (!q.campaign) return err(res, 'campaign requerido', 400);
     const [adsets, insights] = await Promise.all([
-      listAdSets(q.account || q.campaign, q.campaign, 'ALL'),
-      getInsights(q.campaign, { ...dateOpts(q), level: 'adset' }),
+      listAdSets(q.account || q.campaign, q.campaign, 'ALL', q.token),
+      getInsights(q.campaign, { ...dateOpts(q), level: 'adset' }, q.token),
     ]);
     const iMap = {};
     for (const r of insights) iMap[r.adset_id] = r;
@@ -287,7 +281,7 @@ const GET = {
   // Insights a nivel ad para drill-down de campaña
   '/api/campaign-ads': async (res, q) => {
     if (!q.campaign) return err(res, 'campaign requerido', 400);
-    const data = await getInsights(q.campaign, { ...dateOpts(q), level: 'ad' });
+    const data = await getInsights(q.campaign, { ...dateOpts(q), level: 'ad' }, q.token);
     json(res, data.map(row => {
       const spend     = parseFloat(row.spend || 0);
       const purchases = getActionValue(row.actions || [], 'purchase');
@@ -314,7 +308,7 @@ const GET = {
   '/api/top-ads': async (res, q) => {
     if (!q.account) return err(res, 'account requerido', 400);
 
-    const insights = await getInsights(q.account, { ...dateOpts(q), level: 'ad' });
+    const insights = await getInsights(q.account, { ...dateOpts(q), level: 'ad' }, q.token);
 
     const mapped = insights.map(row => {
       const spend     = parseFloat(row.spend || 0);
@@ -346,8 +340,8 @@ const GET = {
     // Preview + creativo en paralelo para cada ad
     const withPreviews = await Promise.all(mapped.map(async ad => {
       const [preview, creative] = await Promise.allSettled([
-        getAdPreview(ad.id, format),
-        getAdCreative(ad.id),
+        getAdPreview(ad.id, format, q.token),
+        getAdCreative(ad.id, q.token),
       ]);
       return {
         ...ad,
@@ -372,8 +366,8 @@ const GET = {
     if (!q.account) return err(res, 'account requerido', 400);
 
     const [campaigns, insights] = await Promise.all([
-      listCampaigns(q.account, 'ALL'),
-      getInsights(q.account, { ...dateOpts(q), level: 'campaign' }),
+      listCampaigns(q.account, 'ALL', q.token),
+      getInsights(q.account, { ...dateOpts(q), level: 'campaign' }, q.token),
     ]);
 
     const iMap = {};
@@ -499,7 +493,7 @@ const GET = {
   '/api/launch-trend': async (res, q) => {
     if (!q.account || !q.launch) return err(res, 'account y launch requeridos', 400);
 
-    const campaigns = await listCampaigns(q.account, 'ALL');
+    const campaigns = await listCampaigns(q.account, 'ALL', q.token);
     const ids = campaigns
       .filter(c => c.name.split(' | ')[0].split(' // ')[0].trim() === q.launch)
       .map(c => c.id);
@@ -507,7 +501,7 @@ const GET = {
     if (!ids.length) return json(res, []);
 
     const allInsights = await Promise.all(
-      ids.map(id => getInsights(id, { ...dateOpts(q), level: 'campaign', timeIncrement: '1' }))
+      ids.map(id => getInsights(id, { ...dateOpts(q), level: 'campaign', timeIncrement: '1' }, q.token))
     );
 
     const byDate = {};
@@ -536,9 +530,9 @@ const GET = {
     const date3  = 'last_3d';
 
     const [campaigns7, insights7, insights3] = await Promise.all([
-      listCampaigns(q.account, 'ALL'),
-      getInsights(q.account, { datePreset: date7, level: 'campaign' }),
-      getInsights(q.account, { datePreset: date3, level: 'campaign' }),
+      listCampaigns(q.account, 'ALL', q.token),
+      getInsights(q.account, { datePreset: date7, level: 'campaign' }, q.token),
+      getInsights(q.account, { datePreset: date3, level: 'campaign' }, q.token),
     ]);
 
     const map7 = {}, map3 = {};
@@ -610,7 +604,7 @@ const GET = {
       ...dateOpts(q),
       level: q.level || 'campaign',
       breakdowns: 'country',
-    });
+    }, q.token);
     const map = {};
     for (const row of data) {
       const c = row.country || 'XX';
@@ -634,25 +628,25 @@ const GET = {
 
 const POST = {
   '/api/pause': async (res, req) => {
-    const { id } = await body(req);
+    const { id, token } = await body(req);
     if (!id) return err(res, 'id requerido', 400);
-    json(res, await pauseEntity(id));
+    json(res, await pauseEntity(id, token));
   },
   '/api/activate': async (res, req) => {
-    const { id } = await body(req);
+    const { id, token } = await body(req);
     if (!id) return err(res, 'id requerido', 400);
-    json(res, await activateEntity(id));
+    json(res, await activateEntity(id, token));
   },
   '/api/budget': async (res, req) => {
-    const { id, amount, type = 'daily_budget' } = await body(req);
+    const { id, amount, type = 'daily_budget', token } = await body(req);
     if (!id || !amount) return err(res, 'id y amount requeridos', 400);
-    json(res, await setBudget(id, parseInt(amount), type));
+    json(res, await setBudget(id, parseInt(amount), type, token));
   },
   '/api/bulk-action': async (res, req) => {
-    const { ids, action } = await body(req);
+    const { ids, action, token } = await body(req);
     if (!ids?.length || !action) return err(res, 'ids y action requeridos', 400);
     const results = await Promise.allSettled(
-      ids.map(id => action === 'pause' ? pauseEntity(id) : activateEntity(id))
+      ids.map(id => action === 'pause' ? pauseEntity(id, token) : activateEntity(id, token))
     );
     const ok   = results.filter(r => r.status === 'fulfilled').length;
     const fail = results.filter(r => r.status === 'rejected').length;
