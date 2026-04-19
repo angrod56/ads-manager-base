@@ -1194,6 +1194,17 @@
       <div class="kpi-card"><div class="kpi-label">ROAS real</div><div class="kpi-value" id="sk-roas">—</div></div>
     </div>
 
+    <!-- Configuración webhook Hotmart -->
+    <div class="card" id="hotmartSetupCard" style="margin-bottom:16px;border:1px solid var(--border)">
+      <h3 style="margin:0 0 12px;font-size:15px">⚙️ Configuración Hotmart</h3>
+      <p style="color:var(--muted);font-size:13px;margin:0 0 12px">Copia esta URL y pégala en <strong>Hotmart → Ferramentas → Webhook</strong> para recibir tus ventas aquí.</p>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <code id="hotmartWebhookUrl" style="background:var(--bg);border:1px solid var(--border);padding:8px 12px;border-radius:6px;font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</code>
+        <button onclick="copyWebhookUrl()" style="font-size:12px;padding:8px 14px;white-space:nowrap">📋 Copiar URL</button>
+      </div>
+      <p style="color:var(--muted);font-size:11px;margin:10px 0 0">El Hottok (token de verificación) te lo proporciona el administrador de la plataforma.</p>
+    </div>
+
     <!-- Tabla de ventas -->
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
@@ -2916,7 +2927,17 @@ function logout() {
 
 // ── Admin ─────────────────────────────────────────────────────────────────────
 // ── Ventas Hotmart ────────────────────────────────────────────────────────────
+function copyWebhookUrl() {
+  const url = document.getElementById('hotmartWebhookUrl').textContent;
+  navigator.clipboard.writeText(url).then(() => alert('URL copiada al portapapeles'));
+}
+
 async function loadSales() {
+  // Mostrar URL de webhook del usuario actual
+  if (S.user?.id) {
+    document.getElementById('hotmartWebhookUrl').textContent =
+      `${location.origin}/webhook/hotmart?user_id=${S.user.id}`;
+  }
   try {
     const params = dateParams();
     const data = await api(`/api/sales?${params}`);
@@ -2967,6 +2988,7 @@ async function loadAdminUsers() {
           <th style="padding:8px 4px">Email</th>
           <th style="padding:8px 4px">Rol</th>
           <th style="padding:8px 4px">Cuenta Meta</th>
+          <th style="padding:8px 4px">Webhook Hotmart</th>
           <th style="padding:8px 4px">Registro</th>
           <th style="padding:8px 4px">Último acceso</th>
           <th style="padding:8px 4px">Acciones</th>
@@ -2981,6 +3003,10 @@ async function loadAdminUsers() {
                 </span>
               </td>
               <td style="padding:8px 4px;font-family:monospace;font-size:11px;color:var(--muted)">${u.meta_account_id || '—'}</td>
+              <td style="padding:8px 4px;font-size:11px">
+                <span style="font-family:monospace;font-size:10px;color:var(--muted)">${location.origin}/webhook/hotmart?user_id=${u.id}</span>
+                <button onclick="navigator.clipboard.writeText('${location.origin}/webhook/hotmart?user_id=${u.id}')" style="font-size:10px;padding:2px 6px;margin-left:4px">Copiar</button>
+              </td>
               <td style="padding:8px 4px;color:var(--muted);font-size:11px">${u.created_at ? new Date(u.created_at).toLocaleDateString('es') : '—'}</td>
               <td style="padding:8px 4px;color:var(--muted);font-size:11px">${u.last_login ? new Date(u.last_login).toLocaleDateString('es') : '—'}</td>
               <td style="padding:8px 4px;display:flex;gap:6px">

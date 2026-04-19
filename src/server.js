@@ -751,16 +751,20 @@ const POST = {
   },
 
   // ── Webhook Hotmart ──────────────────────────────────────────────────────────
-  '/webhook/hotmart': async (res, req, user) => {
+  '/webhook/hotmart': async (res, req, user, q) => {
     if (!verifyHotmartToken(req)) return err(res, 'Token inválido', 401);
     const payload = await body(req);
 
-    // Asociar la venta al usuario cuyo producto coincide, o al admin por defecto
-    const { data: profiles } = await supabaseAdmin
-      .from('profiles').select('id').eq('role', 'admin').limit(1);
-    const ownerId = profiles?.[0]?.id || null;
+    let ownerId = q?.user_id || null;
 
-    if (!ownerId) return err(res, 'No hay usuario admin configurado', 500);
+    // Si no viene user_id en la URL, fallback al admin
+    if (!ownerId) {
+      const { data: profiles } = await supabaseAdmin
+        .from('profiles').select('id').eq('role', 'admin').limit(1);
+      ownerId = profiles?.[0]?.id || null;
+    }
+
+    if (!ownerId) return err(res, 'No hay usuario configurado', 500);
 
     const result = await processHotmartEvent(payload, ownerId);
     json(res, result);
@@ -795,7 +799,7 @@ http.createServer(async (req, res) => {
     }
 
     if (req.method === 'GET' && GET[path2]) return await GET[path2](res, q, user);
-    if (req.method === 'POST' && POST[path2]) return await POST[path2](res, req, user);
+    if (req.method === 'POST' && POST[path2]) return await POST[path2](res, req, user, q);
   } catch (e) {
     console.error(`[Error] ${path2}:`, e.message);
     return err(res, e.message);
