@@ -1197,12 +1197,25 @@
     <!-- Configuración webhook Hotmart -->
     <div class="card" id="hotmartSetupCard" style="margin-bottom:16px;border:1px solid var(--border)">
       <h3 style="margin:0 0 12px;font-size:15px">⚙️ Configuración Hotmart</h3>
-      <p style="color:var(--muted);font-size:13px;margin:0 0 12px">Copia esta URL y pégala en <strong>Hotmart → Ferramentas → Webhook</strong> para recibir tus ventas aquí.</p>
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <code id="hotmartWebhookUrl" style="background:var(--bg);border:1px solid var(--border);padding:8px 12px;border-radius:6px;font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</code>
-        <button onclick="copyWebhookUrl()" style="font-size:12px;padding:8px 14px;white-space:nowrap">📋 Copiar URL</button>
+      <p style="color:var(--muted);font-size:13px;margin:0 0 16px">Configura tu webhook en <strong>Hotmart → Ferramentas → Webhook</strong> con los datos de abajo.</p>
+
+      <div style="margin-bottom:14px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:6px">URL del Webhook</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <code id="hotmartWebhookUrl" style="background:var(--bg);border:1px solid var(--border);padding:8px 12px;border-radius:6px;font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</code>
+          <button onclick="copyWebhookUrl()" style="font-size:12px;padding:8px 14px;white-space:nowrap">📋 Copiar</button>
+        </div>
       </div>
-      <p style="color:var(--muted);font-size:11px;margin:10px 0 0">El Hottok (token de verificación) te lo proporciona el administrador de la plataforma.</p>
+
+      <div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Hottok (token de verificación)</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <input id="hottokInput" type="text" placeholder="Pega aquí tu Hottok de Hotmart"
+            style="flex:1;min-width:0;padding:8px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;font-family:monospace">
+          <button onclick="saveHottok()" style="font-size:12px;padding:8px 14px;white-space:nowrap">Guardar</button>
+        </div>
+        <p style="color:var(--muted);font-size:11px;margin:8px 0 0">Lo encuentras en Hotmart al crear o editar el webhook, en el campo <em>Hottok</em>.</p>
+      </div>
     </div>
 
     <!-- Tabla de ventas -->
@@ -2932,11 +2945,31 @@ function copyWebhookUrl() {
   navigator.clipboard.writeText(url).then(() => alert('URL copiada al portapapeles'));
 }
 
+async function saveHottok() {
+  const hottok = document.getElementById('hottokInput').value.trim();
+  if (!hottok) return alert('Ingresa tu Hottok');
+  try {
+    const r = await fetch('/api/hotmart/save-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${S.jwt}` },
+      body: JSON.stringify({ hottok }),
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    S.user.hotmart_token = hottok;
+    alert('Hottok guardado correctamente');
+  } catch(e) {
+    alert('Error al guardar: ' + e.message);
+  }
+}
+
 async function loadSales() {
-  // Mostrar URL de webhook del usuario actual
+  // Mostrar URL de webhook y precargar Hottok si ya está guardado
   if (S.user?.id) {
     document.getElementById('hotmartWebhookUrl').textContent =
       `${location.origin}/webhook/hotmart?user_id=${S.user.id}`;
+    if (S.user.hotmart_token)
+      document.getElementById('hottokInput').value = S.user.hotmart_token;
   }
   try {
     const params = dateParams();

@@ -12,7 +12,7 @@ import {
 } from './campaigns.js';
 import {
   verifySession, listUsers, saveUserToken, touchLastLogin, setUserRole, deleteUser,
-  supabase, supabaseAdmin,
+  saveHotmartToken, supabase, supabaseAdmin,
 } from './auth.js';
 import { verifyHotmartToken, processHotmartEvent, getSales } from './hotmart.js';
 
@@ -750,15 +750,30 @@ const POST = {
     json(res, { ok: true });
   },
 
+  // ── Hotmart: guardar Hottok del usuario ─────────────────────────────────────
+  '/api/hotmart/save-token': async (res, req, user) => {
+    if (!user) return err(res, 'No autorizado', 401);
+    const { hottok } = await body(req);
+    if (!hottok) return err(res, 'hottok requerido', 400);
+    await saveHotmartToken(user.id, hottok);
+    json(res, { ok: true });
+  },
+
   // ── Webhook Hotmart ──────────────────────────────────────────────────────────
   '/webhook/hotmart': async (res, req, user, q) => {
-    if (!verifyHotmartToken(req)) return err(res, 'Token inválido', 401);
-    const payload = await body(req);
-
+    const incomingToken = req.headers['x-hotmart-hottok'] || req.headers['hottok'] || '';
     let ownerId = q?.user_id || null;
 
-    // Si no viene user_id en la URL, fallback al admin
-    if (!ownerId) {
+    if (ownerId) {
+      // Verificar contra el token del usuario específico
+      const { data: profile } = await supabaseAdmin
+        .from('profiles').select('id, hotmart_token').eq('id', ownerId).single();
+      if (!profile) return err(res, 'Usuario no encontrado', 404);
+      const expectedToken = profile.hotmart_token || process.env.HOTMART_TOKEN;
+      if (incomingToken !== expectedToken) return err(res, 'Token inválido', 401);
+    } else {
+      // Fallback al admin: verificar con token global
+      if (!verifyHotmartToken(req)) return err(res, 'Token inválido', 401);
       const { data: profiles } = await supabaseAdmin
         .from('profiles').select('id').eq('role', 'admin').limit(1);
       ownerId = profiles?.[0]?.id || null;
@@ -766,6 +781,7 @@ const POST = {
 
     if (!ownerId) return err(res, 'No hay usuario configurado', 500);
 
+    const payload = await body(req);
     const result = await processHotmartEvent(payload, ownerId);
     json(res, result);
   },
