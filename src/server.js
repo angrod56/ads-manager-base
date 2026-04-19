@@ -811,6 +811,7 @@ const POST = {
     if (!ownerId) return err(res, 'No hay usuario configurado', 500);
 
     const payload = await body(req);
+    console.log('[Hotmart] commissions:', JSON.stringify(payload.data?.commissions));
     const result = await processHotmartEvent(payload, ownerId);
 
     // Notificación push si la venta fue aprobada
