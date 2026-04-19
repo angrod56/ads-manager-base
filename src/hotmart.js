@@ -22,8 +22,9 @@ export async function processHotmartEvent(payload, userId) {
 
   const status = mapStatus(event);
 
-  // Suma todas las comisiones del array — Hotmart solo incluye las de esta cuenta
-  const commission = commissions.reduce((sum, c) => sum + (c.value || 0), 0)
+  // Excluir MARKETPLACE (tarifa de Hotmart) — solo sumar comisiones del usuario
+  const userCommissions = commissions.filter(c => c.source !== 'MARKETPLACE');
+  const commission = userCommissions.reduce((sum, c) => sum + (c.value || 0), 0)
     || purchase.price?.value
     || 0;
 
