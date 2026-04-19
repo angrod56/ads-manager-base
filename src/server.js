@@ -689,7 +689,8 @@ const POST = {
     const { email, password } = await body(req);
     if (!email || !password) return err(res, 'email y password requeridos', 400);
     const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) return err(res, error.message, 400);
+    if (error) { console.error('[register error]', error); return err(res, error.message, 400); }
+    if (!data.session) return err(res, 'Confirma tu email antes de continuar', 400);
     json(res, { session: data.session, user: { id: data.user.id, email } });
   },
 

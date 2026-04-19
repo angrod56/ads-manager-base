@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL?.trim();
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY?.trim();
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY?.replace(/\s/g, '');
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
   console.error('[ERROR] SUPABASE_URL y SUPABASE_SERVICE_KEY requeridos en .env');
