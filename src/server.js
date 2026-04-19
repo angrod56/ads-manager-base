@@ -846,10 +846,11 @@ http.createServer(async (req, res) => {
 
   // Archivos estáticos públicos
   const staticFiles = {
-    '/sw.js':        ['text/javascript',  'sw.js'],
-    '/manifest.json':['application/json', 'manifest.json'],
-    '/icon-192.svg': ['image/svg+xml',    'icon-192.svg'],
-    '/icon-512.svg': ['image/svg+xml',    'icon-512.svg'],
+    '/sw.js':               ['text/javascript',  'sw.js'],
+    '/manifest.json':       ['application/json', 'manifest.json'],
+    '/icon-192.svg':        ['image/svg+xml',    'icon-192.svg'],
+    '/icon-512.svg':        ['image/svg+xml',    'icon-512.svg'],
+    '/cash-register.wav':   ['audio/wav',        'cash-register.wav'],
   };
   if (staticFiles[path2]) {
     const [mime, file] = staticFiles[path2];
