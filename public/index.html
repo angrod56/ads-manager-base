@@ -3438,65 +3438,60 @@ function playCashRegister() {
     if (!AC) return;
     const ctx = new AC();
 
-    const play = () => {
-      const now = ctx.currentTime;
-
-      // Click mecánico
-      const clickBuf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.05), ctx.sampleRate);
-      const cd = clickBuf.getChannelData(0);
-      for (let i = 0; i < cd.length; i++)
-        cd[i] = (Math.random()*2-1) * Math.exp(-i/(ctx.sampleRate*0.008)) * 0.8;
-      const click = ctx.createBufferSource();
-      click.buffer = clickBuf;
-      click.connect(ctx.destination);
-      click.start(now);
-
-      // Cajón (ruido grave)
-      const drawerBuf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.1), ctx.sampleRate);
-      const dd = drawerBuf.getChannelData(0);
-      for (let i = 0; i < dd.length; i++)
-        dd[i] = Math.sin(2*Math.PI*160*(i/ctx.sampleRate)) * Math.exp(-i/(ctx.sampleRate*0.02)) * 0.6;
-      const drawer = ctx.createBufferSource();
-      drawer.buffer = drawerBuf;
-      drawer.connect(ctx.destination);
-      drawer.start(now + 0.02);
-
-      // Campanilla 1 (Do6 - 1047Hz)
-      const osc1 = ctx.createOscillator();
-      const g1   = ctx.createGain();
-      osc1.type = 'sine';
-      osc1.frequency.value = 1047;
-      g1.gain.setValueAtTime(0.7, now + 0.07);
-      g1.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
-      osc1.connect(g1); g1.connect(ctx.destination);
-      osc1.start(now + 0.07); osc1.stop(now + 0.9);
-
-      // Campanilla 2 (Sol6 - 1568Hz)
-      const osc2 = ctx.createOscillator();
-      const g2   = ctx.createGain();
-      osc2.type = 'sine';
-      osc2.frequency.value = 1568;
-      g2.gain.setValueAtTime(0.35, now + 0.07);
-      g2.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
-      osc2.connect(g2); g2.connect(ctx.destination);
-      osc2.start(now + 0.07); osc2.stop(now + 0.7);
-
-      // Campanilla 3 (acento - 1319Hz)
-      const osc3 = ctx.createOscillator();
-      const g3   = ctx.createGain();
-      osc3.type = 'sine';
-      osc3.frequency.value = 1319;
-      g3.gain.setValueAtTime(0.4, now + 0.22);
-      g3.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
-      osc3.connect(g3); g3.connect(ctx.destination);
-      osc3.start(now + 0.22); osc3.stop(now + 0.8);
+    const coin = (freq, t, vol = 0.5, decay = 0.18) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, t);
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.75, t + decay);
+      gain.gain.setValueAtTime(vol, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + decay);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(t); osc.stop(t + decay + 0.05);
     };
 
-    if (ctx.state === 'suspended') {
-      ctx.resume().then(play);
-    } else {
-      play();
-    }
+    const noise = (t, dur, vol = 0.4) => {
+      const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
+      const d   = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++)
+        d[i] = (Math.random()*2-1) * Math.exp(-i/(ctx.sampleRate*dur*0.3)) * vol;
+      const src  = ctx.createBufferSource();
+      const gain = ctx.createGain();
+      src.buffer = buf;
+      gain.gain.value = 1;
+      src.connect(gain); gain.connect(ctx.destination);
+      src.start(t);
+    };
+
+    const play = () => {
+      const n = ctx.currentTime;
+
+      // Impacto inicial — caja registradora abre
+      noise(n,       0.04, 0.6);
+      noise(n + 0.03, 0.06, 0.35);
+
+      // Lluvia de monedas — 6 monedas cayendo en cascada
+      coin(3200, n + 0.05, 0.55, 0.14);
+      coin(2800, n + 0.10, 0.50, 0.16);
+      coin(3500, n + 0.14, 0.45, 0.13);
+      coin(2600, n + 0.18, 0.50, 0.15);
+      coin(3100, n + 0.22, 0.40, 0.14);
+      coin(2900, n + 0.26, 0.38, 0.16);
+
+      // Armónicos de cada moneda (profundidad)
+      coin(1600, n + 0.05, 0.20, 0.18);
+      coin(1400, n + 0.10, 0.18, 0.20);
+      coin(1750, n + 0.14, 0.16, 0.17);
+      coin(1500, n + 0.22, 0.15, 0.18);
+
+      // Campanada final — "la venta llegó"
+      coin(1047, n + 0.32, 0.65, 0.55);
+      coin(1319, n + 0.34, 0.40, 0.45);
+      coin(1568, n + 0.36, 0.25, 0.40);
+    };
+
+    if (ctx.state === 'suspended') ctx.resume().then(play);
+    else play();
   } catch(e) {}
 }
 
