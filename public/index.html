@@ -3432,32 +3432,71 @@ async function initPush() {
   }
 }
 
-let _cashAudio = null;
-
-// iOS requiere que el audio se inicialice dentro de un gesto del usuario
-function _initAudio() {
-  if (_cashAudio) return;
-  _cashAudio = new Audio('/cash-register.wav');
-  _cashAudio.preload = 'auto';
-  // "Tocar" silenciosamente para desbloquear el contexto de audio en iOS
-  _cashAudio.volume = 0;
-  _cashAudio.play().then(() => {
-    _cashAudio.pause();
-    _cashAudio.currentTime = 0;
-    _cashAudio.volume = 1;
-  }).catch(() => {});
-}
-
-// Desbloquear audio en el primer toque del usuario
-document.addEventListener('touchstart', _initAudio, { once: true });
-document.addEventListener('click',      _initAudio, { once: true });
-
 function playCashRegister() {
   try {
-    if (!_cashAudio) { _initAudio(); return; }
-    const snd = new Audio('/cash-register.wav');
-    snd.volume = 1.0;
-    snd.play().catch(() => {});
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    const ctx = new AC();
+
+    const play = () => {
+      const now = ctx.currentTime;
+
+      // Click mecánico
+      const clickBuf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.05), ctx.sampleRate);
+      const cd = clickBuf.getChannelData(0);
+      for (let i = 0; i < cd.length; i++)
+        cd[i] = (Math.random()*2-1) * Math.exp(-i/(ctx.sampleRate*0.008)) * 0.8;
+      const click = ctx.createBufferSource();
+      click.buffer = clickBuf;
+      click.connect(ctx.destination);
+      click.start(now);
+
+      // Cajón (ruido grave)
+      const drawerBuf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.1), ctx.sampleRate);
+      const dd = drawerBuf.getChannelData(0);
+      for (let i = 0; i < dd.length; i++)
+        dd[i] = Math.sin(2*Math.PI*160*(i/ctx.sampleRate)) * Math.exp(-i/(ctx.sampleRate*0.02)) * 0.6;
+      const drawer = ctx.createBufferSource();
+      drawer.buffer = drawerBuf;
+      drawer.connect(ctx.destination);
+      drawer.start(now + 0.02);
+
+      // Campanilla 1 (Do6 - 1047Hz)
+      const osc1 = ctx.createOscillator();
+      const g1   = ctx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.value = 1047;
+      g1.gain.setValueAtTime(0.7, now + 0.07);
+      g1.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
+      osc1.connect(g1); g1.connect(ctx.destination);
+      osc1.start(now + 0.07); osc1.stop(now + 0.9);
+
+      // Campanilla 2 (Sol6 - 1568Hz)
+      const osc2 = ctx.createOscillator();
+      const g2   = ctx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.value = 1568;
+      g2.gain.setValueAtTime(0.35, now + 0.07);
+      g2.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+      osc2.connect(g2); g2.connect(ctx.destination);
+      osc2.start(now + 0.07); osc2.stop(now + 0.7);
+
+      // Campanilla 3 (acento - 1319Hz)
+      const osc3 = ctx.createOscillator();
+      const g3   = ctx.createGain();
+      osc3.type = 'sine';
+      osc3.frequency.value = 1319;
+      g3.gain.setValueAtTime(0.4, now + 0.22);
+      g3.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+      osc3.connect(g3); g3.connect(ctx.destination);
+      osc3.start(now + 0.22); osc3.stop(now + 0.8);
+    };
+
+    if (ctx.state === 'suspended') {
+      ctx.resume().then(play);
+    } else {
+      play();
+    }
   } catch(e) {}
 }
 
