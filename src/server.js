@@ -12,7 +12,7 @@ import {
 } from './campaigns.js';
 import {
   verifySession, listUsers, saveUserToken, touchLastLogin, setUserRole, deleteUser,
-  supabase,
+  supabase, supabaseAdmin,
 } from './auth.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -679,7 +679,7 @@ const POST = {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return err(res, error.message, 401);
     await touchLastLogin(data.user.id);
-    const { data: profile } = await supabase
+    const { data: profile } = await supabaseAdmin
       .from('profiles').select('*').eq('id', data.user.id).single();
     json(res, { session: data.session, user: profile });
   },
