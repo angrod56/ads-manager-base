@@ -1219,10 +1219,12 @@
 
     <!-- Tabla de ventas -->
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
         <h3 style="margin:0;font-size:15px">Transacciones</h3>
-        <button onclick="loadSales()" style="font-size:12px;padding:6px 12px">↺ Actualizar</button>
-        <button onclick="playCashRegister()" style="font-size:12px;padding:6px 12px">🔔 Probar sonido</button>
+        <div style="display:flex;gap:8px">
+          <button onclick="loadSales()" style="font-size:12px;padding:6px 12px">↺ Actualizar</button>
+          <button onclick="playCashRegister()" style="font-size:12px;padding:6px 12px">🔔 Probar sonido</button>
+        </div>
       </div>
       <div style="overflow-x:auto">
         <table style="width:100%;border-collapse:collapse;font-size:13px">
