@@ -796,13 +796,14 @@ const POST = {
     const result = await processHotmartEvent(payload, ownerId);
 
     // Notificación push si la venta fue aprobada
-    if (result.ok && result.sale && ['approved'].includes(result.sale.status)) {
+    if (result.ok && result.sale && result.sale.status === 'approved') {
       const sale = result.sale;
-      const commission = payload.data?.commissions?.[0]?.value ?? sale.amount;
-      const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+      const fmt  = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+      const buyer = sale.buyer_name || sale.buyer_email || 'Cliente';
       sendPushToUser(ownerId, {
-        title: '🎉 Nueva venta aprobada',
-        body: `${sale.product_name} | Comisión: ${fmt.format(commission)}`,
+        title: `💰 Nueva venta — ${fmt.format(result.commission)}`,
+        body:  `${sale.product_name}\n👤 ${buyer}\n💵 Comisión: ${fmt.format(result.commission)} USD`,
+        icon:  '/icon-192.svg',
       }).catch(e => console.error('[Push]', e.message));
     }
 

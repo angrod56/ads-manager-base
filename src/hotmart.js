@@ -15,11 +15,15 @@ export async function processHotmartEvent(payload, userId) {
 
   if (!data?.purchase || !data?.product) return { ignored: true };
 
-  const purchase = data.purchase;
-  const product  = data.product;
-  const buyer    = data.buyer || {};
+  const purchase    = data.purchase;
+  const product     = data.product;
+  const buyer       = data.buyer || {};
+  const commissions = data.commissions || [];
 
   const status = mapStatus(event);
+
+  // Suma todas las comisiones del payload (producer + affiliate si aplica)
+  const commission = commissions.reduce((sum, c) => sum + (c.value || 0), 0) || purchase.price?.value || 0;
 
   const sale = {
     id:           purchase.transaction || `${Date.now()}`,
@@ -29,7 +33,8 @@ export async function processHotmartEvent(payload, userId) {
     buyer_email:  buyer.email || null,
     buyer_name:   buyer.name  || null,
     amount:       purchase.price?.value || 0,
-    currency:     purchase.price?.currency_value || 'USD',
+    currency:     'USD',
+    commission,
     status,
     payment_type: purchase.payment?.type || null,
     hotmart_event: event,
@@ -43,7 +48,7 @@ export async function processHotmartEvent(payload, userId) {
     .upsert(sale, { onConflict: 'id' });
 
   if (error) throw new Error(error.message);
-  return { ok: true, sale };
+  return { ok: true, sale, commission };
 }
 
 // ── Obtener ventas de un usuario ──────────────────────────────────────────────
