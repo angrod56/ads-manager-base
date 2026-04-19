@@ -12,7 +12,7 @@ import {
 } from './campaigns.js';
 import {
   verifySession, listUsers, saveUserToken, touchLastLogin, setUserRole, deleteUser,
-  saveHotmartToken, saveHotmartRole, saveUserName, supabase, supabaseAdmin,
+  saveHotmartToken, saveUserName, supabase, supabaseAdmin,
 } from './auth.js';
 import { verifyHotmartToken, processHotmartEvent, getSales } from './hotmart.js';
 import { saveSubscription, sendPushToUser } from './push.js';
@@ -771,15 +771,6 @@ const POST = {
     json(res, { ok: true });
   },
 
-  // ── Hotmart: guardar rol del usuario ────────────────────────────────────────
-  '/api/hotmart/save-role': async (res, req, user) => {
-    if (!user) return err(res, 'No autorizado', 401);
-    const { hotmartRole } = await body(req);
-    if (!hotmartRole) return err(res, 'hotmartRole requerido', 400);
-    await saveHotmartRole(user.id, hotmartRole);
-    json(res, { ok: true });
-  },
-
   // ── Hotmart: guardar Hottok del usuario ─────────────────────────────────────
   '/api/hotmart/save-token': async (res, req, user) => {
     if (!user) return err(res, 'No autorizado', 401);
@@ -794,15 +785,13 @@ const POST = {
     const incomingToken = req.headers['x-hotmart-hottok'] || req.headers['hottok'] || '';
     let ownerId = q?.user_id || null;
 
-    let hotmartRole = 'PRODUCER';
     if (ownerId) {
       // Verificar contra el token del usuario específico
       const { data: profile } = await supabaseAdmin
-        .from('profiles').select('id, hotmart_token, hotmart_role').eq('id', ownerId).single();
+        .from('profiles').select('id, hotmart_token').eq('id', ownerId).single();
       if (!profile) return err(res, 'Usuario no encontrado', 404);
       const expectedToken = profile.hotmart_token || process.env.HOTMART_TOKEN;
       if (incomingToken !== expectedToken) return err(res, 'Token inválido', 401);
-      hotmartRole = profile.hotmart_role || 'PRODUCER';
     } else {
       // Fallback al admin: verificar con token global
       if (!verifyHotmartToken(req)) return err(res, 'Token inválido', 401);
@@ -814,7 +803,7 @@ const POST = {
     if (!ownerId) return err(res, 'No hay usuario configurado', 500);
 
     const payload = await body(req);
-    const result = await processHotmartEvent(payload, ownerId, hotmartRole);
+    const result = await processHotmartEvent(payload, ownerId);
 
     // Notificación push si la venta fue aprobada
     if (result.ok && result.sale && result.sale.status === 'approved') {

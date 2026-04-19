@@ -9,7 +9,7 @@ export function verifyHotmartToken(req) {
 }
 
 // ── Procesar evento del webhook ───────────────────────────────────────────────
-export async function processHotmartEvent(payload, userId, hotmartRole = 'PRODUCER') {
+export async function processHotmartEvent(payload, userId) {
   const event = payload.event;
   const data  = payload.data;
 
@@ -22,10 +22,8 @@ export async function processHotmartEvent(payload, userId, hotmartRole = 'PRODUC
 
   const status = mapStatus(event);
 
-  // Comisión del rol específico del usuario, fallback al monto total
-  const roleCommission = commissions.find(c => c.source === hotmartRole);
-  const commission = roleCommission?.value
-    ?? commissions.reduce((sum, c) => sum + (c.value || 0), 0)
+  // Suma todas las comisiones del array — Hotmart solo incluye las de esta cuenta
+  const commission = commissions.reduce((sum, c) => sum + (c.value || 0), 0)
     || purchase.price?.value
     || 0;
 

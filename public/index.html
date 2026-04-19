@@ -1341,16 +1341,7 @@
       </div>
 
       <div style="display:flex;flex-direction:column;gap:8px">
-        <label style="font-size:12px;color:var(--muted);font-weight:600">MI ROL EN HOTMART</label>
-        <select id="hotmartRoleSelect"
-          style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 12px;color:var(--text);font-size:13px">
-          <option value="PRODUCER">Productor</option>
-          <option value="CO_PRODUCER">Co-productor</option>
-          <option value="AFFILIATE">Afiliado</option>
-        </select>
-        <p style="color:var(--muted);font-size:11px;margin:0">Selecciona el rol con el que participas en cada venta para calcular tu comisión real.</p>
-
-        <label style="font-size:12px;color:var(--muted);font-weight:600;margin-top:8px">HOTTOK (token de verificación)</label>
+        <label style="font-size:12px;color:var(--muted);font-weight:600">HOTTOK (token de verificación)</label>
         <input id="hottokInput" type="text" placeholder="Pega aquí tu Hottok de Hotmart"
           style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 12px;color:var(--text);font-size:13px;font-family:monospace">
         <button onclick="saveHottok()"
@@ -3126,30 +3117,19 @@ async function saveConfigMetaToken() {
 }
 
 async function saveHottok() {
-  const hottok      = document.getElementById('hottokInput').value.trim();
-  const hotmartRole = document.getElementById('hotmartRoleSelect').value;
-  const okEl        = document.getElementById('cfgHotmartOk');
+  const hottok = document.getElementById('hottokInput').value.trim();
+  const okEl   = document.getElementById('cfgHotmartOk');
   okEl.style.display = 'none';
   if (!hottok) return alert('Ingresa tu Hottok');
   try {
-    const [r1, r2] = await Promise.all([
-      fetch('/api/hotmart/save-token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${S.jwt}` },
-        body: JSON.stringify({ hottok }),
-      }),
-      fetch('/api/hotmart/save-role', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${S.jwt}` },
-        body: JSON.stringify({ hotmartRole }),
-      }),
-    ]);
-    const d1 = await r1.json();
-    const d2 = await r2.json();
-    if (d1.error) throw new Error(d1.error);
-    if (d2.error) throw new Error(d2.error);
+    const r = await fetch('/api/hotmart/save-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${S.jwt}` },
+      body: JSON.stringify({ hottok }),
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
     S.user.hotmart_token = hottok;
-    S.user.hotmart_role  = hotmartRole;
     okEl.style.display = 'block';
   } catch(e) {
     alert('Error al guardar: ' + e.message);
