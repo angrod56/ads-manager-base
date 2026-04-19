@@ -717,14 +717,18 @@
     @media (max-width: 900px) {
       nav { padding: 14px 20px; }
       .nav-links { display: none; }
-      .hero-grid { grid-template-columns: 1fr; text-align: center; }
+      .hero { overflow: visible; min-height: auto; padding: 100px 0 60px; }
+      .hero-grid { grid-template-columns: 1fr; text-align: center; gap: 40px; }
       .hero p { margin-left: auto; margin-right: auto; }
       .hero-btns { justify-content: center; }
-      .hero-visual { display: flex; justify-content: center; margin-top: 40px; }
-      .phone { width: 220px; height: 440px; }
-      .phone-time-hour { font-size: 38px; }
-      .float-badge-1 { right: -10px; top: 0; font-size: 11px; padding: 6px 12px; }
-      .float-badge-2 { left: -10px; bottom: 40px; font-size: 11px; padding: 6px 12px; }
+      .hero-visual { display: flex !important; justify-content: center; }
+      .phone-wrap { animation: none; }
+      .phone { width: 220px; height: 440px; border-radius: 36px; }
+      .phone-time-hour { font-size: 36px; }
+      .pn-title { font-size: 12px; }
+      .pn-desc  { font-size: 10px; }
+      .float-badge-1 { right: -8px; top: -10px; font-size: 11px; padding: 5px 10px; }
+      .float-badge-2 { left: -8px; bottom: 30px; font-size: 11px; padding: 5px 10px; }
       .stats-grid { grid-template-columns: repeat(2, 1fr); }
       .features-grid { grid-template-columns: 1fr; }
       .steps { grid-template-columns: repeat(2, 1fr); }
