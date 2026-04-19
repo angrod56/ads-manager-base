@@ -1,14 +1,15 @@
 import { supabaseAdmin, setUserPlan } from './auth.js';
 
-const PRODUCT_MAP = {
-  [process.env.HOTMART_PRODUCT_BASIC]:  'basic',
-  [process.env.HOTMART_PRODUCT_PRO]:    'pro',
-  [process.env.HOTMART_PRODUCT_AGENCY]: 'agency',
+// Mapeo por offer_code (parámetro ?off= del link de Hotmart)
+const OFFER_MAP = {
+  [process.env.HOTMART_OFFER_BASIC  || 'dqv9dxqz']: 'basic',
+  [process.env.HOTMART_OFFER_PRO    || 'n3dlwudm']: 'pro',
+  [process.env.HOTMART_OFFER_AGENCY || '']:          'agency',
 };
 
 export const CHECKOUT_LINKS = {
-  basic:  process.env.HOTMART_LINK_BASIC  || null,
-  pro:    process.env.HOTMART_LINK_PRO    || null,
+  basic:  process.env.HOTMART_LINK_BASIC  || 'https://pay.hotmart.com/N105458310E?off=dqv9dxqz&checkoutMode=6',
+  pro:    process.env.HOTMART_LINK_PRO    || 'https://pay.hotmart.com/N105458310E?off=n3dlwudm&checkoutMode=6',
   agency: process.env.HOTMART_LINK_AGENCY || null,
 };
 
@@ -54,16 +55,16 @@ async function setUserStatus(userId, status) {
 }
 
 export async function handleBillingWebhook(payload) {
-  console.log('[Billing] offer:', payload.data?.purchase?.offer_code, '| product:', payload.data?.product?.id, '| event:', payload.event);
-  const event   = payload.event;
-  const product = payload.data?.product;
-  const buyer   = payload.data?.buyer;
+  const event     = payload.event;
+  const product   = payload.data?.product;
+  const purchase  = payload.data?.purchase;
+  const buyer     = payload.data?.buyer;
+  const offerCode = purchase?.offer_code || '';
 
   if (!product || !buyer?.email) return { ignored: true };
 
-  const productId = String(product.id || '');
-  const plan      = PRODUCT_MAP[productId];
-  if (!plan) return { ignored: true, reason: 'product_not_mapped' };
+  const plan = OFFER_MAP[offerCode];
+  if (!plan) return { ignored: true, reason: 'offer_not_mapped', offer: offerCode };
 
   const approved = ['PURCHASE_APPROVED', 'PURCHASE_COMPLETE'].includes(event);
   const canceled = ['PURCHASE_CANCELED', 'PURCHASE_REFUNDED', 'PURCHASE_CHARGEBACK'].includes(event);
