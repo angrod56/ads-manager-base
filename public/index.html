@@ -997,6 +997,9 @@
   <div class="nav-item" data-section="recommendations" onclick="showSection('recommendations')">
     <span class="nav-icon">🎯</span> Recomendaciones
   </div>
+  <div class="nav-item" data-section="sales" onclick="showSection('sales')">
+    <span class="nav-icon">💰</span> Ventas
+  </div>
   <div id="adminNavItem" class="nav-item" data-section="admin" onclick="showSection('admin')" style="display:none">
     <span class="nav-icon">👥</span> Usuarios
   </div>
@@ -1177,6 +1180,46 @@
     </div>
 
   </div><!-- /section-recommendations -->
+
+  <!-- ── SECTION: Ventas Hotmart ── -->
+  <div class="section" id="section-sales">
+
+    <!-- KPIs de ventas -->
+    <div class="kpi-grid" id="salesKpis">
+      <div class="kpi-card"><div class="kpi-label">Revenue bruto</div><div class="kpi-value" id="sk-revenue">—</div></div>
+      <div class="kpi-card"><div class="kpi-label">Revenue neto</div><div class="kpi-value" id="sk-net">—</div></div>
+      <div class="kpi-card"><div class="kpi-label">Ventas aprobadas</div><div class="kpi-value" id="sk-total">—</div></div>
+      <div class="kpi-card"><div class="kpi-label">Ticket promedio</div><div class="kpi-value" id="sk-ticket">—</div></div>
+      <div class="kpi-card"><div class="kpi-label">Reembolsos</div><div class="kpi-value" id="sk-refunds" style="color:var(--red)">—</div></div>
+      <div class="kpi-card"><div class="kpi-label">ROAS real</div><div class="kpi-value" id="sk-roas">—</div></div>
+    </div>
+
+    <!-- Tabla de ventas -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h3 style="margin:0;font-size:15px">Transacciones</h3>
+        <button onclick="loadSales()" style="font-size:12px;padding:6px 12px">↺ Actualizar</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead>
+            <tr style="color:var(--muted);font-size:11px;text-align:left">
+              <th style="padding:8px 6px">Fecha</th>
+              <th style="padding:8px 6px">Producto</th>
+              <th style="padding:8px 6px">Comprador</th>
+              <th style="padding:8px 6px;text-align:right">Monto</th>
+              <th style="padding:8px 6px">Estado</th>
+              <th style="padding:8px 6px">Pago</th>
+            </tr>
+          </thead>
+          <tbody id="salesTbody">
+            <tr><td colspan="6" class="empty"><div class="empty-icon">⏳</div><div>Cargando ventas…</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /section-sales -->
 
   <!-- ── SECTION: Admin ── -->
   <div class="section" id="section-admin">
@@ -2763,6 +2806,7 @@ function showSection(name) {
     const content = document.getElementById('recoContent');
     if (content && content.textContent.includes('Haz click')) loadRecommendations();
   }
+  if (name === 'sales') loadSales();
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -2871,6 +2915,47 @@ function logout() {
 }
 
 // ── Admin ─────────────────────────────────────────────────────────────────────
+// ── Ventas Hotmart ────────────────────────────────────────────────────────────
+async function loadSales() {
+  try {
+    const params = dateParams();
+    const data = await api(`/api/sales?${params}`);
+    const s = data.summary;
+
+    document.getElementById('sk-revenue').textContent = fmt.usd(s.revenue);
+    document.getElementById('sk-net').textContent     = fmt.usd(s.netRevenue);
+    document.getElementById('sk-total').textContent   = s.total;
+    document.getElementById('sk-ticket').textContent  = fmt.usd(s.avgTicket);
+    document.getElementById('sk-refunds').textContent = s.refunded > 0 ? `-${fmt.usd(s.refunds)} (${s.refunded})` : '0';
+
+    // ROAS real = revenue Hotmart / gasto Meta
+    const spend = S.totals?.spend || 0;
+    const roas  = spend > 0 && s.revenue > 0 ? (s.revenue / spend).toFixed(2) + 'x' : '—';
+    document.getElementById('sk-roas').textContent = roas;
+
+    const tbody = document.getElementById('salesTbody');
+    if (!data.sales.length) {
+      tbody.innerHTML = `<tr><td colspan="6" class="empty"><div class="empty-icon">🛒</div><div>Sin ventas en este período</div></td></tr>`;
+      return;
+    }
+
+    const statusLabel = { approved: '🟢 Aprobada', canceled: '🔴 Cancelada', refunded: '🟡 Reembolso', chargeback: '🔴 Chargeback', pending: '⏳ Pendiente' };
+
+    tbody.innerHTML = data.sales.map(s => `
+      <tr style="border-top:1px solid var(--border)">
+        <td style="padding:8px 6px;color:var(--muted);font-size:12px">${s.sale_date ? new Date(s.sale_date).toLocaleDateString('es') : '—'}</td>
+        <td style="padding:8px 6px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${s.product_name}">${s.product_name}</td>
+        <td style="padding:8px 6px;color:var(--muted);font-size:12px">${s.buyer_name || s.buyer_email || '—'}</td>
+        <td style="padding:8px 6px;text-align:right;font-weight:600">${fmt.usd(s.amount)}</td>
+        <td style="padding:8px 6px;font-size:12px">${statusLabel[s.status] || s.status}</td>
+        <td style="padding:8px 6px;color:var(--muted);font-size:12px">${s.payment_type || '—'}</td>
+      </tr>`).join('');
+  } catch(e) {
+    document.getElementById('salesTbody').innerHTML =
+      `<tr><td colspan="6" style="color:var(--red);padding:16px">${e.message}</td></tr>`;
+  }
+}
+
 async function loadAdminUsers() {
   const el = document.getElementById('adminUsersTable');
   try {

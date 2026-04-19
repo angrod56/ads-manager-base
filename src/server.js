@@ -14,6 +14,7 @@ import {
   verifySession, listUsers, saveUserToken, touchLastLogin, setUserRole, deleteUser,
   supabase, supabaseAdmin,
 } from './auth.js';
+import { verifyHotmartToken, processHotmartEvent, getSales } from './hotmart.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
@@ -636,6 +637,34 @@ const GET = {
     json(res, user);
   },
 
+  // ── Ventas Hotmart ───────────────────────────────────────────────────────────
+  '/api/sales': async (res, q, user) => {
+    if (!user) return err(res, 'No autorizado', 401);
+    const sales = await getSales(user.id, q.since, q.until);
+
+    const approved  = sales.filter(s => s.status === 'approved');
+    const refunded  = sales.filter(s => s.status === 'refunded' || s.status === 'chargeback');
+    const pending   = sales.filter(s => s.status === 'pending');
+
+    const revenue   = approved.reduce((a, s) => a + (s.amount || 0), 0);
+    const refunds   = refunded.reduce((a, s) => a + (s.amount || 0), 0);
+    const netRevenue = revenue - refunds;
+    const avgTicket  = approved.length ? revenue / approved.length : 0;
+
+    json(res, {
+      sales,
+      summary: {
+        total:      approved.length,
+        revenue,
+        refunds,
+        netRevenue,
+        avgTicket,
+        pending:    pending.length,
+        refunded:   refunded.length,
+      },
+    });
+  },
+
   // ── Admin: lista de usuarios ─────────────────────────────────────────────────
   '/api/admin/users': async (res, q, user) => {
     if (!user || user.role !== 'admin') return err(res, 'No autorizado', 403);
@@ -720,6 +749,22 @@ const POST = {
     await deleteUser(userId);
     json(res, { ok: true });
   },
+
+  // ── Webhook Hotmart ──────────────────────────────────────────────────────────
+  '/webhook/hotmart': async (res, req, user) => {
+    if (!verifyHotmartToken(req)) return err(res, 'Token inválido', 401);
+    const payload = await body(req);
+
+    // Asociar la venta al usuario cuyo producto coincide, o al admin por defecto
+    const { data: profiles } = await supabaseAdmin
+      .from('profiles').select('id').eq('role', 'admin').limit(1);
+    const ownerId = profiles?.[0]?.id || null;
+
+    if (!ownerId) return err(res, 'No hay usuario admin configurado', 500);
+
+    const result = await processHotmartEvent(payload, ownerId);
+    json(res, result);
+  },
 };
 
 // ── Servidor ──────────────────────────────────────────────────────────────────
@@ -738,7 +783,7 @@ http.createServer(async (req, res) => {
     return serveFile(res, path.join(PUBLIC, 'index.html'), 'text/html');
 
   // Rutas públicas (no requieren sesión)
-  const PUBLIC_ROUTES = ['/api/auth/login', '/api/auth/register', '/api/config'];
+  const PUBLIC_ROUTES = ['/api/auth/login', '/api/auth/register', '/api/config', '/webhook/hotmart'];
 
   try {
     // Verificar sesión para rutas privadas
