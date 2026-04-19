@@ -1200,10 +1200,10 @@
 
     <!-- KPIs de ventas -->
     <div class="kpi-grid" id="salesKpis">
-      <div class="kpi-card"><div class="kpi-label">Revenue bruto</div><div class="kpi-value" id="sk-revenue">—</div></div>
-      <div class="kpi-card"><div class="kpi-label">Revenue neto</div><div class="kpi-value" id="sk-net">—</div></div>
+      <div class="kpi-card"><div class="kpi-label">Comisión total</div><div class="kpi-value" id="sk-revenue">—</div></div>
+      <div class="kpi-card"><div class="kpi-label">Comisión neta</div><div class="kpi-value" id="sk-net">—</div></div>
       <div class="kpi-card"><div class="kpi-label">Ventas aprobadas</div><div class="kpi-value" id="sk-total">—</div></div>
-      <div class="kpi-card"><div class="kpi-label">Ticket promedio</div><div class="kpi-value" id="sk-ticket">—</div></div>
+      <div class="kpi-card"><div class="kpi-label">Comisión promedio</div><div class="kpi-value" id="sk-ticket">—</div></div>
       <div class="kpi-card"><div class="kpi-label">Reembolsos</div><div class="kpi-value" id="sk-refunds" style="color:var(--red)">—</div></div>
       <div class="kpi-card"><div class="kpi-label">ROAS real</div><div class="kpi-value" id="sk-roas">—</div></div>
     </div>
@@ -3166,7 +3166,7 @@ async function loadSales() {
         <td style="padding:8px 6px;color:var(--muted);font-size:12px">${s.sale_date ? new Date(s.sale_date).toLocaleDateString('es') : '—'}</td>
         <td style="padding:8px 6px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${s.product_name}">${s.product_name}</td>
         <td style="padding:8px 6px;color:var(--muted);font-size:12px">${s.buyer_name || s.buyer_email || '—'}</td>
-        <td style="padding:8px 6px;text-align:right;font-weight:600">${fmt.usd(s.amount)}</td>
+        <td style="padding:8px 6px;text-align:right;font-weight:600">${fmt.usd(s.commission || s.amount)}</td>
         <td style="padding:8px 6px;font-size:12px">${statusLabel[s.status] || s.status}</td>
         <td style="padding:8px 6px;color:var(--muted);font-size:12px">${s.payment_type || '—'}</td>
       </tr>`).join('');

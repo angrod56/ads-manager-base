@@ -648,8 +648,8 @@ const GET = {
     const refunded  = sales.filter(s => s.status === 'refunded' || s.status === 'chargeback');
     const pending   = sales.filter(s => s.status === 'pending');
 
-    const revenue   = approved.reduce((a, s) => a + (s.amount || 0), 0);
-    const refunds   = refunded.reduce((a, s) => a + (s.amount || 0), 0);
+    const revenue    = approved.reduce((a, s) => a + (s.commission || s.amount || 0), 0);
+    const refunds    = refunded.reduce((a, s) => a + (s.commission || s.amount || 0), 0);
     const netRevenue = revenue - refunds;
     const avgTicket  = approved.length ? revenue / approved.length : 0;
 
