@@ -914,6 +914,43 @@
       style="background:var(--blue);border:none;border-radius:8px;padding:12px;color:#fff;font-size:14px;font-weight:600;cursor:pointer">
       Iniciar sesión
     </button>
+    <div id="forgotLink" style="text-align:center">
+      <span onclick="showForgotPassword()" style="font-size:12px;color:var(--muted);cursor:pointer;text-decoration:underline">
+        ¿Olvidaste tu contraseña?
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- ── Forgot Password Overlay ────────────────────────────────────────────── -->
+<div id="forgotScreen" style="position:fixed;inset:0;background:var(--bg);z-index:10000;align-items:center;justify-content:center;display:none">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:40px;max-width:420px;width:90%;display:flex;flex-direction:column;gap:16px">
+    <div style="font-size:18px;font-weight:700">Recuperar contraseña</div>
+    <p style="color:var(--muted);font-size:13px;margin:0">Te enviaremos un enlace para restablecer tu contraseña.</p>
+    <input id="forgotEmail" type="email" placeholder="Tu email"
+      style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 12px;color:var(--text);font-size:13px">
+    <div id="forgotMsg" style="display:none;font-size:13px;padding:8px 12px;border-radius:6px"></div>
+    <button onclick="sendForgotPassword()"
+      style="background:var(--blue);border:none;border-radius:8px;padding:12px;color:#fff;font-size:14px;font-weight:600;cursor:pointer">
+      Enviar enlace
+    </button>
+    <span onclick="document.getElementById('forgotScreen').style.display='none'" style="text-align:center;font-size:12px;color:var(--muted);cursor:pointer">← Volver al login</span>
+  </div>
+</div>
+
+<!-- ── Reset Password Overlay (se activa desde el email de recuperación) ──── -->
+<div id="resetScreen" style="position:fixed;inset:0;background:var(--bg);z-index:10000;align-items:center;justify-content:center;display:none">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:40px;max-width:420px;width:90%;display:flex;flex-direction:column;gap:16px">
+    <div style="font-size:18px;font-weight:700">Nueva contraseña</div>
+    <input id="resetPassword" type="password" placeholder="Nueva contraseña (mín. 6 caracteres)"
+      style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 12px;color:var(--text);font-size:13px">
+    <input id="resetPassword2" type="password" placeholder="Confirmar contraseña"
+      style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 12px;color:var(--text);font-size:13px">
+    <div id="resetMsg" style="display:none;font-size:13px;padding:8px 12px;border-radius:6px"></div>
+    <button onclick="doResetPassword()"
+      style="background:var(--blue);border:none;border-radius:8px;padding:12px;color:#fff;font-size:14px;font-weight:600;cursor:pointer">
+      Guardar nueva contraseña
+    </button>
   </div>
 </div>
 
@@ -1268,6 +1305,40 @@
           Guardar nombre
         </button>
         <div id="cfgNameOk" style="display:none;color:#4caf50;font-size:13px;text-align:center">✓ Nombre actualizado</div>
+      </div>
+    </div>
+
+    <!-- Mi plan -->
+    <div class="card" style="margin-bottom:20px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+        <span style="font-size:22px">🚀</span>
+        <div>
+          <div style="font-size:16px;font-weight:700">Mi plan</div>
+          <div style="font-size:12px;color:var(--muted)">Plan actual y límites de tu cuenta</div>
+        </div>
+      </div>
+      <div id="cfgPlanInfo" style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:16px">
+        <div id="cfgPlanBadge" style="padding:4px 14px;border-radius:20px;font-size:13px;font-weight:700">—</div>
+        <div id="cfgPlanDesc" style="font-size:13px;color:var(--muted)">—</div>
+      </div>
+      <div id="cfgUpgradeButtons" style="display:flex;flex-direction:column;gap:10px">
+        <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:2px">CAMBIAR PLAN</div>
+        <button onclick="upgradePlan('basic')"
+          style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;color:var(--text);font-size:13px;cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center">
+          <span><strong>Básico</strong> — hasta 5 cuentas Meta</span>
+          <span style="color:var(--muted)">$19 / mes</span>
+        </button>
+        <button onclick="upgradePlan('pro')"
+          style="background:var(--surface2);border:1px solid var(--blue);border-radius:8px;padding:12px 16px;color:var(--text);font-size:13px;cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center">
+          <span><strong>Pro</strong> — hasta 10 cuentas Meta</span>
+          <span style="color:var(--blue)">$49 / mes</span>
+        </button>
+        <button onclick="contactAgency()"
+          style="background:var(--surface2);border:1px solid #25d366;border-radius:8px;padding:12px 16px;color:var(--text);font-size:13px;cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center">
+          <span><strong>Agencia</strong> — cuentas ilimitadas</span>
+          <span style="color:#25d366">Hablar con equipo →</span>
+        </button>
+        <div id="upgradeMsg" style="display:none;font-size:12px;color:var(--muted);text-align:center;padding:6px"></div>
       </div>
     </div>
 
@@ -3005,6 +3076,8 @@ async function doAuth() {
     S.jwt  = data.session.access_token;
     S.user = data.user;
     localStorage.setItem('jwt', S.jwt);
+    localStorage.setItem('refreshToken', data.session.refresh_token);
+    scheduleTokenRefresh(data.session.expires_in);
 
     document.getElementById('authScreen').style.display = 'none';
 
@@ -3055,11 +3128,98 @@ async function saveMetaToken() {
 }
 
 function logout() {
+  clearTimeout(_refreshTimer);
   localStorage.removeItem('jwt');
+  localStorage.removeItem('refreshToken');
   S.jwt = '';
   S.user = null;
   S.token = '';
   showAuth();
+}
+
+// ── Recuperar contraseña ──────────────────────────────────────────────────────
+function showForgotPassword() {
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('forgotScreen').style.display = 'flex';
+  document.getElementById('forgotMsg').style.display = 'none';
+}
+
+async function sendForgotPassword() {
+  const email = document.getElementById('forgotEmail').value.trim();
+  const msg   = document.getElementById('forgotMsg');
+  if (!email) return;
+  try {
+    const r = await fetch('/api/auth/forgot-password', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+    msg.style.cssText = 'display:block;background:rgba(63,185,80,.1);color:#3fb950;font-size:13px;padding:8px 12px;border-radius:6px';
+    msg.textContent = '✓ Revisa tu email — te enviamos el enlace de recuperación';
+  } catch(e) {
+    msg.style.cssText = 'display:block;background:rgba(255,80,80,.1);color:var(--red);font-size:13px;padding:8px 12px;border-radius:6px';
+    msg.textContent = e.message;
+  }
+}
+
+async function doResetPassword() {
+  const p1  = document.getElementById('resetPassword').value;
+  const p2  = document.getElementById('resetPassword2').value;
+  const msg = document.getElementById('resetMsg');
+  if (p1.length < 6) {
+    msg.style.cssText = 'display:block;background:rgba(255,80,80,.1);color:var(--red);font-size:13px;padding:8px 12px;border-radius:6px';
+    msg.textContent = 'La contraseña debe tener al menos 6 caracteres'; return;
+  }
+  if (p1 !== p2) {
+    msg.style.cssText = 'display:block;background:rgba(255,80,80,.1);color:var(--red);font-size:13px;padding:8px 12px;border-radius:6px';
+    msg.textContent = 'Las contraseñas no coinciden'; return;
+  }
+  const token = window._resetToken;
+  try {
+    const r = await fetch('/api/auth/set-password', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, password: p1 }),
+    });
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+    msg.style.cssText = 'display:block;background:rgba(63,185,80,.1);color:#3fb950;font-size:13px;padding:8px 12px;border-radius:6px';
+    msg.textContent = '✓ Contraseña actualizada — ya puedes iniciar sesión';
+    setTimeout(() => {
+      document.getElementById('resetScreen').style.display = 'none';
+      window._resetToken = null;
+      history.replaceState(null, '', '/');
+      showAuth();
+    }, 2000);
+  } catch(e) {
+    msg.style.cssText = 'display:block;background:rgba(255,80,80,.1);color:var(--red);font-size:13px;padding:8px 12px;border-radius:6px';
+    msg.textContent = e.message;
+  }
+}
+
+// ── Upgrade de plan (Stripe) ──────────────────────────────────────────────────
+function contactAgency() {
+  const phone = '573001234567'; // reemplaza con tu número (código país sin +)
+  const text  = encodeURIComponent('Hola, me interesa el Plan Agencia de Meta Ads Manager. ¿Me puedes dar más información?');
+  window.open(`https://wa.me/${phone}?text=${text}`, '_blank');
+}
+
+async function upgradePlan(plan) {
+  const msg = document.getElementById('upgradeMsg');
+  msg.textContent = 'Redirigiendo al pago…';
+  msg.style.display = 'block';
+  try {
+    const r = await apiFetch('/api/billing/checkout', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan }),
+    });
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+    if (data.url) window.location.href = data.url;
+  } catch(e) {
+    msg.style.cssText = 'display:block;color:var(--red);font-size:12px;text-align:center;padding:6px';
+    msg.textContent = e.message;
+  }
 }
 
 // ── Admin ─────────────────────────────────────────────────────────────────────
@@ -3081,6 +3241,17 @@ function loadConfig() {
     document.getElementById('hotmartRoleSelect').value = S.user.hotmart_role;
   if (S.user.hotmart_token)
     document.getElementById('hottokInput').value = S.user.hotmart_token;
+  // Plan badge
+  const planMap = {
+    basic:  { label: 'Básico',  color: '#30363d', text: '#e6edf3', desc: 'Hasta 5 cuentas de Meta Ads' },
+    pro:    { label: 'Pro',     color: '#1a3a5c', text: '#388bfd', desc: 'Hasta 10 cuentas de Meta Ads' },
+    agency: { label: 'Agencia', color: '#1a3a28', text: '#3fb950', desc: 'Cuentas ilimitadas de Meta Ads' },
+  };
+  const p = planMap[S.user.plan || 'basic'];
+  const badge = document.getElementById('cfgPlanBadge');
+  const desc  = document.getElementById('cfgPlanDesc');
+  if (badge) { badge.textContent = p.label; badge.style.background = p.color; badge.style.color = p.text; }
+  if (desc)  desc.textContent = p.desc;
 }
 
 async function saveConfigName() {
@@ -3149,12 +3320,15 @@ async function saveHottok() {
 }
 
 const MILESTONES = [
-  { amount: 1000,   icon: '🌱', title: 'Primer Mil',      desc: 'Tus primeros $1,000 en comisiones' },
-  { amount: 5000,   icon: '🔥', title: 'En Llamas',       desc: '$5,000 acumulados — ¡vas en serio!' },
-  { amount: 10000,  icon: '💪', title: 'Imparable',       desc: '$10,000 — el 1% de los afiliados llega aquí' },
-  { amount: 25000,  icon: '💎', title: 'Diamante',        desc: '$25,000 — nivel de élite' },
-  { amount: 50000,  icon: '🚀', title: 'Despegue Total',  desc: '$50,000 — eres un referente' },
-  { amount: 100000, icon: '👑', title: 'Six Figure',      desc: '$100,000 — bienvenido al club de los 6 dígitos' },
+  { amount: 1000,    icon: '🌱', title: 'Primer Mil',      desc: 'Tus primeros $1,000 en comisiones' },
+  { amount: 5000,    icon: '🔥', title: 'En Llamas',       desc: '$5,000 acumulados — ¡vas en serio!' },
+  { amount: 10000,   icon: '💪', title: 'Imparable',       desc: '$10,000 — el 1% de los afiliados llega aquí' },
+  { amount: 25000,   icon: '💎', title: 'Diamante',        desc: '$25,000 — nivel de élite' },
+  { amount: 50000,   icon: '🚀', title: 'Despegue Total',  desc: '$50,000 — eres un referente' },
+  { amount: 100000,  icon: '👑', title: 'Six Figure',      desc: '$100,000 — bienvenido al club de los 6 dígitos' },
+  { amount: 250000,  icon: '🏆', title: 'Cuarto de Millón', desc: '$250,000 — jugador de alto nivel' },
+  { amount: 500000,  icon: '🌎', title: 'Medio Millón',    desc: '$500,000 — impacto global' },
+  { amount: 1000000, icon: '💰', title: 'Millonario',      desc: '$1,000,000 — el millón es tuyo' },
 ];
 
 function renderMilestones(totalEarned) {
@@ -3244,6 +3418,7 @@ async function loadAdminUsers() {
         <thead><tr style="color:var(--muted);font-size:11px;text-align:left">
           <th style="padding:8px 4px">Email</th>
           <th style="padding:8px 4px">Rol</th>
+          <th style="padding:8px 4px">Plan</th>
           <th style="padding:8px 4px">Cuenta Meta</th>
           <th style="padding:8px 4px">Webhook Hotmart</th>
           <th style="padding:8px 4px">Registro</th>
@@ -3258,6 +3433,14 @@ async function loadAdminUsers() {
                 <span style="background:${u.role==='admin'?'var(--blue)':'var(--border)'};color:${u.role==='admin'?'#fff':'var(--text)'};padding:2px 8px;border-radius:4px;font-size:11px">
                   ${u.role}
                 </span>
+              </td>
+              <td style="padding:8px 4px">
+                <select onchange="adminSetPlan('${u.id}',this.value)"
+                  style="font-size:11px;padding:3px 6px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:4px;cursor:pointer">
+                  <option value="basic"  ${(u.plan||'basic')==='basic' ?'selected':''}>Básico</option>
+                  <option value="pro"    ${(u.plan||'basic')==='pro'   ?'selected':''}>Pro</option>
+                  <option value="agency" ${(u.plan||'basic')==='agency'?'selected':''}>Agencia</option>
+                </select>
               </td>
               <td style="padding:8px 4px;font-family:monospace;font-size:11px;color:var(--muted)">${u.meta_account_id || '—'}</td>
               <td style="padding:8px 4px;font-size:11px">
@@ -3286,6 +3469,13 @@ async function adminSetRole(userId, role) {
     body: JSON.stringify({ userId, role }),
   });
   loadAdminUsers();
+}
+
+async function adminSetPlan(userId, plan) {
+  await apiFetch('/api/admin/set-plan', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, plan }),
+  });
 }
 
 async function adminDeleteUser(userId) {
@@ -3324,6 +3514,17 @@ async function init() {
   sel.innerHTML = accounts.map(a =>
     `<option value="${a.id}">${a.name} — ${a.currency} (${a.id})</option>`
   ).join('');
+
+  // Aviso si el plan limita las cuentas disponibles
+  const first = accounts[0];
+  if (first?._planTotal > first?._planLimit) {
+    const planNames = { basic: 'Básico', pro: 'Pro', agency: 'Agencia' };
+    const planLabel = planNames[S.user?.plan || 'basic'] || 'actual';
+    const msg = document.createElement('div');
+    msg.style.cssText = 'font-size:11px;color:var(--yellow);margin-top:4px;text-align:center';
+    msg.textContent = `Plan ${planLabel}: mostrando ${first._planLimit} de ${first._planTotal} cuentas`;
+    sel.parentNode.insertBefore(msg, sel.nextSibling);
+  }
 
   // Pre-seleccionar: perfil Supabase > localStorage > config
   const savedAccount = S.user?.meta_account_id || localStorage.getItem('meta_account');
@@ -3369,18 +3570,114 @@ async function init() {
   loadOverview();
 }
 
+// ── Refresco automático de token ──────────────────────────────────────────────
+let _refreshTimer = null;
+function scheduleTokenRefresh(expiresIn) {
+  clearTimeout(_refreshTimer);
+  const delay = Math.max(((expiresIn || 3600) - 120) * 1000, 60000); // 2 min antes de expirar
+  _refreshTimer = setTimeout(refreshToken, delay);
+}
+
+async function refreshToken() {
+  const rt = localStorage.getItem('refreshToken');
+  if (!rt) return;
+  try {
+    const r = await fetch('/api/auth/refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken: rt }),
+    });
+    if (!r.ok) return; // no cerrar sesión, solo no refrescar
+    const data = await r.json();
+    S.jwt   = data.session.access_token;
+    S.user  = data.user;
+    S.token = data.user.meta_token || S.token; // preservar token de Meta
+    localStorage.setItem('jwt', S.jwt);
+    localStorage.setItem('refreshToken', data.session.refresh_token);
+    scheduleTokenRefresh(data.session.expires_in);
+  } catch { /* silencioso — no cerrar sesión */ }
+}
+
+// Detectar enlace de recuperación de contraseña en la URL
+(function detectRecoveryLink() {
+  const hash = window.location.hash.slice(1);
+  const params = new URLSearchParams(hash);
+  const token = params.get('access_token');
+  const type  = params.get('type');
+  if (token && type === 'recovery') {
+    window._resetToken = token;
+    document.getElementById('resetScreen').style.display = 'flex';
+    history.replaceState(null, '', '/');
+  }
+  // Mensaje de upgrade exitoso
+  const sp = new URLSearchParams(window.location.search);
+  if (sp.get('upgraded') === '1') {
+    history.replaceState(null, '', '/');
+    setTimeout(() => alert('🎉 ¡Plan activado! Recarga la app para ver los cambios.'), 500);
+  }
+})();
+
 // Arranque: verificar JWT guardado → obtener perfil → lanzar app
 (async () => {
-  if (!S.jwt) return showAuth();
+  if (!S.jwt) {
+    // Intentar refrescar con refresh_token antes de mostrar login
+    const rt = localStorage.getItem('refreshToken');
+    if (rt) {
+      try {
+        const r = await fetch('/api/auth/refresh', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken: rt }),
+        });
+        if (r.ok) {
+          const data = await r.json();
+          S.jwt  = data.session.access_token;
+          S.user = data.user;
+          S.token = data.user.meta_token || '';
+          localStorage.setItem('jwt', S.jwt);
+          localStorage.setItem('refreshToken', data.session.refresh_token);
+          scheduleTokenRefresh(data.session.expires_in);
+          if (!S.token) document.getElementById('tokenScreen').style.display = 'flex';
+          else await launchApp();
+          return;
+        }
+      } catch { /* seguir al login */ }
+    }
+    return showAuth();
+  }
 
   try {
     const r = await fetch('/api/auth/me', {
       headers: { 'Authorization': `Bearer ${S.jwt}` },
     });
-    if (!r.ok) throw new Error('Sesión expirada');
+    if (!r.ok) {
+      // Token expirado — intentar refresh antes de cerrar sesión
+      const rt = localStorage.getItem('refreshToken');
+      if (rt) {
+        const r2 = await fetch('/api/auth/refresh', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken: rt }),
+        });
+        if (r2.ok) {
+          const data = await r2.json();
+          S.jwt  = data.session.access_token;
+          S.user = data.user;
+          S.token = data.user.meta_token || '';
+          localStorage.setItem('jwt', S.jwt);
+          localStorage.setItem('refreshToken', data.session.refresh_token);
+          scheduleTokenRefresh(data.session.expires_in);
+          if (!S.token) document.getElementById('tokenScreen').style.display = 'flex';
+          else await launchApp();
+          return;
+        }
+      }
+      throw new Error('Sesión expirada');
+    }
     const user = await r.json();
     S.user  = user;
     S.token = user.meta_token || '';
+    scheduleTokenRefresh(3600);
 
     if (!S.token) {
       document.getElementById('tokenScreen').style.display = 'flex';
@@ -3389,6 +3686,7 @@ async function init() {
     }
   } catch {
     localStorage.removeItem('jwt');
+    localStorage.removeItem('refreshToken');
     S.jwt = '';
     showAuth();
   }

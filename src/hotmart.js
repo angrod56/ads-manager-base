@@ -70,6 +70,17 @@ export async function getSales(userId, since, until) {
   return data || [];
 }
 
+// ── Total histórico de comisiones aprobadas (para gamificación) ───────────────
+export async function getTotalEarned(userId) {
+  const { data, error } = await supabaseAdmin
+    .from('sales')
+    .select('commission, amount')
+    .eq('user_id', userId)
+    .eq('status', 'approved');
+  if (error) throw new Error(error.message);
+  return (data || []).reduce((sum, s) => sum + (s.commission || s.amount || 0), 0);
+}
+
 function mapStatus(event) {
   const map = {
     'PURCHASE_APPROVED':   'approved',

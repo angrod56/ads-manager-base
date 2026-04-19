@@ -15,8 +15,11 @@
     "dashboard": "node src/server.js"
   },
   "dependencies": {
+    "@breezystack/lamejs": "^1.2.7",
     "@supabase/supabase-js": "^2.103.3",
     "dotenv": "^16.4.5",
+    "lamejs": "^1.2.1",
+    "stripe": "^22.0.2",
     "web-push": "^3.6.7"
   },
   "engines": {

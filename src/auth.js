@@ -32,11 +32,15 @@ export async function verifySession(req) {
   // Traer perfil con role y meta_token (service_role bypasa RLS)
   const { data: profile } = await supabaseAdmin
     .from('profiles')
-    .select('id, email, name, role, meta_token, meta_account_id, hotmart_token, hotmart_role')
+    .select('id, email, name, role, plan, status, meta_token, meta_account_id, hotmart_token, hotmart_role')
     .eq('id', data.user.id)
     .single();
 
-  return profile || null;
+  if (!profile) return null;
+  // Bloquear acceso si la cuenta está suspendida (pago cancelado)
+  if (profile.status === 'suspended' && profile.role !== 'admin') return null;
+
+  return profile;
 }
 
 export async function saveUserName(userId, name) {
@@ -47,10 +51,18 @@ export async function saveUserName(userId, name) {
   if (error) throw new Error(error.message);
 }
 
+export async function setUserPlan(userId, plan) {
+  const { error } = await supabaseAdmin
+    .from('profiles')
+    .update({ plan: plan || 'basic' })
+    .eq('id', userId);
+  if (error) throw new Error(error.message);
+}
+
 export async function listUsers() {
   const { data, error } = await supabaseAdmin
     .from('profiles')
-    .select('id, email, name, role, meta_account_id, created_at, last_login')
+    .select('id, email, name, role, plan, meta_account_id, created_at, last_login')
     .order('created_at', { ascending: false });
   if (error) throw new Error(error.message);
   return data;

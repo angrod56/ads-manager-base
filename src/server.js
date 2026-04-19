@@ -12,14 +12,21 @@ import {
 } from './campaigns.js';
 import {
   verifySession, listUsers, saveUserToken, touchLastLogin, setUserRole, deleteUser,
-  saveHotmartToken, saveUserName, supabase, supabaseAdmin,
+  saveHotmartToken, saveUserName, setUserPlan, supabase, supabaseAdmin,
 } from './auth.js';
-import { verifyHotmartToken, processHotmartEvent, getSales } from './hotmart.js';
+import { verifyHotmartToken, processHotmartEvent, getSales, getTotalEarned } from './hotmart.js';
 import { saveSubscription, sendPushToUser } from './push.js';
+import { getCheckoutUrl, handleBillingWebhook } from './billing.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
 const PUBLIC = path.join(__dirname, '..', 'public');
+
+const PLAN_LIMITS = {
+  basic:  { metaAccounts: 5,  label: 'Básico' },
+  pro:    { metaAccounts: 10, label: 'Pro' },
+  agency: { metaAccounts: Infinity, label: 'Agencia' },
+};
 
 // ── Helpers HTTP ──────────────────────────────────────────────────────────────
 
@@ -50,6 +57,14 @@ async function body(req) {
   });
 }
 
+async function rawBody(req) {
+  return new Promise(resolve => {
+    const chunks = [];
+    req.on('data', c => chunks.push(typeof c === 'string' ? Buffer.from(c) : c));
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+  });
+}
+
 // ── Rutas GET ─────────────────────────────────────────────────────────────────
 
 // Helper: devuelve opciones de fecha para getInsights según los query params
@@ -68,8 +83,13 @@ const GET = {
     });
   },
 
-  '/api/accounts': async (res, q) => {
-    json(res, await listAccounts(q.token));
+  '/api/accounts': async (res, q, user) => {
+    const accounts = await listAccounts(q.token);
+    const isAdmin  = user?.role === 'admin';
+    const plan     = user?.plan || 'basic';
+    const limit    = isAdmin ? Infinity : (PLAN_LIMITS[plan]?.metaAccounts ?? 5);
+    const limited  = limit === Infinity ? accounts : accounts.slice(0, limit);
+    json(res, limited.map(a => ({ ...a, _planLimit: limit, _planTotal: accounts.length })));
   },
 
   '/api/campaigns': async (res, q) => {
@@ -642,9 +662,9 @@ const GET = {
   // ── Ventas Hotmart ───────────────────────────────────────────────────────────
   '/api/sales': async (res, q, user) => {
     if (!user) return err(res, 'No autorizado', 401);
-    const [sales, allSales] = await Promise.all([
+    const [sales, totalEarned] = await Promise.all([
       getSales(user.id, q.since, q.until),
-      getSales(user.id),
+      getTotalEarned(user.id),
     ]);
 
     const approved  = sales.filter(s => s.status === 'approved');
@@ -655,10 +675,6 @@ const GET = {
     const refunds    = refunded.reduce((a, s) => a + (s.commission || s.amount || 0), 0);
     const netRevenue = revenue - refunds;
     const avgTicket  = approved.length ? revenue / approved.length : 0;
-
-    // Total histórico de comisiones para gamificación
-    const allApproved = allSales.filter(s => s.status === 'approved');
-    const totalEarned = allApproved.reduce((a, s) => a + (s.commission || s.amount || 0), 0);
 
     json(res, {
       sales,
@@ -734,6 +750,49 @@ const POST = {
     json(res, { session: data.session, user: { id: data.user.id, email, name: name || null } });
   },
 
+  // ── Auth: refresh token ──────────────────────────────────────────────────────
+  '/api/auth/refresh': async (res, req) => {
+    const { refreshToken } = await body(req);
+    if (!refreshToken) return err(res, 'refreshToken requerido', 400);
+    const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken });
+    if (error || !data.session) return err(res, 'Sesión inválida', 401);
+    const { data: profile } = await supabaseAdmin
+      .from('profiles').select('*').eq('id', data.user.id).single();
+    json(res, { session: data.session, user: profile });
+  },
+
+  // ── Auth: olvidé contraseña ──────────────────────────────────────────────────
+  '/api/auth/forgot-password': async (res, req) => {
+    const { email } = await body(req);
+    if (!email) return err(res, 'email requerido', 400);
+    const appUrl = process.env.APP_URL || `https://${req.headers.host}`;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${appUrl}/?reset=1`,
+    });
+    if (error) return err(res, error.message, 400);
+    json(res, { ok: true });
+  },
+
+  // ── Auth: establecer nueva contraseña (con recovery token) ───────────────────
+  '/api/auth/set-password': async (res, req) => {
+    const { token, password } = await body(req);
+    if (!token || !password) return err(res, 'token y password requeridos', 400);
+    const { data, error } = await supabase.auth.getUser(token);
+    if (error || !data.user) return err(res, 'Token inválido o expirado', 401);
+    const { error: upErr } = await supabaseAdmin.auth.admin.updateUserById(data.user.id, { password });
+    if (upErr) return err(res, upErr.message, 400);
+    json(res, { ok: true });
+  },
+
+  // ── Billing: obtener link de pago Hotmart ────────────────────────────────────
+  '/api/billing/checkout': async (res, req, user) => {
+    if (!user) return err(res, 'No autorizado', 401);
+    const { plan } = await body(req);
+    const url = getCheckoutUrl(plan);
+    if (!url) return err(res, 'Link de pago no configurado para este plan', 503);
+    json(res, { url });
+  },
+
   // ── Auth: guardar token de Meta ──────────────────────────────────────────────
   '/api/auth/save-token': async (res, req, user) => {
     if (!user) return err(res, 'No autorizado', 401);
@@ -749,6 +808,15 @@ const POST = {
     const { userId, role } = await body(req);
     if (!userId || !role) return err(res, 'userId y role requeridos', 400);
     await setUserRole(userId, role);
+    json(res, { ok: true });
+  },
+
+  // ── Admin: cambiar plan ──────────────────────────────────────────────────────
+  '/api/admin/set-plan': async (res, req, user) => {
+    if (!user || user.role !== 'admin') return err(res, 'No autorizado', 403);
+    const { userId, plan } = await body(req);
+    if (!userId || !plan) return err(res, 'userId y plan requeridos', 400);
+    await setUserPlan(userId, plan);
     json(res, { ok: true });
   },
 
@@ -811,7 +879,6 @@ const POST = {
     if (!ownerId) return err(res, 'No hay usuario configurado', 500);
 
     const payload = await body(req);
-    console.log('[Hotmart] commissions:', JSON.stringify(payload.data?.commissions));
     const result = await processHotmartEvent(payload, ownerId);
 
     // Notificación push si la venta fue aprobada
@@ -860,7 +927,25 @@ http.createServer(async (req, res) => {
   }
 
   // Rutas públicas (no requieren sesión)
-  const PUBLIC_ROUTES = ['/api/auth/login', '/api/auth/register', '/api/config', '/webhook/hotmart'];
+  const PUBLIC_ROUTES = [
+    '/api/auth/login', '/api/auth/register', '/api/auth/refresh',
+    '/api/auth/forgot-password', '/api/auth/set-password',
+    '/api/config', '/webhook/hotmart', '/webhook/hotmart-billing',
+  ];
+
+  // Webhook Hotmart billing (compras de planes)
+  if (req.method === 'POST' && path2 === '/webhook/hotmart-billing') {
+    const token = req.headers['x-hotmart-hottok'] || req.headers['hottok'];
+    if (token !== process.env.HOTMART_TOKEN) return err(res, 'Token inválido', 401);
+    try {
+      const payload = await body(req);
+      const result  = await handleBillingWebhook(payload);
+      return json(res, result);
+    } catch(e) {
+      console.error('[Hotmart billing]', e.message);
+      return err(res, e.message, 500);
+    }
+  }
 
   try {
     // Verificar sesión para rutas privadas
