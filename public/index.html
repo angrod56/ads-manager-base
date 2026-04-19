@@ -959,7 +959,7 @@
       <button id="applyDateBtn" onclick="applyCustomDate()" style="font-size:12px;padding:5px 12px;background:var(--blue);border-color:var(--blue);color:#fff">Aplicar</button>
     </div>
     <button id="refreshBtn">↺ Actualizar</button>
-    <button id="settingsBtn" title="Cambiar token Meta" style="padding:6px 10px;font-size:14px;background:transparent;border-color:var(--border)">⚙</button>
+
     <span id="userBadge" style="font-size:12px;color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
     <button id="logoutBtn" onclick="logout()" style="font-size:12px;padding:6px 10px;background:transparent;border-color:var(--border)">Salir</button>
     <span class="last-update" id="lastUpdate"></span>
@@ -3277,9 +3277,6 @@ async function init() {
   }
 })();
 
-document.getElementById('settingsBtn')?.addEventListener('click', () => {
-  document.getElementById('tokenScreen').style.display = 'flex';
-});
 
 // Efecto de luz que sigue el cursor en los botones
 document.addEventListener('mousemove', e => {
