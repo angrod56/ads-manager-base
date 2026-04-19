@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Meta Ads Manager</title>
+  <title>Adsmanager PRO</title>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#2563eb">
   <meta name="mobile-web-app-capable" content="yes">
@@ -882,7 +882,7 @@
   <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:40px;max-width:420px;width:90%;display:flex;flex-direction:column;gap:20px">
     <div style="display:flex;align-items:center;gap:12px">
       <div class="logo-dot" style="width:14px;height:14px;border-radius:50%;background:var(--blue)"></div>
-      <span style="font-size:18px;font-weight:700;color:var(--text)">Meta Ads Manager</span>
+      <span style="font-size:18px;font-weight:700;color:var(--text)">Adsmanager PRO</span>
     </div>
 
     <!-- Tabs login/registro -->
@@ -985,7 +985,7 @@
 <header class="header">
   <div class="logo">
     <div class="logo-dot"></div>
-    Meta Ads Manager
+    Adsmanager PRO
   </div>
   <div class="header-controls">
     <select id="accountSelect"><option>Cargando cuentas…</option></select>
@@ -3200,7 +3200,7 @@ async function doResetPassword() {
 // ── Upgrade de plan (Stripe) ──────────────────────────────────────────────────
 function contactAgency() {
   const phone = '17434334843';
-  const text  = encodeURIComponent('Hola, me interesa el Plan Agencia de Meta Ads Manager. ¿Me puedes dar más información?');
+  const text  = encodeURIComponent('Hola, me interesa el Plan Agencia de Adsmanager PRO. ¿Me puedes dar más información?');
   window.open(`https://wa.me/${phone}?text=${text}`, '_blank');
 }
 
@@ -3806,7 +3806,7 @@ if ('serviceWorker' in navigator) {
       playCashRegister();
       // Visual feedback temporal para diagnóstico
       document.title = '💰 VENTA! ' + new Date().toLocaleTimeString();
-      setTimeout(() => { document.title = 'Meta Ads Manager'; }, 3000);
+      setTimeout(() => { document.title = 'Adsmanager PRO'; }, 3000);
     }
   });
 }
