@@ -798,13 +798,11 @@ const POST = {
     // Notificación push si la venta fue aprobada
     if (result.ok && result.sale && ['approved'].includes(result.sale.status)) {
       const sale = result.sale;
-      const commission = payload.data?.commissions?.[0]?.value;
-      const amount = commission ?? sale.amount;
-      const currency = payload.data?.commissions?.[0]?.currency_value ?? sale.currency;
-      const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD' });
+      const commission = payload.data?.commissions?.[0]?.value ?? sale.amount;
+      const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
       sendPushToUser(ownerId, {
         title: '🎉 Nueva venta aprobada',
-        body: `${sale.product_name} | Comisión: ${fmt.format(amount)}`,
+        body: `${sale.product_name} | Comisión: ${fmt.format(commission)}`,
       }).catch(e => console.error('[Push]', e.message));
     }
 
