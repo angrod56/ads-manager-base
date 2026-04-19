@@ -54,6 +54,7 @@ async function setUserStatus(userId, status) {
 }
 
 export async function handleBillingWebhook(payload) {
+  console.log('[Billing] offer:', payload.data?.purchase?.offer_code, '| product:', payload.data?.product?.id, '| event:', payload.event);
   const event   = payload.event;
   const product = payload.data?.product;
   const buyer   = payload.data?.buyer;
