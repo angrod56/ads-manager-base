@@ -86,6 +86,14 @@ async function rawBody(req) {
 
 // ── Rutas GET ─────────────────────────────────────────────────────────────────
 
+// Resuelve el token Meta: explícito en query > token del usuario > ENV solo para admin
+function tok(q, user) {
+  if (q.token) return q.token;
+  if (user?.meta_token) return user.meta_token;
+  if (user?.role === 'admin') return process.env.META_ACCESS_TOKEN || null;
+  return null;
+}
+
 // Helper: devuelve opciones de fecha para getInsights según los query params
 function dateOpts(q, fallback = 'last_30d') {
   if (q.since && q.until) return { since: q.since, until: q.until };
@@ -1019,8 +1027,12 @@ http.createServer(async (req, res) => {
     let user = null;
     if (!PUBLIC_ROUTES.includes(path2)) {
       user = await verifySession(req);
-      // Si tiene sesión, usar su meta_token guardado (a menos que envíe uno propio)
-      if (user?.meta_token && !q.token) q.token = user.meta_token;
+      // Resolver token: explícito en query > propio del usuario > ENV solo para admin
+      if (!q.token) {
+        if (user?.meta_token) q.token = user.meta_token;
+        else if (user?.role === 'admin') q.token = process.env.META_ACCESS_TOKEN || null;
+        // usuarios sin token no heredan el del admin → api.js lanzará error controlado
+      }
     }
 
     if (req.method === 'GET' && GET[path2]) return await GET[path2](res, q, user);

@@ -3996,11 +3996,19 @@ async function launchApp() {
 }
 
 async function init() {
-  const [accounts, config] = await Promise.all([
-    api('/api/accounts'),
+  const [accountsResult, config] = await Promise.all([
+    api('/api/accounts').catch(() => []),
     api('/api/config'),
   ]);
 
+  // Si no hay token configurado, quedan 0 cuentas — mostrar banner y detener init
+  if (!accountsResult.length && !S.token) {
+    showSetupBanner();
+    document.getElementById('accountSelect').innerHTML = '<option>— Configura tu token Meta →</option>';
+    return;
+  }
+
+  const accounts = accountsResult;
   S.accounts = accounts;
 
   const sel = document.getElementById('accountSelect');
