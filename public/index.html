@@ -3187,6 +3187,7 @@ function userPlanRank() {
 }
 
 function canAccess(section) {
+  if (S.user?.role === 'admin') return true;
   const required = PLAN_RANK[SECTION_PLAN[section] || 'basic'] ?? 0;
   return userPlanRank() >= required;
 }
