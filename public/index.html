@@ -4193,19 +4193,23 @@ setInterval(() => {
   const type  = params.get('type');
   if (token && type === 'recovery') {
     window._resetToken = token;
-    document.getElementById('resetScreen').style.display = 'flex';
+    window._isRecovery = true;
     history.replaceState(null, '', '/app');
+    document.getElementById('resetScreen').style.display = 'flex';
   }
   // Mensaje de upgrade exitoso
   const sp = new URLSearchParams(window.location.search);
   if (sp.get('upgraded') === '1') {
-    history.replaceState(null, '', '/');
+    history.replaceState(null, '', '/app');
     setTimeout(() => alert('🎉 ¡Plan activado! Recarga la app para ver los cambios.'), 500);
   }
 })();
 
 // Arranque: verificar JWT guardado → obtener perfil → lanzar app
 (async () => {
+  // Si es flujo de recovery, no arrancar la app — solo mostrar resetScreen
+  if (window._isRecovery) return;
+
   if (!S.jwt) {
     // Intentar refrescar con refresh_token antes de mostrar login
     const rt = localStorage.getItem('refreshToken');
