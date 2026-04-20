@@ -1291,7 +1291,11 @@
           <div class="chart-wrap" style="height:280px"><canvas id="countriesChart"></canvas></div>
         </div>
         <div class="table-wrap" id="countriesTable">
-          <div class="empty"><span class="spin" style="font-size:20px">↻</span></div>
+          <div class="empty" style="flex-direction:column;gap:8px">
+            <div style="font-size:28px">⚙️</div>
+            <div style="font-size:13px;color:var(--muted)">Configura tu token Meta en <strong style="color:var(--blue)">Configuración</strong></div>
+            <button onclick="showSection('config')" style="background:linear-gradient(135deg,#4f8ef7,#9b5de5);border:none;border-radius:8px;padding:7px 14px;color:#fff;font-size:12px;font-weight:700;cursor:pointer">Ir a Configuración →</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1382,7 +1386,7 @@
             </tr>
           </thead>
           <tbody id="salesTbody">
-            <tr><td colspan="6" class="empty"><div class="empty-icon">⏳</div><div>Cargando ventas…</div></td></tr>
+            <tr><td colspan="6" class="empty"><div class="empty-icon">⚙️</div><div>Configura tu webhook de Hotmart en <strong>Configuración</strong> para ver tus ventas.</div></td></tr>
           </tbody>
         </table>
       </div>
