@@ -3722,31 +3722,71 @@ async function init() {
 
 // ── Refresco automático de token ──────────────────────────────────────────────
 let _refreshTimer = null;
+let _refreshing   = false;
+
 function scheduleTokenRefresh(expiresIn) {
   clearTimeout(_refreshTimer);
-  const delay = Math.max(((expiresIn || 3600) - 120) * 1000, 60000); // 2 min antes de expirar
+  const secs  = expiresIn || 3600;
+  const delay = Math.max((secs - 120) * 1000, 30000); // 2 min antes, mín 30s
+  const expiresAt = Date.now() + secs * 1000;
+  localStorage.setItem('tokenExpiresAt', expiresAt);
   _refreshTimer = setTimeout(refreshToken, delay);
 }
 
 async function refreshToken() {
+  if (_refreshing) return;
   const rt = localStorage.getItem('refreshToken');
   if (!rt) return;
+  _refreshing = true;
   try {
     const r = await fetch('/api/auth/refresh', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken: rt }),
     });
-    if (!r.ok) return; // no cerrar sesión, solo no refrescar
+    if (!r.ok) {
+      // Reintentar en 60s si falló por red (no por sesión inválida)
+      if (r.status !== 401) {
+        _refreshTimer = setTimeout(refreshToken, 60000);
+      }
+      return;
+    }
     const data = await r.json();
     S.jwt   = data.session.access_token;
     S.user  = data.user;
-    S.token = data.user.meta_token || S.token; // preservar token de Meta
+    S.token = data.user.meta_token || S.token;
     localStorage.setItem('jwt', S.jwt);
     localStorage.setItem('refreshToken', data.session.refresh_token);
     scheduleTokenRefresh(data.session.expires_in);
-  } catch { /* silencioso — no cerrar sesión */ }
+  } catch {
+    // Error de red — reintentar en 60s sin cerrar sesión
+    _refreshTimer = setTimeout(refreshToken, 60000);
+  } finally {
+    _refreshing = false;
+  }
 }
+
+// Verificar token al volver al foco (pantalla desbloqueada / tab activa)
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+  const expiresAt = parseInt(localStorage.getItem('tokenExpiresAt') || '0', 10);
+  const secsLeft  = (expiresAt - Date.now()) / 1000;
+  // Si expira en menos de 5 min o ya expiró → refrescar ahora
+  if (secsLeft < 300) {
+    clearTimeout(_refreshTimer);
+    refreshToken();
+  }
+});
+
+// Failsafe: verificar cada 3 minutos aunque el timer se haya congelado
+setInterval(() => {
+  const expiresAt = parseInt(localStorage.getItem('tokenExpiresAt') || '0', 10);
+  const secsLeft  = (expiresAt - Date.now()) / 1000;
+  if (secsLeft < 300 && !_refreshing) {
+    clearTimeout(_refreshTimer);
+    refreshToken();
+  }
+}, 3 * 60 * 1000);
 
 // Detectar enlace de recuperación de contraseña en la URL
 (function detectRecoveryLink() {
