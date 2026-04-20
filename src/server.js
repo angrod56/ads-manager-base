@@ -918,6 +918,17 @@ const POST = {
     json(res, { ok: true });
   },
 
+  // ── Push: notificación de prueba ─────────────────────────────────────────────
+  '/api/push/test': async (res, req, user) => {
+    if (!user) return err(res, 'No autorizado', 401);
+    await sendPushToUser(user.id, {
+      title: '🔔 Prueba de notificación',
+      body:  '✅ Las notificaciones están funcionando correctamente',
+      icon:  '/icon-192.svg',
+    });
+    json(res, { ok: true });
+  },
+
   // ── Hotmart: guardar Hottok del usuario ─────────────────────────────────────
   '/api/hotmart/save-token': async (res, req, user) => {
     if (!user) return err(res, 'No autorizado', 401);
