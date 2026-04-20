@@ -1500,6 +1500,136 @@
   </div>
 </section>
 
+<!-- ── Testimonios ── -->
+<section id="testimonios" style="padding:80px 0;background:radial-gradient(ellipse 80% 60% at 50% 50%,rgba(79,142,247,.05) 0%,transparent 70%)">
+  <div class="container">
+    <div class="reveal" style="text-align:center;margin-bottom:56px">
+      <div class="section-label">Testimonios</div>
+      <h2 class="section-title">Lo que dicen nuestros usuarios</h2>
+      <p class="section-sub">Infoproductores, agencias y afiliados que ya gestionan sus campañas con AdsManager PRO</p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px" class="testimonios-grid">
+
+      <div class="tcard reveal">
+        <div class="tcard-stars">★★★★★</div>
+        <p class="tcard-quote">"Antes perdía horas revisando métricas en Meta. Ahora con AdsManager veo todo en segundos y recibo alertas de ventas al instante en mi celular."</p>
+        <div class="tcard-author">
+          <div class="tcard-avatar" style="background:linear-gradient(135deg,#4f8ef7,#9b5de5)">CM</div>
+          <div>
+            <div class="tcard-name">Carlos Mendoza</div>
+            <div class="tcard-role">Infoproductor · 🇲🇽 México</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tcard reveal">
+        <div class="tcard-stars">★★★★★</div>
+        <p class="tcard-quote">"Gestionamos cuentas de 8 clientes desde un solo panel. El agente IA nos da recomendaciones que antes tardábamos días en detectar."</p>
+        <div class="tcard-author">
+          <div class="tcard-avatar" style="background:linear-gradient(135deg,#9b5de5,#f72585)">VR</div>
+          <div>
+            <div class="tcard-name">Valentina Ríos</div>
+            <div class="tcard-role">Directora de Agencia · 🇨🇴 Colombia</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tcard reveal">
+        <div class="tcard-stars">★★★★★</div>
+        <p class="tcard-quote">"Las notificaciones de venta en tiempo real son un juego completo. Escuchar la caja registradora cada vez que entra una comisión me motiva a seguir escalando."</p>
+        <div class="tcard-author">
+          <div class="tcard-avatar" style="background:linear-gradient(135deg,#06d6a0,#4f8ef7)">DS</div>
+          <div>
+            <div class="tcard-name">Diego Salazar</div>
+            <div class="tcard-role">Afiliado Hotmart · 🇦🇷 Argentina</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tcard reveal">
+        <div class="tcard-stars">★★★★★</div>
+        <p class="tcard-quote">"Pausé 3 ads que estaban quemando presupuesto gracias a las alertas automáticas. Recuperé la inversión en menos de una semana."</p>
+        <div class="tcard-author">
+          <div class="tcard-avatar" style="background:linear-gradient(135deg,#ffd166,#ff6b35)">LF</div>
+          <div>
+            <div class="tcard-name">Lucía Fernández</div>
+            <div class="tcard-role">E-commerce · 🇨🇱 Chile</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tcard reveal">
+        <div class="tcard-stars">★★★★★</div>
+        <p class="tcard-quote">"El dashboard me muestra el ROAS y CPL de cada campaña sin tener que calcular nada. Es lo que Meta Ads Manager debería ser por defecto."</p>
+        <div class="tcard-author">
+          <div class="tcard-avatar" style="background:linear-gradient(135deg,#f72585,#9b5de5)">AP</div>
+          <div>
+            <div class="tcard-name">Andrés Pereira</div>
+            <div class="tcard-role">Growth Marketer · 🇵🇪 Perú</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tcard reveal">
+        <div class="tcard-stars">★★★★★</div>
+        <p class="tcard-quote">"Instalé la PWA en mi iPhone y siempre tengo mis métricas al alcance. La app carga rapidísimo y las notificaciones funcionan perfectamente."</p>
+        <div class="tcard-author">
+          <div class="tcard-avatar" style="background:linear-gradient(135deg,#4f8ef7,#06d6a0)">MH</div>
+          <div>
+            <div class="tcard-name">María Herrera</div>
+            <div class="tcard-role">Consultora Digital · 🇪🇸 España</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<style>
+  .tcard {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    transition: transform .25s, box-shadow .25s, border-color .25s;
+  }
+  .tcard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 48px rgba(0,0,0,.4);
+    border-color: rgba(79,142,247,.3);
+  }
+  .tcard-stars { color: #ffd166; font-size: 15px; letter-spacing: 2px; }
+  .tcard-quote {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.7;
+    font-style: italic;
+    flex: 1;
+  }
+  .tcard-author { display: flex; align-items: center; gap: 12px; }
+  .tcard-avatar {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800; color: #fff;
+    flex-shrink: 0;
+  }
+  .tcard-name { font-size: 14px; font-weight: 700; color: var(--text); }
+  .tcard-role { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  @media(max-width:900px) {
+    .testimonios-grid { grid-template-columns: repeat(2,1fr) !important; }
+  }
+  @media(max-width:600px) {
+    .testimonios-grid { grid-template-columns: 1fr !important; }
+  }
+</style>
+
 <!-- ── FAQ ── -->
 <section style="padding:64px 0">
   <div class="container" style="max-width:760px">
