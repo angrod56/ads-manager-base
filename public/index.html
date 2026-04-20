@@ -3493,7 +3493,7 @@ async function doResetPassword() {
     setTimeout(() => {
       document.getElementById('resetScreen').style.display = 'none';
       window._resetToken = null;
-      history.replaceState(null, '', '/');
+      history.replaceState(null, '', '/app');
       showAuth();
     }, 2000);
   } catch(e) {
@@ -4194,7 +4194,7 @@ setInterval(() => {
   if (token && type === 'recovery') {
     window._resetToken = token;
     document.getElementById('resetScreen').style.display = 'flex';
-    history.replaceState(null, '', '/');
+    history.replaceState(null, '', '/app');
   }
   // Mensaje de upgrade exitoso
   const sp = new URLSearchParams(window.location.search);

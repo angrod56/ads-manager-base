@@ -812,7 +812,7 @@ const POST = {
     if (!email) return err(res, 'email requerido', 400);
     const appUrl = process.env.APP_URL || `https://${req.headers.host}`;
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${appUrl}/?reset=1`,
+      redirectTo: `${appUrl}/app?reset=1`,
     });
     if (error) return err(res, error.message, 400);
     json(res, { ok: true });
