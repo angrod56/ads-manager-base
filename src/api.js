@@ -5,7 +5,7 @@ const VERSION = process.env.META_API_VERSION || 'v21.0';
 const ENV_TOKEN = process.env.META_ACCESS_TOKEN;
 
 export async function apiRequest(endpoint, params = {}, method = 'GET', body = null, token = null) {
-  const activeToken = token || ENV_TOKEN;
+  const activeToken = token;
   if (!activeToken) throw new Error('No hay token de Meta configurado');
 
   const url = new URL(`${BASE_URL}/${VERSION}${endpoint}`);
