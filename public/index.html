@@ -16,17 +16,17 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:       #0d1117;
-      --surface:  #161b22;
-      --surface2: #21262d;
-      --border:   #30363d;
-      --text:     #e6edf3;
-      --muted:    #8b949e;
-      --blue:     #388bfd;
-      --green:    #3fb950;
+      --bg:       #060818;
+      --surface:  #0e1228;
+      --surface2: #151d35;
+      --border:   rgba(255,255,255,.08);
+      --text:     #f0f4ff;
+      --muted:    #8892b0;
+      --blue:     #4f8ef7;
+      --green:    #06d6a0;
       --red:      #f85149;
-      --yellow:   #d29922;
-      --purple:   #bc8cff;
+      --yellow:   #ffd166;
+      --purple:   #9b5de5;
       --radius:   8px;
     }
 
@@ -1764,7 +1764,7 @@ function statusBadge(s) {
 // ═══════════════════════════════════════════════════════════════════
 let spendChart = null, perfChart = null, countriesChart = null;
 
-Chart.defaults.color = '#8b949e';
+Chart.defaults.color = '#8892b0';
 Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif';
 Chart.defaults.font.size = 11;
 
@@ -1774,17 +1774,17 @@ const chartBase = {
   plugins: {
     legend: { display: false },
     tooltip: {
-      backgroundColor: '#21262d',
-      borderColor: '#30363d',
+      backgroundColor: '#151d35',
+      borderColor: 'rgba(255,255,255,.08)',
       borderWidth: 1,
-      titleColor: '#e6edf3',
-      bodyColor: '#8b949e',
+      titleColor: '#f0f4ff',
+      bodyColor: '#8892b0',
       padding: 10,
     },
   },
   scales: {
-    x: { grid: { color: '#21262d' }, ticks: { color: '#8b949e' } },
-    y: { grid: { color: '#21262d' }, ticks: { color: '#8b949e' } },
+    x: { grid: { color: '#151d35' }, ticks: { color: '#8892b0' } },
+    y: { grid: { color: '#151d35' }, ticks: { color: '#8892b0' } },
   },
 };
 
@@ -1831,7 +1831,7 @@ function updateCharts(campaigns) {
       },
       scales: {
         x: { ...chartBase.scales.x, ticks: { callback: v => '$' + v.toFixed(0) } },
-        y: { grid: { display: false }, ticks: { color: '#8b949e' } },
+        y: { grid: { display: false }, ticks: { color: '#8892b0' } },
       },
     },
   });
@@ -1885,8 +1885,8 @@ function updateCharts(campaigns) {
           },
         },
         scales: {
-          x: { grid: { display: false }, ticks: { color: '#8b949e' } },
-          y: { ...chartBase.scales.y, ticks: { callback: v => v + 'x', color: '#8b949e' } },
+          x: { grid: { display: false }, ticks: { color: '#8892b0' } },
+          y: { ...chartBase.scales.y, ticks: { callback: v => v + 'x', color: '#8892b0' } },
         },
       },
     });
@@ -1904,13 +1904,13 @@ function updateCharts(campaigns) {
         ...chartBase,
         plugins: {
           ...chartBase.plugins,
-          legend: { display: true, labels: { color: '#8b949e', boxWidth: 12, padding: 16 } },
+          legend: { display: true, labels: { color: '#8892b0', boxWidth: 12, padding: 16 } },
           tooltip: { ...chartBase.plugins.tooltip, callbacks: { label: ctx => ctx.datasetIndex === 0 ? ` Compras: ${ctx.raw}` : ` CPA: ${fmt.usd(ctx.raw)}` } },
         },
         scales: {
-          x:  { grid: { display: false }, ticks: { color: '#8b949e' } },
-          y:  { ...chartBase.scales.y, position: 'left',  title: { display: true, text: 'Compras', color: '#8b949e' } },
-          y2: { ...chartBase.scales.y, position: 'right', grid: { display: false }, ticks: { callback: v => '$' + v.toFixed(0) }, title: { display: true, text: 'CPA', color: '#8b949e' } },
+          x:  { grid: { display: false }, ticks: { color: '#8892b0' } },
+          y:  { ...chartBase.scales.y, position: 'left',  title: { display: true, text: 'Compras', color: '#8892b0' } },
+          y2: { ...chartBase.scales.y, position: 'right', grid: { display: false }, ticks: { callback: v => '$' + v.toFixed(0) }, title: { display: true, text: 'CPA', color: '#8892b0' } },
         },
       },
     });
@@ -2671,7 +2671,7 @@ function renderCountries(data) {
       ...chartBase,
       plugins: {
         ...chartBase.plugins,
-        legend: { display: true, labels: { color: '#8b949e', boxWidth: 12, padding: 12 } },
+        legend: { display: true, labels: { color: '#8892b0', boxWidth: 12, padding: 12 } },
         tooltip: {
           ...chartBase.plugins.tooltip,
           callbacks: {
@@ -2685,9 +2685,9 @@ function renderCountries(data) {
         },
       },
       scales: {
-        x:  { grid: { display: false }, ticks: { color: '#8b949e' } },
-        y:  { ...chartBase.scales.y, position: 'left',  title: { display: true, text: 'Compras', color: '#8b949e' } },
-        y2: { ...chartBase.scales.y, position: 'right', grid: { display: false }, ticks: { callback: v => '$' + v.toFixed(0) }, title: { display: true, text: 'CPA', color: '#8b949e' } },
+        x:  { grid: { display: false }, ticks: { color: '#8892b0' } },
+        y:  { ...chartBase.scales.y, position: 'left',  title: { display: true, text: 'Compras', color: '#8892b0' } },
+        y2: { ...chartBase.scales.y, position: 'right', grid: { display: false }, ticks: { callback: v => '$' + v.toFixed(0) }, title: { display: true, text: 'CPA', color: '#8892b0' } },
       },
     },
   });
@@ -2828,17 +2828,17 @@ async function loadLaunchTrend(idx) {
           },
           {
             type: 'line', label: label1, data: metric1,
-            borderColor: '#3fb950', backgroundColor: 'rgba(63,185,80,.1)',
+            borderColor: '#06d6a0', backgroundColor: 'rgba(63,185,80,.1)',
             borderWidth: 2, pointRadius: 3, tension: .3, fill: true, yAxisID: 'y',
           },
         ],
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { labels: { color: '#8b949e', font: { size: 11 } } } },
+        plugins: { legend: { labels: { color: '#8892b0', font: { size: 11 } } } },
         scales: {
-          x:  { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,.05)' } },
-          y:  { position: 'left',  ticks: { color: '#3fb950', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,.05)' } },
+          x:  { ticks: { color: '#8892b0', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,.05)' } },
+          y:  { position: 'left',  ticks: { color: '#06d6a0', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,.05)' } },
           y2: { position: 'right', ticks: { color: '#58a6ff', font: { size: 10 }, callback: v => '$' + v.toFixed(0) }, grid: { display: false } },
         },
       },
@@ -3307,7 +3307,7 @@ async function sendForgotPassword() {
     });
     const data = await r.json();
     if (data.error) throw new Error(data.error);
-    msg.style.cssText = 'display:block;background:rgba(63,185,80,.1);color:#3fb950;font-size:13px;padding:8px 12px;border-radius:6px';
+    msg.style.cssText = 'display:block;background:rgba(63,185,80,.1);color:#06d6a0;font-size:13px;padding:8px 12px;border-radius:6px';
     msg.textContent = '✓ Revisa tu email — te enviamos el enlace de recuperación';
   } catch(e) {
     msg.style.cssText = 'display:block;background:rgba(255,80,80,.1);color:var(--red);font-size:13px;padding:8px 12px;border-radius:6px';
@@ -3335,7 +3335,7 @@ async function doResetPassword() {
     });
     const data = await r.json();
     if (data.error) throw new Error(data.error);
-    msg.style.cssText = 'display:block;background:rgba(63,185,80,.1);color:#3fb950;font-size:13px;padding:8px 12px;border-radius:6px';
+    msg.style.cssText = 'display:block;background:rgba(63,185,80,.1);color:#06d6a0;font-size:13px;padding:8px 12px;border-radius:6px';
     msg.textContent = '✓ Contraseña actualizada — ya puedes iniciar sesión';
     setTimeout(() => {
       document.getElementById('resetScreen').style.display = 'none';
@@ -3396,9 +3396,9 @@ function loadConfig() {
     _el('hottokInput').value = S.user.hotmart_token;
   // Plan badge
   const planMap = {
-    basic:  { label: 'Básico',  color: '#30363d', text: '#e6edf3', desc: 'Hasta 5 cuentas de Meta Ads' },
-    pro:    { label: 'Pro',     color: '#1a3a5c', text: '#388bfd', desc: 'Hasta 10 cuentas de Meta Ads' },
-    agency: { label: 'Agencia', color: '#1a3a28', text: '#3fb950', desc: 'Cuentas ilimitadas de Meta Ads' },
+    basic:  { label: 'Básico',  color: 'rgba(255,255,255,.08)', text: '#f0f4ff', desc: 'Hasta 5 cuentas de Meta Ads' },
+    pro:    { label: 'Pro',     color: '#1a3a5c', text: '#4f8ef7', desc: 'Hasta 10 cuentas de Meta Ads' },
+    agency: { label: 'Agencia', color: '#1a3a28', text: '#06d6a0', desc: 'Cuentas ilimitadas de Meta Ads' },
   };
   const p = planMap[S.user.plan || 'basic'];
   const badge = document.getElementById('cfgPlanBadge');
@@ -3435,7 +3435,7 @@ function loadConfig() {
             <div style="font-size:13px;font-weight:700;color:#a78bfa">Agente IA de campañas</div>
             <div style="font-size:11px;color:var(--muted);margin-top:2px">Activo — analiza tus campañas y da recomendaciones accionables</div>
           </div>
-          <span style="margin-left:auto;font-size:11px;color:#3fb950;font-weight:700">✓ Incluido</span>
+          <span style="margin-left:auto;font-size:11px;color:#06d6a0;font-weight:700">✓ Incluido</span>
         </div>`;
     }
   }
@@ -3748,8 +3748,8 @@ async function loadAdminUsers() {
       return `<span style="white-space:nowrap">${d.toLocaleDateString('es',{day:'2-digit',month:'short',year:'numeric'})}</span>
               <span style="color:var(--muted);font-size:10px;display:block">${d.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})}</span>`;
     };
-    const planColors = { basic:'#30363d', pro:'#1a3a5c', agency:'#1a3a28' };
-    const planText   = { basic:'#e6edf3', pro:'#388bfd', agency:'#3fb950' };
+    const planColors = { basic:'rgba(255,255,255,.08)', pro:'#1a3a5c', agency:'#1a3a28' };
+    const planText   = { basic:'#f0f4ff', pro:'#4f8ef7', agency:'#06d6a0' };
     const planLabel  = { basic:'Básico',  pro:'Pro',     agency:'Agencia'  };
 
     el.innerHTML = `
@@ -3770,7 +3770,7 @@ async function loadAdminUsers() {
             const plan = u.plan || 'basic';
             const statusDot = u.status === 'suspended'
               ? '<span title="Suspendido" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#f85149;margin-right:5px"></span>'
-              : '<span title="Activo" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#3fb950;margin-right:5px"></span>';
+              : '<span title="Activo" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#06d6a0;margin-right:5px"></span>';
             return `
             <tr style="border-top:1px solid var(--border)">
               <td style="padding:10px 8px">
