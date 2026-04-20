@@ -89,7 +89,8 @@ const GET = {
     const plan     = user?.plan || 'basic';
     const limit    = isAdmin ? Infinity : (PLAN_LIMITS[plan]?.metaAccounts ?? 5);
     const limited  = limit === Infinity ? accounts : accounts.slice(0, limit);
-    json(res, limited.map(a => ({ ...a, _planLimit: limit, _planTotal: accounts.length })));
+    const planLimit = limit === Infinity ? null : limit;
+    json(res, limited.map(a => ({ ...a, _planLimit: planLimit, _planTotal: accounts.length })));
   },
 
   '/api/campaigns': async (res, q) => {

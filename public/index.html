@@ -3515,9 +3515,9 @@ async function init() {
     `<option value="${a.id}">${a.name} — ${a.currency} (${a.id})</option>`
   ).join('');
 
-  // Aviso si el plan limita las cuentas disponibles
+  // Aviso si el plan limita las cuentas disponibles (solo para no-admins con límite activo)
   const first = accounts[0];
-  if (first?._planTotal > first?._planLimit) {
+  if (first?._planLimit !== null && first?._planTotal > first?._planLimit) {
     const planNames = { basic: 'Básico', pro: 'Pro', agency: 'Agencia' };
     const planLabel = planNames[S.user?.plan || 'basic'] || 'actual';
     const msg = document.createElement('div');
