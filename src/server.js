@@ -964,6 +964,7 @@ http.createServer(async (req, res) => {
   const staticFiles = {
     '/sw.js':               ['text/javascript',  'sw.js'],
     '/manifest.json':       ['application/json', 'manifest.json'],
+    '/logo.svg':            ['image/svg+xml',    'logo.svg'],
     '/icon-192.svg':        ['image/svg+xml',    'icon-192.svg'],
     '/icon-512.svg':        ['image/svg+xml',    'icon-512.svg'],
     '/cash-register.wav':   ['audio/wav',        'cash-register.wav'],
