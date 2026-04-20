@@ -3151,9 +3151,131 @@ function recalcProjections() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+//  PLAN GATING
+// ═══════════════════════════════════════════════════════════════════
+const PLAN_RANK = { basic: 0, pro: 1, agency: 2 };
+
+// Secciones que requieren plan mínimo
+const SECTION_PLAN = {
+  dashboard:       'basic',
+  campaigns:       'basic',
+  sales:           'basic',
+  config:          'basic',
+  admin:           'basic',
+  topads:          'pro',
+  countries:       'pro',
+  launches:        'pro',
+  projections:     'pro',
+  recommendations: 'pro',
+};
+
+const SECTION_LABEL = {
+  topads:          'Top Ads',
+  countries:       'Por País',
+  launches:        'Lanzamientos',
+  projections:     'Proyecciones',
+  recommendations: 'Recomendaciones IA',
+};
+
+const UPGRADE_LINK = {
+  pro:    'https://pay.hotmart.com/N105458310E?off=n3dlwudm&checkoutMode=6',
+  agency: 'https://wa.me/17434334843?text=Hola%2C%20me%20interesa%20el%20Plan%20Agencia',
+};
+
+function userPlanRank() {
+  return PLAN_RANK[S.user?.plan || 'basic'] ?? 0;
+}
+
+function canAccess(section) {
+  const required = PLAN_RANK[SECTION_PLAN[section] || 'basic'] ?? 0;
+  return userPlanRank() >= required;
+}
+
+function showUpgradeOverlay(section) {
+  const requiredPlan = SECTION_PLAN[section] || 'pro';
+  const planName = requiredPlan === 'pro' ? 'Pro' : 'Agencia';
+  const planColor = requiredPlan === 'pro' ? '#4f8ef7' : '#06d6a0';
+  const link = UPGRADE_LINK[requiredPlan];
+  const featureName = SECTION_LABEL[section] || section;
+
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item[data-section]').forEach(n =>
+    n.classList.toggle('active', n.dataset.section === section)
+  );
+
+  let overlay = document.getElementById('planGateOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'planGateOverlay';
+    overlay.className = 'section active';
+    document.querySelector('.main-content')?.appendChild(overlay);
+  }
+  overlay.className = 'section active';
+  overlay.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:center;min-height:60vh;padding:40px 20px">
+      <div style="max-width:480px;width:100%;text-align:center">
+        <div style="font-size:64px;margin-bottom:20px;filter:grayscale(1);opacity:.4">🔒</div>
+        <h2 style="font-size:22px;font-weight:800;color:var(--text);margin-bottom:10px">${featureName}</h2>
+        <p style="color:var(--muted);font-size:14px;line-height:1.7;margin-bottom:32px">
+          Esta función está disponible en el <strong style="color:${planColor}">Plan ${planName}</strong>.<br>
+          Actualiza tu plan para desbloquear acceso completo y todas las herramientas avanzadas.
+        </p>
+        <div style="background:var(--surface);border:1px solid rgba(79,142,247,.2);border-radius:16px;padding:24px;margin-bottom:28px;text-align:left">
+          <div style="font-size:12px;font-weight:700;color:${planColor};letter-spacing:1px;margin-bottom:14px;text-transform:uppercase">Incluye en Plan ${planName}</div>
+          ${requiredPlan === 'pro' ? `
+          <ul style="list-style:none;display:flex;flex-direction:column;gap:10px">
+            <li style="font-size:13px;color:var(--text);display:flex;gap:8px;align-items:center"><span style="color:#06d6a0">✓</span> Top Ads — mejores creatividades por ROAS</li>
+            <li style="font-size:13px;color:var(--text);display:flex;gap:8px;align-items:center"><span style="color:#06d6a0">✓</span> Por País — segmentación geográfica de resultados</li>
+            <li style="font-size:13px;color:var(--text);display:flex;gap:8px;align-items:center"><span style="color:#06d6a0">✓</span> Lanzamientos — planifica y da seguimiento</li>
+            <li style="font-size:13px;color:var(--text);display:flex;gap:8px;align-items:center"><span style="color:#06d6a0">✓</span> Proyecciones — estimaciones pesimista/realista/optimista</li>
+            <li style="font-size:13px;color:var(--text);display:flex;gap:8px;align-items:center"><span style="color:#a78bfa">✓</span> <strong style="color:#a78bfa">🤖 Agente IA de campañas</strong></li>
+            <li style="font-size:13px;color:var(--text);display:flex;gap:8px;align-items:center"><span style="color:#06d6a0">✓</span> Hasta 10 cuentas de Meta Ads</li>
+          </ul>` : `
+          <ul style="list-style:none;display:flex;flex-direction:column;gap:10px">
+            <li style="font-size:13px;color:var(--text);display:flex;gap:8px;align-items:center"><span style="color:#06d6a0">✓</span> Todo lo del Plan Pro</li>
+            <li style="font-size:13px;color:var(--text);display:flex;gap:8px;align-items:center"><span style="color:#06d6a0">✓</span> Cuentas de Meta Ads ilimitadas</li>
+            <li style="font-size:13px;color:var(--text);display:flex;gap:8px;align-items:center"><span style="color:#06d6a0">✓</span> Soporte prioritario</li>
+          </ul>`}
+        </div>
+        <a href="${link}" target="_blank"
+          style="display:inline-block;background:linear-gradient(135deg,#4f8ef7,#9b5de5);color:#fff;font-weight:700;font-size:14px;padding:14px 32px;border-radius:12px;text-decoration:none;transition:opacity .2s"
+          onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+          🚀 Actualizar a Plan ${planName} →
+        </a>
+        <div style="margin-top:14px;font-size:12px;color:var(--muted)">Sin contratos · Cancela cuando quieras</div>
+      </div>
+    </div>`;
+}
+
+function applyNavLocks() {
+  const plan = S.user?.plan || 'basic';
+  document.querySelectorAll('.nav-item[data-section]').forEach(nav => {
+    const section = nav.dataset.section;
+    const locked = !canAccess(section);
+    let lockBadge = nav.querySelector('.plan-lock-badge');
+    if (locked && !lockBadge) {
+      lockBadge = document.createElement('span');
+      lockBadge.className = 'plan-lock-badge';
+      lockBadge.textContent = '🔒';
+      lockBadge.style.cssText = 'margin-left:auto;font-size:10px;opacity:.5';
+      nav.appendChild(lockBadge);
+    } else if (!locked && lockBadge) {
+      lockBadge.remove();
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
 //  NAVEGACIÓN POR SECCIONES
 // ═══════════════════════════════════════════════════════════════════
 function showSection(name) {
+  // Verificar acceso por plan
+  if (!canAccess(name)) { showUpgradeOverlay(name); return; }
+
+  // Ocultar overlay si estaba visible
+  const overlay = document.getElementById('planGateOverlay');
+  if (overlay) overlay.className = 'section';
+
   // Toggle sections
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   const sec = document.getElementById(`section-${name}`);
@@ -3850,6 +3972,7 @@ async function launchApp() {
   }
 
   loadAnnouncements();
+  applyNavLocks();
   await init();
   initPush();
   window.dispatchEvent(new Event('appReady'));
