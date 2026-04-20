@@ -1395,10 +1395,11 @@
           <div style="font-size:12px;color:var(--muted)">Plan actual y límites de tu cuenta</div>
         </div>
       </div>
-      <div id="cfgPlanInfo" style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:16px">
+      <div id="cfgPlanInfo" style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:12px">
         <div id="cfgPlanBadge" style="padding:4px 14px;border-radius:20px;font-size:13px;font-weight:700">—</div>
         <div id="cfgPlanDesc" style="font-size:13px;color:var(--muted)">—</div>
       </div>
+      <div id="cfgAiFeature" style="display:none;padding:14px;border-radius:10px;margin-bottom:16px"></div>
       <div id="cfgUpgradeButtons" style="display:flex;flex-direction:column;gap:10px">
         <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:2px">CAMBIAR PLAN</div>
         <button onclick="upgradePlan('basic')"
@@ -3330,6 +3331,40 @@ function loadConfig() {
   const desc  = document.getElementById('cfgPlanDesc');
   if (badge) { badge.textContent = p.label; badge.style.background = p.color; badge.style.color = p.text; }
   if (desc)  desc.textContent = p.desc;
+
+  // Bloque Agente IA — bloqueado en Basic, activo en Pro/Agency
+  const aiEl = document.getElementById('cfgAiFeature');
+  if (aiEl) {
+    const isBasic = !S.user.plan || S.user.plan === 'basic';
+    aiEl.style.display = 'block';
+    if (isBasic) {
+      aiEl.style.background = 'rgba(255,255,255,.03)';
+      aiEl.style.border = '1px solid rgba(255,255,255,.08)';
+      aiEl.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:26px;filter:grayscale(1);opacity:.4">🤖</span>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,.35)">🔒 Agente IA de campañas</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">Analiza tus campañas y entrega recomendaciones accionables — disponible en Plan Pro</div>
+          </div>
+          <button onclick="upgradePlan('pro')" style="background:linear-gradient(135deg,#4f8ef7,#9b5de5);border:none;border-radius:8px;padding:8px 14px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">
+            Subir a Pro →
+          </button>
+        </div>`;
+    } else {
+      aiEl.style.background = 'rgba(79,142,247,.08)';
+      aiEl.style.border = '1px solid rgba(79,142,247,.25)';
+      aiEl.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:26px">🤖</span>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#a78bfa">Agente IA de campañas</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">Activo — analiza tus campañas y da recomendaciones accionables</div>
+          </div>
+          <span style="margin-left:auto;font-size:11px;color:#3fb950;font-weight:700">✓ Incluido</span>
+        </div>`;
+    }
+  }
 }
 
 async function saveConfigName() {
