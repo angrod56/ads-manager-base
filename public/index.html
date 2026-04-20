@@ -3914,16 +3914,24 @@ function playCashRegister() {
   } catch(e) {}
 }
 
-// Escuchar mensajes del service worker para reproducir sonido
+// Escuchar mensajes del service worker
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('message', e => {
     if (e.data?.type === 'SALE_SOUND') {
       playCashRegister();
-      // Visual feedback temporal para diagnóstico
       document.title = '💰 VENTA! ' + new Date().toLocaleTimeString();
       setTimeout(() => { document.title = 'Adsmanager PRO'; }, 3000);
     }
+    if (e.data?.type === 'SW_UPDATED') {
+      // Auto-recarga silenciosa al activar nuevo SW
+      window.location.reload();
+    }
   });
+
+  // Verificar actualizaciones del SW cada 5 minutos
+  setInterval(() => {
+    navigator.serviceWorker.getRegistration().then(reg => reg?.update());
+  }, 5 * 60 * 1000);
 }
 
 function urlBase64ToUint8Array(base64String) {

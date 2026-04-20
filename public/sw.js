@@ -1,7 +1,19 @@
-const VERSION = 2;
+const VERSION = 3;
 
-self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', e => e.waitUntil(clients.claim()));
+self.addEventListener('install', e => {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    clients.claim().then(() => {
+      // Notificar a todos los clientes que hay nueva versión
+      return self.clients.matchAll({ type: 'window' }).then(all => {
+        all.forEach(c => c.postMessage({ type: 'SW_UPDATED' }));
+      });
+    })
+  );
+});
 
 self.addEventListener('push', e => {
   const data = e.data?.json() || {};

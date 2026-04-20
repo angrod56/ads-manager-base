@@ -44,7 +44,16 @@ function err(res, msg, status = 500) { json(res, { error: msg }, status); }
 
 function serveFile(res, file, type) {
   try {
-    res.writeHead(200, { 'Content-Type': type + '; charset=utf-8' });
+    const isHtml = type === 'text/html';
+    const headers = { 'Content-Type': type + '; charset=utf-8' };
+    if (isHtml) {
+      headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+      headers['Pragma']  = 'no-cache';
+      headers['Expires'] = '0';
+    } else {
+      headers['Cache-Control'] = 'public, max-age=86400';
+    }
+    res.writeHead(200, headers);
     res.end(fs.readFileSync(file));
   } catch { res.writeHead(404); res.end('Not found'); }
 }
