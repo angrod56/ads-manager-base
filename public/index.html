@@ -372,6 +372,80 @@
     .tab:hover  { color: var(--text); }
     .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
 
+    /* ── Gamificación ── */
+    .milestone-next {
+      background: linear-gradient(135deg, rgba(37,99,235,.12), rgba(37,99,235,.04));
+      border: 1px solid rgba(37,99,235,.35);
+      border-radius: 14px;
+      padding: 18px 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .milestone-next::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, transparent 60%, rgba(37,99,235,.06));
+      pointer-events: none;
+    }
+    .milestone-next-bar-track {
+      background: rgba(255,255,255,.08);
+      border-radius: 99px;
+      height: 8px;
+      overflow: hidden;
+      margin: 10px 0 6px;
+    }
+    .milestone-next-bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, #2563eb, #06d6a0);
+      transition: width 1s cubic-bezier(.4,0,.2,1);
+    }
+    .milestone-badge {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 10px 8px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      min-width: 72px;
+      flex: 0 0 auto;
+      transition: transform .2s, box-shadow .2s;
+      cursor: default;
+      position: relative;
+    }
+    .milestone-badge.unlocked {
+      border-color: rgba(37,99,235,.4);
+      background: rgba(37,99,235,.08);
+      box-shadow: 0 0 14px rgba(37,99,235,.15);
+    }
+    .milestone-badge.unlocked:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 0 22px rgba(37,99,235,.25);
+    }
+    .milestone-badge.is-next {
+      border-color: rgba(245,158,11,.5);
+      background: rgba(245,158,11,.07);
+      box-shadow: 0 0 14px rgba(245,158,11,.15);
+    }
+    .milestone-badge .badge-glow {
+      position: absolute;
+      inset: -1px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(37,99,235,.3), transparent);
+      opacity: 0;
+      transition: opacity .3s;
+    }
+    .milestone-badge.unlocked:hover .badge-glow { opacity: 1; }
+    @keyframes badgePop {
+      0%   { transform: scale(0.6); opacity:0; }
+      70%  { transform: scale(1.15); }
+      100% { transform: scale(1); opacity:1; }
+    }
+    .milestone-badge.unlocked { animation: badgePop .4s ease forwards; }
+
     /* ── Responsive ── */
     /* ── Top Ads ── */
     .top-ads-header {
@@ -1249,12 +1323,13 @@
 
     <!-- Gamificación -->
     <div class="card" style="margin-bottom:16px" id="salesMilestones">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px">
         <span style="font-size:18px">🏆</span>
         <h3 style="margin:0;font-size:15px">Tus logros</h3>
         <span style="font-size:12px;color:var(--muted);margin-left:4px">Comisiones acumuladas histórico</span>
       </div>
-      <div id="milestonesGrid" style="display:flex;flex-direction:column;gap:12px"></div>
+      <div id="milestoneNextCard"></div>
+      <div id="milestonesGrid" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:16px"></div>
     </div>
 
     <!-- Tabla de ventas -->
@@ -3335,41 +3410,78 @@ const MILESTONES = [
 ];
 
 function renderMilestones(totalEarned) {
-  const grid = document.getElementById('milestonesGrid');
+  const grid     = document.getElementById('milestonesGrid');
+  const nextCard = document.getElementById('milestoneNextCard');
   if (!grid) return;
 
-  // Encontrar el hito activo actual
-  const currentIdx = MILESTONES.findIndex(m => totalEarned < m.amount);
-  const nextMilestone = currentIdx >= 0 ? MILESTONES[currentIdx] : null;
-  const prevAmount = currentIdx > 0 ? MILESTONES[currentIdx - 1].amount : 0;
+  const nextIdx    = MILESTONES.findIndex(m => totalEarned < m.amount);
+  const next       = nextIdx >= 0 ? MILESTONES[nextIdx] : null;
+  const prevAmount = nextIdx > 0 ? MILESTONES[nextIdx - 1].amount : 0;
+  const progress   = next ? Math.min(100, ((totalEarned - prevAmount) / (next.amount - prevAmount)) * 100) : 100;
 
+  const motivations = [
+    'Cada venta te acerca más. ¡Sigue!',
+    '¡Vas muy bien! Mantén el ritmo.',
+    '¡Estás en racha! No pares ahora.',
+    'El siguiente hito está a tu alcance.',
+    'Eres de los pocos que llegan aquí. 🔥',
+    'Nivel de élite — sigue escalando.',
+    '¡Impresionante! Pocos llegan tan alto.',
+    'Estás entre el top 1% de afiliados.',
+  ];
+  const motivIdx = Math.min(nextIdx < 0 ? motivations.length - 1 : nextIdx, motivations.length - 1);
+
+  // Tarjeta de próximo hito
+  if (nextCard) {
+    if (next) {
+      const pct = Math.round(progress);
+      nextCard.innerHTML = `
+        <div class="milestone-next">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px">
+            <span style="font-size:36px">${next.icon}</span>
+            <div style="flex:1">
+              <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Próximo hito</div>
+              <div style="font-size:17px;font-weight:800">${next.title} <span style="color:var(--blue)">${fmt.usd(next.amount)}</span></div>
+              <div style="font-size:11px;color:var(--muted)">${next.desc}</div>
+            </div>
+            <div style="text-align:right;min-width:52px">
+              <div style="font-size:22px;font-weight:900;color:var(--blue)">${pct}%</div>
+              <div style="font-size:10px;color:var(--muted)">completado</div>
+            </div>
+          </div>
+          <div class="milestone-next-bar-track">
+            <div class="milestone-next-bar-fill" style="width:${pct}%"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted)">
+            <span>${fmt.usd(totalEarned)} acumulados</span>
+            <span>Faltan <strong style="color:var(--text)">${fmt.usd(next.amount - totalEarned)}</strong></span>
+          </div>
+          <div style="margin-top:10px;font-size:12px;color:var(--muted);font-style:italic">💬 ${motivations[motivIdx]}</div>
+        </div>`;
+    } else {
+      nextCard.innerHTML = `
+        <div class="milestone-next" style="text-align:center;padding:20px">
+          <div style="font-size:40px;margin-bottom:8px">🏆</div>
+          <div style="font-weight:800;font-size:16px;color:var(--blue)">¡Todos los hitos desbloqueados!</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px">Eres parte del Million Club. Leyenda.</div>
+        </div>`;
+    }
+  }
+
+  // Insignias de todos los hitos
   grid.innerHTML = MILESTONES.map((m, i) => {
     const unlocked = totalEarned >= m.amount;
-    const isNext   = i === currentIdx;
-    const progress = isNext
-      ? Math.min(100, ((totalEarned - prevAmount) / (m.amount - prevAmount)) * 100)
-      : unlocked ? 100 : 0;
+    const isNext   = i === nextIdx;
+    const cls      = unlocked ? 'unlocked' : isNext ? 'is-next' : '';
+    const delayMs  = unlocked ? (i * 80) : 0;
 
     return `
-      <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;
-        background:${unlocked ? 'rgba(37,99,235,.12)' : 'var(--bg)'};
-        border:1px solid ${unlocked ? 'var(--blue)' : 'var(--border)'};
-        opacity:${!unlocked && !isNext ? '0.45' : '1'}">
-        <div style="font-size:28px;min-width:36px;text-align:center;filter:${unlocked ? 'none' : 'grayscale(1)'}">${unlocked ? m.icon : (isNext ? m.icon : '🔒')}</div>
-        <div style="flex:1;min-width:0">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-            <span style="font-weight:700;font-size:13px;color:${unlocked ? 'var(--blue)' : 'var(--text)'}">${m.title}</span>
-            <span style="font-size:11px;color:var(--muted);font-weight:600">${fmt.usd(m.amount)}</span>
-          </div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:6px">${m.desc}</div>
-          <div style="background:var(--border);border-radius:99px;height:5px;overflow:hidden">
-            <div style="height:100%;border-radius:99px;width:${progress}%;background:${unlocked ? 'var(--blue)' : '#f59e0b'};transition:width .6s ease"></div>
-          </div>
-          ${isNext ? `<div style="font-size:10px;color:var(--muted);margin-top:3px">
-            ${fmt.usd(totalEarned)} / ${fmt.usd(m.amount)} — faltan ${fmt.usd(m.amount - totalEarned)}
-          </div>` : ''}
-          ${unlocked ? `<div style="font-size:10px;color:var(--blue);margin-top:3px">✓ Logro desbloqueado</div>` : ''}
-        </div>
+      <div class="milestone-badge ${cls}" title="${m.desc}" style="animation-delay:${delayMs}ms">
+        <div class="badge-glow"></div>
+        <span style="font-size:24px;${!unlocked && !isNext ? 'filter:grayscale(1);opacity:.35' : ''}">${unlocked || isNext ? m.icon : '🔒'}</span>
+        <span style="font-size:9px;font-weight:700;color:${unlocked ? 'var(--blue)' : isNext ? '#f59e0b' : 'var(--muted)'};text-align:center;line-height:1.2">${fmt.usd(m.amount)}</span>
+        ${unlocked ? `<span style="font-size:8px;color:var(--blue)">✓</span>` : ''}
+        ${isNext   ? `<span style="font-size:8px;color:#f59e0b">En curso</span>` : ''}
       </div>`;
   }).join('');
 }
