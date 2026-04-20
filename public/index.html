@@ -3742,51 +3742,75 @@ async function loadAdminUsers() {
   try {
     const users = await api('/api/admin/users');
     if (!users.length) { el.innerHTML = '<p class="muted">Sin usuarios registrados</p>'; return; }
+    const fmtDt = iso => {
+      if (!iso) return '<span style="color:var(--muted)">Nunca</span>';
+      const d = new Date(iso);
+      return `<span style="white-space:nowrap">${d.toLocaleDateString('es',{day:'2-digit',month:'short',year:'numeric'})}</span>
+              <span style="color:var(--muted);font-size:10px;display:block">${d.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})}</span>`;
+    };
+    const planColors = { basic:'#30363d', pro:'#1a3a5c', agency:'#1a3a28' };
+    const planText   = { basic:'#e6edf3', pro:'#388bfd', agency:'#3fb950' };
+    const planLabel  = { basic:'Básico',  pro:'Pro',     agency:'Agencia'  };
+
     el.innerHTML = `
-      <table style="width:100%;border-collapse:collapse;font-size:13px">
-        <thead><tr style="color:var(--muted);font-size:11px;text-align:left">
-          <th style="padding:8px 4px">Email</th>
-          <th style="padding:8px 4px">Rol</th>
-          <th style="padding:8px 4px">Plan</th>
-          <th style="padding:8px 4px">Cuenta Meta</th>
-          <th style="padding:8px 4px">Webhook Hotmart</th>
-          <th style="padding:8px 4px">Registro</th>
-          <th style="padding:8px 4px">Último acceso</th>
-          <th style="padding:8px 4px">Acciones</th>
+      <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:900px">
+        <thead><tr style="color:var(--muted);font-size:11px;text-align:left;border-bottom:1px solid var(--border)">
+          <th style="padding:10px 8px">Usuario</th>
+          <th style="padding:10px 8px">Rol</th>
+          <th style="padding:10px 8px">Plan</th>
+          <th style="padding:10px 8px">Meta</th>
+          <th style="padding:10px 8px">Webhook Hotmart</th>
+          <th style="padding:10px 8px">Registro</th>
+          <th style="padding:10px 8px">Último ingreso</th>
+          <th style="padding:10px 8px">Acciones</th>
         </tr></thead>
         <tbody>
-          ${users.map(u => `
+          ${users.map(u => {
+            const plan = u.plan || 'basic';
+            const statusDot = u.status === 'suspended'
+              ? '<span title="Suspendido" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#f85149;margin-right:5px"></span>'
+              : '<span title="Activo" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#3fb950;margin-right:5px"></span>';
+            return `
             <tr style="border-top:1px solid var(--border)">
-              <td style="padding:8px 4px">${u.email}</td>
-              <td style="padding:8px 4px">
+              <td style="padding:10px 8px">
+                ${statusDot}
+                <span style="font-weight:600">${u.name || '—'}</span>
+                <span style="display:block;font-size:11px;color:var(--muted)">${u.email}</span>
+              </td>
+              <td style="padding:10px 8px">
                 <span style="background:${u.role==='admin'?'var(--blue)':'var(--border)'};color:${u.role==='admin'?'#fff':'var(--text)'};padding:2px 8px;border-radius:4px;font-size:11px">
                   ${u.role}
                 </span>
               </td>
-              <td style="padding:8px 4px">
+              <td style="padding:10px 8px">
                 <select onchange="adminSetPlan('${u.id}',this.value)"
-                  style="font-size:11px;padding:3px 6px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:4px;cursor:pointer">
-                  <option value="basic"  ${(u.plan||'basic')==='basic' ?'selected':''}>Básico</option>
-                  <option value="pro"    ${(u.plan||'basic')==='pro'   ?'selected':''}>Pro</option>
-                  <option value="agency" ${(u.plan||'basic')==='agency'?'selected':''}>Agencia</option>
+                  style="font-size:11px;padding:3px 6px;background:${planColors[plan]};border:1px solid var(--border);color:${planText[plan]};border-radius:4px;cursor:pointer;font-weight:700">
+                  <option value="basic"  ${plan==='basic' ?'selected':''}>Básico</option>
+                  <option value="pro"    ${plan==='pro'   ?'selected':''}>Pro</option>
+                  <option value="agency" ${plan==='agency'?'selected':''}>Agencia</option>
                 </select>
               </td>
-              <td style="padding:8px 4px;font-family:monospace;font-size:11px;color:var(--muted)">${u.meta_account_id || '—'}</td>
-              <td style="padding:8px 4px;font-size:11px">
-                <span style="font-family:monospace;font-size:10px;color:var(--muted)">${location.origin}/webhook/hotmart?user_id=${u.id}</span>
-                <button onclick="navigator.clipboard.writeText('${location.origin}/webhook/hotmart?user_id=${u.id}')" style="font-size:10px;padding:2px 6px;margin-left:4px">Copiar</button>
+              <td style="padding:10px 8px;font-family:monospace;font-size:11px;color:var(--muted)">${u.meta_account_id || '—'}</td>
+              <td style="padding:10px 8px;font-size:11px">
+                <span style="font-family:monospace;font-size:10px;color:var(--muted);word-break:break-all">${location.origin}/webhook/hotmart?user_id=${u.id}</span>
+                <button onclick="navigator.clipboard.writeText('${location.origin}/webhook/hotmart?user_id=${u.id}').then(()=>this.textContent='✓').catch(()=>{})" style="font-size:10px;padding:2px 6px;margin-left:4px;display:block;margin-top:4px">Copiar</button>
               </td>
-              <td style="padding:8px 4px;color:var(--muted);font-size:11px">${u.created_at ? new Date(u.created_at).toLocaleDateString('es') : '—'}</td>
-              <td style="padding:8px 4px;color:var(--muted);font-size:11px">${u.last_login ? new Date(u.last_login).toLocaleDateString('es') : '—'}</td>
-              <td style="padding:8px 4px;display:flex;gap:6px">
-                ${u.role !== 'admin'
-                  ? `<button onclick="adminSetRole('${u.id}','admin')" style="font-size:11px;padding:3px 8px">→ Admin</button>`
-                  : `<button onclick="adminSetRole('${u.id}','client')" style="font-size:11px;padding:3px 8px">→ Cliente</button>`}
-                <button onclick="adminDeleteUser('${u.id}')" style="font-size:11px;padding:3px 8px;background:rgba(255,80,80,.15);border-color:var(--red);color:var(--red)">Eliminar</button>
+              <td style="padding:10px 8px;font-size:12px">${fmtDt(u.created_at)}</td>
+              <td style="padding:10px 8px;font-size:12px">${fmtDt(u.last_login)}</td>
+              <td style="padding:10px 8px">
+                <div style="display:flex;flex-direction:column;gap:5px">
+                  ${u.role !== 'admin'
+                    ? `<button onclick="adminSetRole('${u.id}','admin')" style="font-size:11px;padding:4px 8px">→ Admin</button>`
+                    : `<button onclick="adminSetRole('${u.id}','client')" style="font-size:11px;padding:4px 8px">→ Cliente</button>`}
+                  <button onclick="adminDeleteUser('${u.id}')" style="font-size:11px;padding:4px 8px;background:rgba(255,80,80,.15);border-color:var(--red);color:var(--red)">Eliminar</button>
+                </div>
               </td>
-            </tr>`).join('')}
+            </tr>`;
+          }).join('')}
         </tbody>
-      </table>`;
+      </table>
+      </div>`;
   } catch(e) {
     el.innerHTML = `<p style="color:var(--red)">${e.message}</p>`;
   }
