@@ -852,12 +852,12 @@ const POST = {
   // ── Admin: crear announcement ─────────────────────────────────────────────
   '/api/admin/announcements': async (res, req, user) => {
     if (!user || user.role !== 'admin') return err(res, 'No autorizado', 403);
-    if (req.method === 'DELETE') {
-      const { id } = await body(req);
-      await supabaseAdmin.from('announcements').delete().eq('id', id);
+    const payload = await body(req);
+    if (payload._delete) {
+      await supabaseAdmin.from('announcements').delete().eq('id', payload.id);
       return json(res, { ok: true });
     }
-    const { message, type, emoji } = await body(req);
+    const { message, type, emoji } = payload;
     if (!message) return err(res, 'message requerido', 400);
     const { data, error } = await supabaseAdmin
       .from('announcements')

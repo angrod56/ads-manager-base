@@ -3705,7 +3705,11 @@ async function createAnnouncement() {
   const emoji   = document.getElementById('annEmoji').value;
   if (!message) return alert('Escribe el mensaje del banner');
   try {
-    await api('/api/admin/announcements', { method:'POST', body: JSON.stringify({ message, type, emoji }) });
+    await apiFetch('/api/admin/announcements', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message, type, emoji }),
+    });
     document.getElementById('annMessage').value = '';
     loadAdminAnnouncements();
     loadAnnouncements();
@@ -3713,14 +3717,22 @@ async function createAnnouncement() {
 }
 
 async function toggleAnn(id, active) {
-  await api('/api/admin/announcements/toggle', { method:'POST', body: JSON.stringify({ id, active }) });
+  await apiFetch('/api/admin/announcements/toggle', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, active }),
+  });
   loadAdminAnnouncements();
   loadAnnouncements();
 }
 
 async function deleteAnn(id) {
   if (!confirm('¿Eliminar este banner?')) return;
-  await api('/api/admin/announcements', { method:'DELETE', body: JSON.stringify({ id }) });
+  await apiFetch('/api/admin/announcements', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, _delete: true }),
+  });
   loadAdminAnnouncements();
   loadAnnouncements();
 }
