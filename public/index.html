@@ -3383,16 +3383,17 @@ function copyWebhookUrl() {
 
 function loadConfig() {
   if (!S.user?.id) return;
+  const _el = id => document.getElementById(id);
   // Precargar nombre
-  if (S.user.name) document.getElementById('cfgName').value = S.user.name;
+  if (S.user.name && _el('cfgName')) _el('cfgName').value = S.user.name;
   // URL webhook
-  document.getElementById('hotmartWebhookUrl').textContent =
-    `${location.origin}/webhook/hotmart?user_id=${S.user.id}`;
+  if (_el('hotmartWebhookUrl'))
+    _el('hotmartWebhookUrl').textContent = `${location.origin}/webhook/hotmart?user_id=${S.user.id}`;
   // Precargar rol y Hottok si ya están guardados
-  if (S.user.hotmart_role)
-    document.getElementById('hotmartRoleSelect').value = S.user.hotmart_role;
-  if (S.user.hotmart_token)
-    document.getElementById('hottokInput').value = S.user.hotmart_token;
+  if (S.user.hotmart_role && _el('hotmartRoleSelect'))
+    _el('hotmartRoleSelect').value = S.user.hotmart_role;
+  if (S.user.hotmart_token && _el('hottokInput'))
+    _el('hottokInput').value = S.user.hotmart_token;
   // Plan badge
   const planMap = {
     basic:  { label: 'Básico',  color: '#30363d', text: '#e6edf3', desc: 'Hasta 5 cuentas de Meta Ads' },

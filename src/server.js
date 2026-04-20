@@ -706,6 +706,16 @@ const GET = {
     if (!user || user.role !== 'admin') return err(res, 'No autorizado', 403);
     json(res, await listUsers());
   },
+
+  // ── Announcements: obtener activos ───────────────────────────────────────────
+  '/api/announcements': async (res, _q, _user) => {
+    const { data } = await supabaseAdmin
+      .from('announcements')
+      .select('*')
+      .eq('active', true)
+      .order('created_at', { ascending: false });
+    json(res, data || []);
+  },
 };
 
 // ── Rutas POST ────────────────────────────────────────────────────────────────
@@ -837,16 +847,6 @@ const POST = {
     if (!userId) return err(res, 'userId requerido', 400);
     await deleteUser(userId);
     json(res, { ok: true });
-  },
-
-  // ── Announcements: obtener activos (todos los usuarios) ─────────────────────
-  '/api/announcements': async (res, _req, _user) => {
-    const { data } = await supabaseAdmin
-      .from('announcements')
-      .select('*')
-      .eq('active', true)
-      .order('created_at', { ascending: false });
-    json(res, data || []);
   },
 
   // ── Admin: crear announcement ─────────────────────────────────────────────
