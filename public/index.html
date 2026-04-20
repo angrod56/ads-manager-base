@@ -3830,6 +3830,7 @@ async function launchApp() {
   loadAnnouncements();
   await init();
   initPush();
+  window.dispatchEvent(new Event('appReady'));
 }
 
 async function init() {
@@ -4178,7 +4179,6 @@ if ('serviceWorker' in navigator) {
       setTimeout(() => { document.title = 'Adsmanager PRO'; }, 3000);
     }
     if (e.data?.type === 'SW_UPDATED') {
-      // Auto-recarga silenciosa al activar nuevo SW
       window.location.reload();
     }
   });
@@ -4188,6 +4188,35 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistration().then(reg => reg?.update());
   }, 5 * 60 * 1000);
 }
+
+// Detectar apertura desde notificación (?sale=1) → sonar al cargar
+if (new URLSearchParams(location.search).get('sale') === '1') {
+  window.addEventListener('appReady', () => {
+    setTimeout(playCashRegister, 800);
+    // Limpiar URL sin recargar
+    history.replaceState({}, '', '/app');
+  }, { once: true });
+}
+
+// Polling de ventas: comparar última venta cada 30s para sonar si llega una nueva
+let _lastSaleId = null;
+async function pollNewSales() {
+  if (!S.jwt || !S.user) return;
+  try {
+    const data = await fetch(`/api/sales?date=today`, {
+      headers: { 'Authorization': `Bearer ${S.jwt}` }
+    }).then(r => r.json());
+    const latest = data?.sales?.[0];
+    if (!latest) return;
+    if (_lastSaleId && _lastSaleId !== latest.id) {
+      playCashRegister();
+      document.title = '💰 VENTA! ' + new Date().toLocaleTimeString();
+      setTimeout(() => { document.title = 'Adsmanager PRO'; }, 3000);
+    }
+    _lastSaleId = latest.id;
+  } catch {}
+}
+setInterval(pollNewSales, 30000);
 
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
