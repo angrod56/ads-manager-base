@@ -1,4 +1,59 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="96" fill="#2563eb"/>
-  <text x="256" y="368" font-size="270" text-anchor="middle" font-family="serif">🎯</text>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1e1040"/>
+      <stop offset="100%" stop-color="#0d2060"/>
+    </linearGradient>
+    <linearGradient id="gp" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="gb" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#60a5fa"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+    <linearGradient id="tl" x1="0" y1="0" x2="512" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#c084fc"/>
+      <stop offset="100%" stop-color="#38bdf8"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+
+  <!-- Subtle grid lines -->
+  <line x1="72" y1="136" x2="440" y2="136" stroke="#ffffff" stroke-opacity="0.05" stroke-width="1.5"/>
+  <line x1="72" y1="224" x2="440" y2="224" stroke="#ffffff" stroke-opacity="0.05" stroke-width="1.5"/>
+  <line x1="72" y1="312" x2="440" y2="312" stroke="#ffffff" stroke-opacity="0.05" stroke-width="1.5"/>
+
+  <!-- Bar 1 — left, medium -->
+  <rect x="70"  y="262" width="80" height="160" rx="18" fill="url(#gb)" opacity="0.75"/>
+
+  <!-- Bar 2 — center-left, tallest -->
+  <rect x="176" y="160" width="80" height="262" rx="18" fill="url(#gp)"/>
+
+  <!-- Bar 3 — center-right, medium-tall -->
+  <rect x="282" y="202" width="80" height="220" rx="18" fill="url(#gb)" opacity="0.9"/>
+
+  <!-- Bar 4 — right, short -->
+  <rect x="388" y="294" width="54" height="128" rx="14" fill="url(#gp)" opacity="0.6"/>
+
+  <!-- Trend line -->
+  <polyline
+    points="110,234 216,134 322,170 415,100"
+    stroke="url(#tl)" stroke-width="14"
+    fill="none" stroke-linecap="round" stroke-linejoin="round"
+    filter="url(#glow)"/>
+
+  <!-- Trend line dots -->
+  <circle cx="110" cy="234" r="13" fill="#c084fc"/>
+  <circle cx="216" cy="134" r="13" fill="#c084fc"/>
+  <circle cx="322" cy="170" r="13" fill="#38bdf8"/>
+  <!-- Top dot — highlighted -->
+  <circle cx="415" cy="100" r="19" fill="#38bdf8" filter="url(#glow)"/>
+  <circle cx="415" cy="100" r="9"  fill="#fff"/>
 </svg>

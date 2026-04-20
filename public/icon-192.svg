@@ -1,4 +1,59 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
-  <rect width="192" height="192" rx="36" fill="#2563eb"/>
-  <text x="96" y="138" font-size="100" text-anchor="middle" font-family="serif">🎯</text>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="192" y2="192" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1e1040"/>
+      <stop offset="100%" stop-color="#0d2060"/>
+    </linearGradient>
+    <linearGradient id="gp" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="gb" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#60a5fa"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+    <linearGradient id="tl" x1="0" y1="0" x2="192" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#c084fc"/>
+      <stop offset="100%" stop-color="#38bdf8"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="192" height="192" rx="42" fill="url(#bg)"/>
+
+  <!-- Subtle grid lines -->
+  <line x1="28" y1="52" x2="164" y2="52" stroke="#ffffff" stroke-opacity="0.05" stroke-width="1"/>
+  <line x1="28" y1="84" x2="164" y2="84" stroke="#ffffff" stroke-opacity="0.05" stroke-width="1"/>
+  <line x1="28" y1="116" x2="164" y2="116" stroke="#ffffff" stroke-opacity="0.05" stroke-width="1"/>
+
+  <!-- Bar 1 — left, medium -->
+  <rect x="26" y="98" width="30" height="60" rx="7" fill="url(#gb)" opacity="0.75"/>
+
+  <!-- Bar 2 — center-left, tallest -->
+  <rect x="66" y="60" width="30" height="98" rx="7" fill="url(#gp)"/>
+
+  <!-- Bar 3 — center-right, medium-tall -->
+  <rect x="106" y="76" width="30" height="82" rx="7" fill="url(#gb)" opacity="0.9"/>
+
+  <!-- Bar 4 — right, short -->
+  <rect x="146" y="110" width="20" height="48" rx="6" fill="url(#gp)" opacity="0.6"/>
+
+  <!-- Trend line -->
+  <polyline
+    points="41,88 81,50 121,64 156,38"
+    stroke="url(#tl)" stroke-width="5.5"
+    fill="none" stroke-linecap="round" stroke-linejoin="round"
+    filter="url(#glow)"/>
+
+  <!-- Trend line dots -->
+  <circle cx="41"  cy="88" r="5" fill="#c084fc"/>
+  <circle cx="81"  cy="50" r="5" fill="#c084fc"/>
+  <circle cx="121" cy="64" r="5" fill="#38bdf8"/>
+  <!-- Top dot — highlighted -->
+  <circle cx="156" cy="38" r="7" fill="#38bdf8" filter="url(#glow)"/>
+  <circle cx="156" cy="38" r="3.5" fill="#fff"/>
 </svg>

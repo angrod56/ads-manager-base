@@ -4,8 +4,8 @@
   "description": "Panel de campañas Meta Ads y ventas Hotmart",
   "start_url": "/app",
   "display": "standalone",
-  "background_color": "#0f1117",
-  "theme_color": "#2563eb",
+  "background_color": "#1e1040",
+  "theme_color": "#7c3aed",
   "orientation": "portrait",
   "icons": [
     { "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml", "purpose": "any maskable" },
