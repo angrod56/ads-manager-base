@@ -83,7 +83,14 @@ function dateOpts(q, fallback = 'last_30d') {
   return { datePreset: q.date || fallback };
 }
 
+const SERVER_START = Date.now();
+
 const GET = {
+
+  '/api/version': async (res) => {
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache, no-store', 'Access-Control-Allow-Origin': '*' });
+    res.end(JSON.stringify({ v: SERVER_START }));
+  },
 
   '/api/config': async (res) => {
     json(res, {

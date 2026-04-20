@@ -3970,13 +3970,24 @@ async function refreshToken() {
 }
 
 // Verificar token y sonido pendiente al volver al foco
+// ── Auto-update: compara versión del servidor al volver al foreground ──────
+let _appVersion = null;
+async function checkAppVersion() {
+  try {
+    const r = await fetch('/api/version', { cache: 'no-store' });
+    const { v } = await r.json();
+    if (_appVersion === null) { _appVersion = v; return; }
+    if (_appVersion !== v) { window.location.reload(true); }
+  } catch {}
+}
+checkAppVersion();
+
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) return;
+  checkAppVersion();
   // Refresh token si está por expirar
   const expiresAt = parseInt(localStorage.getItem('tokenExpiresAt') || '0', 10);
   if ((expiresAt - Date.now()) / 1000 < 300) { clearTimeout(_refreshTimer); refreshToken(); }
-  // En iOS: si hay sonido pendiente, se reproducirá en el próximo toque del usuario
-  // (unlockAudio está escuchando touchstart)
 });
 
 // Failsafe: verificar cada 3 minutos aunque el timer se haya congelado
