@@ -3,6 +3,7 @@ import 'dotenv/config';
 import http from 'http';
 import fs from 'fs';
 import path from 'path';
+import zlib from 'zlib';
 import { fileURLToPath } from 'url';
 import {
   listAccounts, listCampaigns, listAdSets, listAds,
@@ -42,20 +43,28 @@ function json(res, data, status = 200) {
 
 function err(res, msg, status = 500) { json(res, { error: msg }, status); }
 
-function serveFile(res, file, type) {
+function serveFile(res, file, type, acceptEncoding = '') {
   try {
     const isHtml = type === 'text/html';
-    const isSwOrManifest = file.endsWith('sw.js') || file.endsWith('manifest.json');
-    const headers = { 'Content-Type': type + '; charset=utf-8' };
-    if (isHtml || isSwOrManifest) {
+    const isNoCache = isHtml || file.endsWith('sw.js') || file.endsWith('manifest.json');
+    const headers = { 'Content-Type': type + '; charset=utf-8', 'Vary': 'Accept-Encoding' };
+    if (isNoCache) {
       headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
       headers['Pragma']  = 'no-cache';
       headers['Expires'] = '0';
     } else {
       headers['Cache-Control'] = 'public, max-age=86400';
     }
-    res.writeHead(200, headers);
-    res.end(fs.readFileSync(file));
+    const content = fs.readFileSync(file);
+    const canGzip = /\bgzip\b/.test(acceptEncoding) && content.length > 1024;
+    if (canGzip) {
+      headers['Content-Encoding'] = 'gzip';
+      res.writeHead(200, headers);
+      res.end(zlib.gzipSync(content, { level: 9 }));
+    } else {
+      res.writeHead(200, headers);
+      res.end(content);
+    }
   } catch { res.writeHead(404); res.end('Not found'); }
 }
 
@@ -957,6 +966,7 @@ http.createServer(async (req, res) => {
   const url  = req.url || '/';
   const path2 = url.split('?')[0];
   const q    = qs(url);
+  const ae   = req.headers['accept-encoding'] || '';
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,POST', 'Access-Control-Allow-Headers': 'Content-Type' });
@@ -964,9 +974,9 @@ http.createServer(async (req, res) => {
   }
 
   if (path2 === '/')
-    return serveFile(res, path.join(PUBLIC, 'landing.html'), 'text/html');
+    return serveFile(res, path.join(PUBLIC, 'landing.html'), 'text/html', ae);
   if (path2 === '/app' || path2 === '/index.html')
-    return serveFile(res, path.join(PUBLIC, 'index.html'), 'text/html');
+    return serveFile(res, path.join(PUBLIC, 'index.html'), 'text/html', ae);
 
   // Archivos estáticos públicos
   const staticFiles = {
@@ -980,7 +990,7 @@ http.createServer(async (req, res) => {
   };
   if (staticFiles[path2]) {
     const [mime, file] = staticFiles[path2];
-    return serveFile(res, path.join(PUBLIC, file), mime);
+    return serveFile(res, path.join(PUBLIC, file), mime, ae);
   }
 
   // Rutas públicas (no requieren sesión)

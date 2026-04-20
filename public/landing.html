@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Adsmanager PRO — Controla tus campañas y ventas desde un solo lugar</title>
   <meta name="description" content="Gestiona tus campañas de Meta Ads y recibe notificaciones de ventas de Hotmart en tiempo real. PWA instalable en tu móvil.">
+  <meta name="theme-color" content="#060818">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <meta http-equiv="x-dns-prefetch-control" content="on">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -896,8 +899,8 @@
 
 <!-- ── Nav ── -->
 <nav id="navbar">
-  <a href="#" class="nav-logo">
-    <img src="/logo.svg" alt="AdsManager PRO" style="height:32px;width:auto;display:block;">
+  <a href="#" class="nav-logo" aria-label="AdsManager PRO">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 52" fill="none" style="height:32px;width:auto;display:block"><defs><linearGradient id="iG" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#4f8ef7"/><stop offset="100%" stop-color="#9b5de5"/></linearGradient><linearGradient id="bG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#fff" stop-opacity=".6"/></linearGradient><linearGradient id="pG" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#9b5de5"/><stop offset="100%" stop-color="#c77dff"/></linearGradient><filter id="gl"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><rect x="0" y="2" width="48" height="48" rx="13" fill="url(#iG)"/><rect x="0" y="2" width="48" height="48" rx="13" fill="white" opacity=".06"/><rect x="8" y="30" width="7" height="13" rx="2.5" fill="url(#bG)" opacity=".85"/><rect x="18" y="22" width="7" height="21" rx="2.5" fill="url(#bG)"/><rect x="28" y="16" width="7" height="27" rx="2.5" fill="url(#bG)"/><polyline points="11.5,28 21.5,19 31.5,13" stroke="#06d6a0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" filter="url(#gl)"/><circle cx="31.5" cy="13" r="2.5" fill="#06d6a0" filter="url(#gl)"/><text x="60" y="33" font-family="system-ui,sans-serif" font-weight="700" font-size="20" letter-spacing="-.3" fill="#f0f4ff">Ads</text><text x="91" y="33" font-family="system-ui,sans-serif" font-weight="800" font-size="20" letter-spacing="-.3" fill="#4f8ef7">Manager</text><rect x="174" y="17" width="38" height="20" rx="10" fill="url(#pG)"/><text x="193" y="31" font-family="system-ui,sans-serif" font-weight="800" font-size="10.5" fill="white" text-anchor="middle" letter-spacing="1.5">PRO</text></svg>
   </a>
   <div class="nav-links">
     <a href="#features">Funciones</a>
@@ -1713,7 +1716,8 @@
       window.scrollY > 50 ? 'rgba(6,8,24,.95)' : 'rgba(6,8,24,.7)';
   });
 
-  // ── Notificaciones flotantes de compras simuladas ──
+  // ── Notificaciones flotantes y contador (diferidos — no críticos) ──
+  (window.requestIdleCallback || (fn => setTimeout(fn, 200)))(function() {
   const SALE_NAMES = [
     'Carlos M.','Valentina R.','Diego S.','Camila T.','Andrés G.',
     'Lucía F.','Sebastián V.','Daniela O.','Mateo P.','Isabella N.',
@@ -1777,11 +1781,10 @@
   }, 4000);
 
   // Contador preventa animado (simula cupos restantes)
-  (function() {
-    const remaining = Math.floor(Math.random() * 8) + 7; // 7-14 cupos
-    const el = document.getElementById('presaleCount');
-    if (el) el.textContent = `🔴 Quedan ${remaining} cupos`;
-  })();
+  const remaining = Math.floor(Math.random() * 8) + 7;
+  const el = document.getElementById('presaleCount');
+  if (el) el.textContent = `🔴 Quedan ${remaining} cupos`;
+  }); // fin requestIdleCallback
 </script>
 
 <style>
