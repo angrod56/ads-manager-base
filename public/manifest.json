@@ -1,8 +1,8 @@
 {
-  "name": "Meta Ads Manager",
-  "short_name": "Ads Manager",
+  "name": "Adsmanager PRO",
+  "short_name": "Ads PRO",
   "description": "Panel de campañas Meta Ads y ventas Hotmart",
-  "start_url": "/",
+  "start_url": "/app",
   "display": "standalone",
   "background_color": "#0f1117",
   "theme_color": "#2563eb",
