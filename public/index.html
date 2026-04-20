@@ -3947,16 +3947,14 @@ async function refreshToken() {
   }
 }
 
-// Verificar token al volver al foco (pantalla desbloqueada / tab activa)
+// Verificar token y sonido pendiente al volver al foco
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) return;
+  // Refresh token si está por expirar
   const expiresAt = parseInt(localStorage.getItem('tokenExpiresAt') || '0', 10);
-  const secsLeft  = (expiresAt - Date.now()) / 1000;
-  // Si expira en menos de 5 min o ya expiró → refrescar ahora
-  if (secsLeft < 300) {
-    clearTimeout(_refreshTimer);
-    refreshToken();
-  }
+  if ((expiresAt - Date.now()) / 1000 < 300) { clearTimeout(_refreshTimer); refreshToken(); }
+  // En iOS: si hay sonido pendiente, se reproducirá en el próximo toque del usuario
+  // (unlockAudio está escuchando touchstart)
 });
 
 // Failsafe: verificar cada 3 minutos aunque el timer se haya congelado
@@ -4101,9 +4099,39 @@ async function initPush() {
   }
 }
 
-function playCashRegister() {
+// ── iOS AudioContext unlock ───────────────────────────────────────────────────
+let _audioUnlocked = false;
+let _pendingSound  = false;
+let _sharedAudio   = null;
+
+function unlockAudio() {
+  if (_audioUnlocked) return;
+  // Crear y reproducir silencio para desbloquear iOS AudioContext
   try {
     const snd = new Audio('/cash-register.mp3');
+    snd.volume = 0.001;
+    snd.play().then(() => { snd.pause(); snd.currentTime = 0; _sharedAudio = snd; }).catch(() => {});
+  } catch {}
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (AC) { const ctx = new AC(); ctx.resume(); }
+  } catch {}
+  _audioUnlocked = true;
+  // Si había sonido pendiente, reproducirlo ahora
+  if (_pendingSound) { _pendingSound = false; playCashRegister(); }
+}
+
+// Desbloquear en primer toque del usuario
+document.addEventListener('touchstart', unlockAudio, { once: true, passive: true });
+document.addEventListener('touchend',   unlockAudio, { once: true, passive: true });
+document.addEventListener('click',      unlockAudio, { once: true });
+
+function playCashRegister() {
+  // Si iOS no ha desbloqueado el audio, guardar pendiente
+  if (!_audioUnlocked) { _pendingSound = true; return; }
+  try {
+    const snd = _sharedAudio || new Audio('/cash-register.mp3');
+    snd.currentTime = 0;
     snd.volume = 1.0;
     snd.play().catch(() => {});
     return;
