@@ -425,7 +425,7 @@
     .stat-label { font-size: 14px; color: var(--muted); }
 
     /* ── Features ── */
-    .features { padding: 120px 0; }
+    .features { padding: 64px 0; }
     .section-label {
       font-size: 12px;
       font-weight: 700;
@@ -495,7 +495,7 @@
     .feature-desc  { font-size: 14px; color: var(--muted); line-height: 1.6; }
 
     /* ── How it works ── */
-    .how { padding: 120px 0; background: radial-gradient(ellipse 80% 50% at 50% 50%, rgba(79,142,247,.06) 0%, transparent 70%); }
+    .how { padding: 64px 0; background: radial-gradient(ellipse 80% 50% at 50% 50%, rgba(79,142,247,.06) 0%, transparent 70%); }
     .steps {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -534,7 +534,7 @@
     .step-desc  { font-size: 13px; color: var(--muted); }
 
     /* ── Notification demo ── */
-    .notif-demo { padding: 120px 0; }
+    .notif-demo { padding: 64px 0; }
     .notif-demo-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -565,7 +565,7 @@
     .demo-notif-amount { margin-left: auto; font-size: 18px; font-weight: 800; white-space: nowrap; }
 
     /* ── Gamification ── */
-    .gamification { padding: 120px 0; }
+    .gamification { padding: 64px 0; }
     .milestones-preview {
       display: flex;
       gap: 16px;
@@ -589,7 +589,7 @@
     .milestone-chip.active { border-color: rgba(6,214,160,.5); background: rgba(6,214,160,.1); color: var(--green); }
 
     /* ── Pricing ── */
-    .pricing { padding: 120px 0; }
+    .pricing { padding: 64px 0; }
     .pricing-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -665,7 +665,7 @@
 
     /* ── CTA Final ── */
     .cta-final {
-      padding: 120px 0;
+      padding: 64px 0;
       text-align: center;
       position: relative;
       overflow: hidden;
@@ -835,10 +835,11 @@
       .notif-demo-grid { grid-template-columns: 1fr; }
       .pricing-grid { grid-template-columns: 1fr; max-width: 400px; margin: 64px auto 0; }
       .benefits-grid { grid-template-columns: 1fr !important; }
-      .plaque, .plaque-lg, .plaque-xl { width: 160px; transform: none !important; }
-      .plaque-xl:hover, .plaque:hover { transform: translateY(-6px) !important; }
-      .plaque-amount { font-size: 20px !important; }
-      .plaque-emblem { font-size: 30px; }
+      .plaque, .plaque-lg, .plaque-xl { width: 155px; transform: none !important; }
+      .plaque-xl:hover, .plaque-lg:hover, .plaque:hover { transform: translateY(-6px) !important; }
+      .plaque-amount { font-size: 18px !important; }
+      .plaque-emblem { font-size: 28px !important; }
+      .plaque-inner { padding: 24px 14px 20px !important; }
     }
   </style>
 </head>
@@ -1219,7 +1220,7 @@
 </section>
 
 <!-- ── Hall of Fame ── -->
-<section style="padding:120px 0;overflow:hidden;position:relative">
+<section style="padding:64px 0;overflow:hidden;position:relative">
   <div style="position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 50%,rgba(255,209,102,.07) 0%,transparent 70%)"></div>
   <div class="container" style="position:relative">
 
@@ -1229,7 +1230,8 @@
       <p class="section-sub" style="margin:0 auto">Cada placa es un reconocimiento real. ¿La tuya podría estar aquí?</p>
     </div>
 
-    <div style="display:flex;flex-wrap:wrap;gap:32px;justify-content:center;align-items:flex-end">
+    <!-- Fila 1: $50K · $100K · $250K -->
+    <div style="display:flex;flex-wrap:wrap;gap:32px;justify-content:center;align-items:flex-end;margin-bottom:32px">
 
       <!-- $50K — Bronze/Copper -->
       <div class="plaque reveal" style="--shine:#f4a261;--glow:rgba(244,162,97,.4);--border1:#e07b39;--border2:#9a3412;--bg1:#1f0d00;--bg2:#130800">
@@ -1246,7 +1248,7 @@
       </div>
 
       <!-- $100K — Gold -->
-      <div class="plaque reveal reveal-delay-1" style="--shine:#ffd166;--glow:rgba(255,209,102,.4);--border1:#f5c842;--border2:#b8860b;--bg1:#2a2000;--bg2:#1a1400">
+      <div class="plaque plaque-lg reveal reveal-delay-1" style="--shine:#ffd166;--glow:rgba(255,209,102,.4);--border1:#f5c842;--border2:#b8860b;--bg1:#2a2000;--bg2:#1a1400">
         <div class="plaque-inner">
           <div class="plaque-shine"></div>
           <div class="plaque-emblem">👑</div>
@@ -1265,7 +1267,7 @@
           <div class="plaque-shine"></div>
           <div class="plaque-emblem">💎</div>
           <div class="plaque-tier" style="color:#b0d4f1">Platinum Elite</div>
-          <div class="plaque-amount" style="font-size:clamp(28px,4vw,40px)">$250,000</div>
+          <div class="plaque-amount">$250,000</div>
           <div class="plaque-label">en comisiones</div>
           <div class="plaque-divider" style="background:linear-gradient(90deg,transparent,#b0d4f1,transparent)"></div>
           <div class="plaque-sub">Adsmanager PRO</div>
@@ -1273,14 +1275,19 @@
         </div>
       </div>
 
+    </div>
+
+    <!-- Fila 2: $500K · $1M -->
+    <div style="display:flex;flex-wrap:wrap;gap:40px;justify-content:center;align-items:flex-end">
+
       <!-- $500K — Diamond -->
-      <div class="plaque plaque-xl reveal reveal-delay-3" style="--shine:#c8f7e4;--glow:rgba(6,214,160,.45);--border1:#06d6a0;--border2:#047857;--bg1:#001a12;--bg2:#00100b">
+      <div class="plaque plaque-xl reveal reveal-delay-1" style="--shine:#c8f7e4;--glow:rgba(6,214,160,.45);--border1:#06d6a0;--border2:#047857;--bg1:#001a12;--bg2:#00100b">
         <div class="plaque-inner">
           <div class="plaque-shine"></div>
-          <div class="plaque-badge-top">MÁS ALTO</div>
-          <div class="plaque-emblem" style="font-size:52px">💎🌎</div>
+          <div class="plaque-badge-top">ÉLITE</div>
+          <div class="plaque-emblem" style="font-size:50px">💎🌎</div>
           <div class="plaque-tier" style="color:#06d6a0">Diamond Global</div>
-          <div class="plaque-amount" style="font-size:clamp(30px,4.5vw,48px);background:linear-gradient(135deg,#06d6a0,#4f8ef7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">$500,000</div>
+          <div class="plaque-amount" style="background:linear-gradient(135deg,#06d6a0,#4f8ef7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">$500,000</div>
           <div class="plaque-label">en comisiones</div>
           <div class="plaque-divider" style="background:linear-gradient(90deg,transparent,#06d6a0,transparent)"></div>
           <div class="plaque-sub">Adsmanager PRO</div>
@@ -1288,31 +1295,18 @@
         </div>
       </div>
 
-      <!-- $1M — Black -->
-      <div class="plaque plaque-lg reveal reveal-delay-2" style="--shine:#e0c4ff;--glow:rgba(155,93,229,.5);--border1:#9b5de5;--border2:#5b21b6;--bg1:#130a24;--bg2:#0a0614">
+      <!-- $1M — Million Club -->
+      <div class="plaque plaque-xl reveal reveal-delay-2" style="--shine:#e0c4ff;--glow:rgba(155,93,229,.6);--border1:#9b5de5;--border2:#5b21b6;--bg1:#130a24;--bg2:#0a0614">
         <div class="plaque-inner">
           <div class="plaque-shine"></div>
-          <div class="plaque-emblem">🏆</div>
+          <div class="plaque-badge-top" style="background:linear-gradient(135deg,#9b5de5,#f72585)">LEGENDARIO</div>
+          <div class="plaque-emblem" style="font-size:50px">🏆✨</div>
           <div class="plaque-tier" style="color:#bc8cff">Million Club</div>
           <div class="plaque-amount" style="background:linear-gradient(135deg,#9b5de5,#f72585);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">$1,000,000</div>
           <div class="plaque-label">en comisiones</div>
           <div class="plaque-divider" style="background:linear-gradient(90deg,transparent,#9b5de5,transparent)"></div>
           <div class="plaque-sub">Adsmanager PRO</div>
           <div class="plaque-stars" style="color:#bc8cff">★ ★ ★ ★ ★</div>
-        </div>
-      </div>
-
-      <!-- $100K Gold (repeated smaller) -->
-      <div class="plaque reveal reveal-delay-1" style="--shine:#ffd166;--glow:rgba(255,209,102,.4);--border1:#f5c842;--border2:#b8860b;--bg1:#2a2000;--bg2:#1a1400">
-        <div class="plaque-inner">
-          <div class="plaque-shine"></div>
-          <div class="plaque-emblem">🚀</div>
-          <div class="plaque-tier" style="color:#ffd166">Half Million</div>
-          <div class="plaque-amount">$500,000</div>
-          <div class="plaque-label">en comisiones</div>
-          <div class="plaque-divider" style="background:linear-gradient(90deg,transparent,#ffd166,transparent)"></div>
-          <div class="plaque-sub">Adsmanager PRO</div>
-          <div class="plaque-stars">★ ★ ★</div>
         </div>
       </div>
 
@@ -1331,7 +1325,7 @@
 </section>
 
 <!-- ── Beneficios ── -->
-<section style="padding:120px 0;background:radial-gradient(ellipse 80% 50% at 50% 50%,rgba(155,93,229,.06) 0%,transparent 70%)">
+<section style="padding:64px 0;background:radial-gradient(ellipse 80% 50% at 50% 50%,rgba(155,93,229,.06) 0%,transparent 70%)">
   <div class="container">
     <div class="reveal" style="text-align:center;margin-bottom:64px">
       <div class="section-label">Beneficios</div>
@@ -1393,7 +1387,7 @@
 </section>
 
 <!-- ── FAQ ── -->
-<section style="padding:120px 0">
+<section style="padding:64px 0">
   <div class="container" style="max-width:760px">
     <div class="reveal" style="text-align:center;margin-bottom:64px">
       <div class="section-label">FAQ</div>
