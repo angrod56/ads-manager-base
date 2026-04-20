@@ -1292,16 +1292,18 @@
         <span class="card-title">Compras por país</span>
         <span class="muted" id="countriesSubtitle" style="font-size:12px"></span>
       </div>
-      <div class="countries-grid">
-        <div>
-          <div class="chart-wrap" style="height:280px"><canvas id="countriesChart"></canvas></div>
-        </div>
-        <div class="table-wrap" id="countriesTable">
-          <div class="empty" style="flex-direction:column;gap:8px">
-            <div style="font-size:28px">⚙️</div>
-            <div style="font-size:13px;color:var(--muted)">Configura tu token Meta en <strong style="color:var(--blue)">Configuración</strong></div>
-            <button onclick="showSection('config')" style="background:linear-gradient(135deg,#4f8ef7,#9b5de5);border:none;border-radius:8px;padding:7px 14px;color:#fff;font-size:12px;font-weight:700;cursor:pointer">Ir a Configuración →</button>
+      <div id="countriesWrapper">
+        <div class="countries-grid" id="countriesGrid" style="display:none">
+          <div>
+            <div class="chart-wrap" style="height:280px"><canvas id="countriesChart"></canvas></div>
           </div>
+          <div class="table-wrap" id="countriesTable"></div>
+        </div>
+        <div id="countriesNoToken" style="padding:48px 0;display:flex;flex-direction:column;align-items:center;gap:12px">
+          <div style="font-size:40px">⚙️</div>
+          <div style="font-size:15px;font-weight:700;color:var(--text)">Configura tu cuenta primero</div>
+          <div style="font-size:13px;color:var(--muted);text-align:center">Conecta tu token de Meta Ads en <strong style="color:var(--blue)">Configuración</strong> para ver compras por país.</div>
+          <button onclick="showSection('config')" style="margin-top:4px;background:linear-gradient(135deg,#4f8ef7,#9b5de5);border:none;border-radius:10px;padding:10px 20px;color:#fff;font-size:13px;font-weight:700;cursor:pointer">Ir a Configuración →</button>
         </div>
       </div>
     </div>
@@ -2652,7 +2654,12 @@ window.addEventListener('resize', () => {
 //  COUNTRIES
 // ═══════════════════════════════════════════════════════════════════
 async function loadCountries() {
-  if (!S.account) { noTokenDiv('countriesTable'); return; }
+  if (!S.account) return;
+  // Mostrar grid, ocultar mensaje de no-token
+  const grid = document.getElementById('countriesGrid');
+  const noTok = document.getElementById('countriesNoToken');
+  if (grid)  grid.style.display = '';
+  if (noTok) noTok.style.display = 'none';
   try {
     const data = await api(`/api/countries?account=${S.account}&${dateParams()}`);
     renderCountries(data);
