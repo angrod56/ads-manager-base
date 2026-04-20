@@ -1935,5 +1935,15 @@
     50%      { transform:scale(1.3); }
   }
 </style>
+<script>
+  // Si Supabase redirige aquí con token de recovery, reenviar a /app
+  (function() {
+    const hash = window.location.hash.slice(1);
+    const params = new URLSearchParams(hash);
+    if (params.get('access_token') && params.get('type') === 'recovery') {
+      window.location.replace('/app' + window.location.hash);
+    }
+  })();
+</script>
 </body>
 </html>
