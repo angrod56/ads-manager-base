@@ -4122,7 +4122,7 @@ async function launchApp() {
 
   loadAnnouncements();
   applyNavLocks();
-  if (!S.token) showSetupBanner();
+  if (!S.token && S.user?.role !== 'admin') showSetupBanner();
   await init();
   initPush();
   window.dispatchEvent(new Event('appReady'));
@@ -4133,6 +4133,11 @@ async function init() {
     api('/api/accounts').catch(() => []),
     api('/api/config'),
   ]);
+
+  // Admin: si no tiene meta_token en perfil, usar el ENV_TOKEN del servidor
+  if (!S.token && S.user?.role === 'admin' && config.defaultToken) {
+    S.token = config.defaultToken;
+  }
 
   // Si no hay token configurado, quedan 0 cuentas — mostrar banner y detener init
   if (!accountsResult.length && !S.token) {
