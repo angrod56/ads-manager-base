@@ -3354,13 +3354,8 @@ async function doAuth() {
 
     document.getElementById('authScreen').style.display = 'none';
 
-    if (!data.user?.meta_token) {
-      // Nuevo usuario sin token → pantalla de configuración Meta
-      document.getElementById('tokenScreen').style.display = 'flex';
-    } else {
-      S.token = data.user.meta_token;
-      await launchApp();
-    }
+    S.token = data.user.meta_token || '';
+    await launchApp();
   } catch(e) {
     showAuth(e.message);
   } finally {
@@ -3961,6 +3956,26 @@ async function adminDeleteUser(userId) {
   loadAdminUsers();
 }
 
+function showSetupBanner() {
+  const existing = document.getElementById('setupWelcomeBanner');
+  if (existing) return;
+  const banner = document.createElement('div');
+  banner.id = 'setupWelcomeBanner';
+  banner.style.cssText = 'background:linear-gradient(135deg,rgba(79,142,247,.12),rgba(155,93,229,.12));border:1px solid rgba(79,142,247,.3);border-radius:16px;padding:20px 24px;margin-bottom:24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap';
+  banner.innerHTML = `
+    <div style="font-size:32px">👋</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px">¡Bienvenido a AdsManager PRO!</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.5">Para empezar, configura tu token de Meta Ads y tu webhook de Hotmart en <strong style="color:var(--blue)">Configuración</strong>.</div>
+    </div>
+    <button onclick="showSection('config');this.closest('#setupWelcomeBanner').remove()"
+      style="background:linear-gradient(135deg,#4f8ef7,#9b5de5);border:none;border-radius:10px;padding:10px 18px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">
+      Ir a Configuración →
+    </button>`;
+  const dashSection = document.getElementById('section-dashboard');
+  if (dashSection) dashSection.prepend(banner);
+}
+
 async function launchApp() {
   document.getElementById('mainApp').style.display = 'block';
 
@@ -3974,6 +3989,7 @@ async function launchApp() {
 
   loadAnnouncements();
   applyNavLocks();
+  if (!S.token) showSetupBanner();
   await init();
   initPush();
   window.dispatchEvent(new Event('appReady'));
@@ -4163,8 +4179,7 @@ setInterval(() => {
           localStorage.setItem('jwt', S.jwt);
           localStorage.setItem('refreshToken', data.session.refresh_token);
           scheduleTokenRefresh(data.session.expires_in);
-          if (!S.token) document.getElementById('tokenScreen').style.display = 'flex';
-          else await launchApp();
+          await launchApp();
           return;
         }
       } catch { /* seguir al login */ }
@@ -4193,8 +4208,7 @@ setInterval(() => {
           localStorage.setItem('jwt', S.jwt);
           localStorage.setItem('refreshToken', data.session.refresh_token);
           scheduleTokenRefresh(data.session.expires_in);
-          if (!S.token) document.getElementById('tokenScreen').style.display = 'flex';
-          else await launchApp();
+          await launchApp();
           return;
         }
       }
@@ -4204,12 +4218,7 @@ setInterval(() => {
     S.user  = user;
     S.token = user.meta_token || '';
     scheduleTokenRefresh(3600);
-
-    if (!S.token) {
-      document.getElementById('tokenScreen').style.display = 'flex';
-    } else {
-      await launchApp();
-    }
+    await launchApp();
   } catch {
     localStorage.removeItem('jwt');
     localStorage.removeItem('refreshToken');
