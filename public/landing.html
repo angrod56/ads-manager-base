@@ -863,20 +863,22 @@
 </head>
 <body>
 
-<!-- ── Banner Preventa ── -->
+<!-- ── Banner Preventa (fijo abajo) ── -->
 <div id="presaleBanner" style="
-  position:relative;z-index:50;
+  position:fixed;bottom:0;left:0;right:0;z-index:9998;
   background:linear-gradient(90deg,#f72585,#9b5de5,#4f8ef7);
-  padding:10px 16px;
-  display:flex;align-items:center;justify-content:center;gap:12px;
+  padding:11px 16px;
+  display:flex;align-items:center;justify-content:center;gap:10px;
   font-size:13px;font-weight:700;color:#fff;
   text-align:center;flex-wrap:wrap;
+  box-shadow:0 -4px 24px rgba(247,37,133,.35);
 ">
   <span style="animation:pulse 2s ease-in-out infinite">🔥</span>
   <span>¡PRECIO DE PREVENTA! Solo para los primeros <strong>25 usuarios</strong> — después el precio sube</span>
   <span id="presaleCount" style="background:rgba(0,0,0,.25);border-radius:20px;padding:3px 12px;font-size:12px;white-space:nowrap">⏳ Quedan pocos cupos</span>
-  <button onclick="document.getElementById('presaleBanner').style.display='none'" style="background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:16px;padding:0 4px;line-height:1">✕</button>
+  <button onclick="document.getElementById('presaleBanner').style.display='none'" style="background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:18px;padding:0 4px;line-height:1">✕</button>
 </div>
+<div style="height:48px"></div>
 
 <!-- ── Notificaciones flotantes de compras ── -->
 <div id="saleToast" style="
@@ -1638,19 +1640,9 @@
     if (!isOpen) item.classList.add('open');
   }
 
-  // ── Navbar: posición debajo del banner de preventa
-  const navbar   = document.getElementById('navbar');
-  const banner   = document.getElementById('presaleBanner');
-  function updateNavTop() {
-    const bh = banner && banner.offsetParent !== null ? banner.offsetHeight : 0;
-    navbar.style.top = bh + 'px';
-  }
-  updateNavTop();
-  new ResizeObserver(updateNavTop).observe(document.body);
-
   // ── Navbar scroll effect
   window.addEventListener('scroll', () => {
-    navbar.style.background =
+    document.getElementById('navbar').style.background =
       window.scrollY > 50 ? 'rgba(6,8,24,.95)' : 'rgba(6,8,24,.7)';
   });
 
