@@ -1372,6 +1372,14 @@
       <div id="milestonesGrid" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:16px"></div>
     </div>
 
+    <!-- Gráfico de desempeño diario -->
+    <div class="card" style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+        <h3 style="margin:0;font-size:15px">📈 Gráfico de desempeño diario de ventas</h3>
+      </div>
+      <div style="position:relative;height:260px"><canvas id="salesChart"></canvas></div>
+    </div>
+
     <!-- Tabla de ventas -->
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
@@ -3769,6 +3777,9 @@ async function loadSales() {
 
     renderMilestones(s.totalEarned || 0);
 
+    // ── Gráfico de desempeño diario ──
+    renderSalesChart(data.sales);
+
     const tbody = document.getElementById('salesTbody');
     if (!data.sales.length) {
       tbody.innerHTML = `<tr><td colspan="6" class="empty"><div class="empty-icon">🛒</div><div>Sin ventas en este período</div></td></tr>`;
@@ -3776,8 +3787,9 @@ async function loadSales() {
     }
 
     const statusLabel = { approved: '🟢 Aprobada', canceled: '🔴 Cancelada', refunded: '🟡 Reembolso', chargeback: '🔴 Chargeback', pending: '⏳ Pendiente' };
+    const top20 = data.sales.slice(0, 20);
 
-    tbody.innerHTML = data.sales.map(s => `
+    tbody.innerHTML = top20.map(s => `
       <tr style="border-top:1px solid var(--border)">
         <td style="padding:8px 6px;color:var(--muted);font-size:12px">${s.sale_date ? new Date(s.sale_date).toLocaleDateString('es') : '—'}</td>
         <td style="padding:8px 6px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${s.product_name}">${s.product_name}</td>
@@ -3785,11 +3797,70 @@ async function loadSales() {
         <td style="padding:8px 6px;text-align:right;font-weight:600">${fmt.usd(s.commission || s.amount)}</td>
         <td style="padding:8px 6px;font-size:12px">${statusLabel[s.status] || s.status}</td>
         <td style="padding:8px 6px;color:var(--muted);font-size:12px">${s.payment_type || '—'}</td>
-      </tr>`).join('');
+      </tr>`).join('') +
+      (data.sales.length > 20 ? `<tr><td colspan="6" style="padding:12px 6px;text-align:center;color:var(--muted);font-size:12px">Mostrando 20 de ${data.sales.length} transacciones</td></tr>` : '');
   } catch(e) {
     document.getElementById('salesTbody').innerHTML =
       `<tr><td colspan="6" style="color:var(--red);padding:16px">${e.message}</td></tr>`;
   }
+}
+
+// ── Sales Chart ───────────────────────────────────────────────────────────────
+let _salesChart = null;
+function renderSalesChart(sales) {
+  // Agrupar por día
+  const byDay = {};
+  for (const s of sales) {
+    const day = (s.sale_date || '').slice(0, 10);
+    if (!day) continue;
+    if (!byDay[day]) byDay[day] = { revenue: 0, canceled: 0, transactions: 0 };
+    if (s.status === 'approved') { byDay[day].revenue += s.commission || s.amount || 0; byDay[day].transactions++; }
+    if (s.status === 'canceled' || s.status === 'refunded') byDay[day].canceled += s.commission || s.amount || 0;
+  }
+  const labels = Object.keys(byDay).sort();
+  const revenue      = labels.map(d => +byDay[d].revenue.toFixed(2));
+  const canceled     = labels.map(d => +byDay[d].canceled.toFixed(2));
+  const transactions = labels.map(d => byDay[d].transactions);
+
+  const fmtLabel = d => new Date(d + 'T12:00:00').toLocaleDateString('es', { day:'2-digit', month:'short' });
+
+  const ctx = document.getElementById('salesChart');
+  if (!ctx) return;
+  if (_salesChart) { _salesChart.destroy(); _salesChart = null; }
+
+  _salesChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels.map(fmtLabel),
+      datasets: [
+        { label: 'Facturación neta', data: revenue,      borderColor: '#06d6a0', backgroundColor: 'rgba(6,214,160,.08)',  tension: .35, fill: true,  pointRadius: 4, pointHoverRadius: 6, yAxisID: 'y' },
+        { label: 'Cancelaciones',    data: canceled,     borderColor: '#f72585', backgroundColor: 'rgba(247,37,133,.06)', tension: .35, fill: false, pointRadius: 3, pointHoverRadius: 5, yAxisID: 'y' },
+        { label: 'Transacciones',    data: transactions, borderColor: '#4f8ef7', backgroundColor: 'rgba(79,142,247,.06)', tension: .35, fill: false, pointRadius: 3, pointHoverRadius: 5, yAxisID: 'y2', borderDash: [4,3] },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: '#8892b0', font: { size: 12 }, boxWidth: 12 } },
+        tooltip: {
+          backgroundColor: '#0e1228', borderColor: 'rgba(255,255,255,.08)', borderWidth: 1,
+          titleColor: '#f0f4ff', bodyColor: '#8892b0', padding: 12,
+          callbacks: {
+            label: ctx => {
+              const v = ctx.parsed.y;
+              return ctx.dataset.yAxisID === 'y2' ? ` Transacciones: ${v}` : ` ${ctx.dataset.label}: $${v.toLocaleString('en-US', {minimumFractionDigits:2})}`;
+            }
+          }
+        },
+      },
+      scales: {
+        x:  { ticks: { color: '#8892b0', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,.04)' } },
+        y:  { position: 'left',  ticks: { color: '#8892b0', font: { size: 11 }, callback: v => '$'+v.toLocaleString() }, grid: { color: 'rgba(255,255,255,.04)' } },
+        y2: { position: 'right', ticks: { color: '#4f8ef7', font: { size: 11 } }, grid: { display: false } },
+      },
+    },
+  });
 }
 
 // ── Announcements ─────────────────────────────────────────────────────────────
