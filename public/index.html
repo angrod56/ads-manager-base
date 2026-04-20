@@ -1267,15 +1267,12 @@
         </div>
       </div>
       <div class="top-ads-grid" id="topAdsGrid">
-        ${[1,2,3,4,5].map(i => `
-          <div class="creative-card">
-            <div class="creative-card-header">
-              <span class="rank-badge rank-${i}">#${i}</span>
-              <span class="creative-card-name"><span class="skeleton" style="width:100%;height:14px;display:block"></span></span>
-            </div>
-            <div class="preview-placeholder"><span class="spin" style="font-size:20px">↻</span></div>
-            <div class="perf-metrics"></div>
-          </div>`).join('')}
+        <div style="grid-column:1/-1;padding:40px 0;display:flex;flex-direction:column;align-items:center;gap:12px">
+          <div style="font-size:36px">⚙️</div>
+          <div style="font-size:14px;font-weight:700;color:var(--text)">Configura tu cuenta primero</div>
+          <div style="font-size:13px;color:var(--muted);text-align:center">Conecta tu token de Meta Ads en <strong style="color:var(--blue)">Configuración</strong> para ver tus top ads.</div>
+          <button onclick="showSection('config')" style="margin-top:4px;background:linear-gradient(135deg,#4f8ef7,#9b5de5);border:none;border-radius:10px;padding:9px 18px;color:#fff;font-size:13px;font-weight:700;cursor:pointer">Ir a Configuración →</button>
+        </div>
       </div>
     </div>
 
@@ -2396,8 +2393,19 @@ function toast(msg, type = 'success') {
 // ═══════════════════════════════════════════════════════════════════
 const topAdsState = { ads: [], format: 'MOBILE_FEED_STANDARD', modalAdId: null, modalFormat: 'MOBILE_FEED_STANDARD' };
 
+function noTokenDiv(containerId) {
+  const el = document.getElementById(containerId);
+  if (el) el.innerHTML = `
+    <div style="padding:40px 0;display:flex;flex-direction:column;align-items:center;gap:12px;grid-column:1/-1">
+      <div style="font-size:36px">⚙️</div>
+      <div style="font-size:14px;font-weight:700;color:var(--text)">Configura tu cuenta primero</div>
+      <div style="font-size:13px;color:var(--muted);text-align:center;max-width:320px;line-height:1.6">Conecta tu token de Meta Ads en <strong style="color:var(--blue)">Configuración</strong> para ver esta sección.</div>
+      <button onclick="showSection('config')" style="margin-top:4px;background:linear-gradient(135deg,#4f8ef7,#9b5de5);border:none;border-radius:10px;padding:9px 18px;color:#fff;font-size:13px;font-weight:700;cursor:pointer">Ir a Configuración →</button>
+    </div>`;
+}
+
 async function loadTopAds() {
-  if (!S.account) return;
+  if (!S.account) { noTokenDiv('topAdsGrid'); return; }
   topAdsState.format = document.getElementById('topAdsFormat').value;
   document.getElementById('topAdsSubtitle').textContent = 'Cargando…';
 
@@ -2634,7 +2642,7 @@ window.addEventListener('resize', () => {
 //  COUNTRIES
 // ═══════════════════════════════════════════════════════════════════
 async function loadCountries() {
-  if (!S.account) return;
+  if (!S.account) { noTokenDiv('countriesTable'); return; }
   try {
     const data = await api(`/api/countries?account=${S.account}&${dateParams()}`);
     renderCountries(data);
@@ -2864,7 +2872,7 @@ async function loadLaunchTrend(idx) {
 }
 
 async function loadLaunches() {
-  if (!S.account) return;
+  if (!S.account) { noTokenDiv('launchesContent'); return; }
   const btn     = document.getElementById('launchesBtn');
   const content = document.getElementById('launchesContent');
   btn.textContent = '⏳ Cargando…';
@@ -2893,7 +2901,7 @@ async function loadLaunches() {
 //  RECOMENDACIONES
 // ═══════════════════════════════════════════════════════════════════
 async function loadRecommendations() {
-  if (!S.account) return;
+  if (!S.account) { noTokenDiv('recoContent'); return; }
   const btn = document.getElementById('recoBtn');
   const content = document.getElementById('recoContent');
   btn.textContent = '⏳ Analizando…';
@@ -2937,7 +2945,7 @@ async function loadRecommendations() {
 const projState = { launches: [], selected: null };
 
 async function loadProjections() {
-  if (!S.account) return;
+  if (!S.account) { noTokenDiv('projContent'); return; }
   const btn     = document.getElementById('projBtn');
   const content = document.getElementById('projContent');
   btn.textContent = '⏳ Cargando…';
