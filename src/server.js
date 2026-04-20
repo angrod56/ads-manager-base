@@ -117,6 +117,15 @@ const GET = {
     });
   },
 
+  '/api/push/status': async (res, q, user) => {
+    if (!user) return err(res, 'No autorizado', 401);
+    const { data: subs } = await supabaseAdmin
+      .from('push_subscriptions')
+      .select('id, endpoint, created_at')
+      .eq('user_id', user.id);
+    json(res, { count: subs?.length || 0, subs: subs || [] });
+  },
+
   '/api/accounts': async (res, q, user) => {
     const accounts = await listAccounts(q.token);
     const isAdmin  = user?.role === 'admin';

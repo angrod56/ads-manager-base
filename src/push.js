@@ -51,8 +51,12 @@ export async function sendPushToUser(userId, payload) {
   );
 
   results.forEach((r, i) => {
-    if (r.status === 'fulfilled') console.log(`[Push] ✓ Enviado a sub ${subs[i].id}`);
-    else console.error(`[Push] ✗ Error sub ${subs[i].id}:`, r.reason?.message);
+    if (r.status === 'fulfilled') {
+      console.log(`[Push] ✓ Enviado a sub ${subs[i].id}`);
+    } else {
+      const reason = r.reason;
+      console.error(`[Push] ✗ Error sub ${subs[i].id}: status=${reason?.statusCode} msg=${reason?.message} body=${reason?.body}`);
+    }
   });
 
   // Eliminar suscripciones expiradas

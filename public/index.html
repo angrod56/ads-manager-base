@@ -1571,6 +1571,9 @@
           <div style="font-size:12px;color:var(--muted)">Recibe alertas en tu dispositivo cuando llegue una venta</div>
         </div>
       </div>
+      <div id="pushDeviceStatus" style="margin-bottom:12px;padding:10px 14px;border-radius:8px;font-size:13px;background:rgba(255,255,255,.04);border:1px solid var(--border)">
+        Verificando suscripción…
+      </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button onclick="reactivarPush()" id="pushRegisterBtn"
           style="flex:1;min-width:160px;background:linear-gradient(135deg,#4f8ef7,#9b5de5);border:none;border-radius:8px;padding:10px 16px;color:#fff;font-size:13px;font-weight:600;cursor:pointer">
@@ -3629,6 +3632,26 @@ function loadConfig() {
         </div>`;
     }
   }
+
+  // Estado de push
+  loadPushStatus();
+}
+
+async function loadPushStatus() {
+  const el = document.getElementById('pushDeviceStatus');
+  if (!el) return;
+  try {
+    const d = await api('/api/push/status');
+    if (d.count === 0) {
+      el.style.border = '1px solid rgba(255,80,80,.4)';
+      el.innerHTML = `<span style="color:var(--red)">⚠️ Sin suscripción activa</span> — haz click en <strong>"Activar / Renovar"</strong> para recibir notificaciones`;
+    } else {
+      el.style.border = '1px solid rgba(6,214,160,.3)';
+      el.innerHTML = `<span style="color:#06d6a0">✓ Activo</span> — ${d.count} dispositivo${d.count > 1 ? 's' : ''} suscrito${d.count > 1 ? 's' : ''}`;
+    }
+  } catch {
+    el.textContent = 'No se pudo verificar el estado';
+  }
 }
 
 async function saveConfigName() {
@@ -4470,6 +4493,7 @@ async function reactivarPush() {
     });
     status.style.color = '#4caf50';
     status.textContent = '✓ Suscripción activada correctamente';
+    loadPushStatus();
   } catch(e) {
     status.style.color = 'var(--red)';
     status.textContent = '✗ ' + e.message;
