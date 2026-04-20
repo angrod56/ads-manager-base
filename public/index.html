@@ -372,6 +372,36 @@
     .tab:hover  { color: var(--text); }
     .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
 
+    /* ── Banners de anuncios ── */
+    .ann-banner {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 14px 16px;
+      border-radius: 12px;
+      border-left: 4px solid;
+      position: relative;
+      animation: annSlideIn .4s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes annSlideIn {
+      from { opacity:0; transform:translateY(-10px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .ann-info    { background:rgba(37,99,235,.1);  border-color:#2563eb; }
+    .ann-feature { background:rgba(155,93,229,.1); border-color:#9b5de5; }
+    .ann-success { background:rgba(6,214,160,.1);  border-color:#06d6a0; }
+    .ann-warning { background:rgba(251,191,36,.1); border-color:#fbbf24; }
+    .ann-emoji   { font-size:22px; line-height:1; flex-shrink:0; }
+    .ann-body    { flex:1; min-width:0; }
+    .ann-label   { font-size:10px; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:3px; opacity:.7; }
+    .ann-info    .ann-label { color:#60a5fa; }
+    .ann-feature .ann-label { color:#c084fc; }
+    .ann-success .ann-label { color:#34d399; }
+    .ann-warning .ann-label { color:#fbbf24; }
+    .ann-message { font-size:13px; font-weight:500; line-height:1.5; }
+    .ann-close   { background:none; border:none; color:rgba(255,255,255,.35); cursor:pointer; font-size:16px; padding:0; flex-shrink:0; line-height:1; }
+    .ann-close:hover { color:rgba(255,255,255,.7); }
+
     /* ── Gamificación ── */
     .milestone-next {
       background: linear-gradient(135deg, rgba(37,99,235,.12), rgba(37,99,235,.04));
@@ -1136,6 +1166,9 @@
 <!-- Main content -->
 <main class="main">
 
+  <!-- ── Banners de anuncios ── -->
+  <div id="announcementBanners" style="display:none;flex-direction:column;gap:8px;margin-bottom:16px"></div>
+
   <!-- ── SECTION: Dashboard ── -->
   <div class="section active" id="section-dashboard">
 
@@ -1518,6 +1551,45 @@
 
   <!-- ── SECTION: Admin ── -->
   <div class="section" id="section-admin">
+
+    <!-- Banners / Anuncios -->
+    <div class="card" style="margin-bottom:20px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px">
+        <span style="font-size:20px">📢</span>
+        <div>
+          <div style="font-size:15px;font-weight:700">Banners para usuarios</div>
+          <div style="font-size:12px;color:var(--muted)">Los banners activos aparecen en el dashboard de todos los clientes</div>
+        </div>
+      </div>
+
+      <!-- Formulario nuevo banner -->
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Nuevo anuncio</div>
+        <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+          <select id="annEmoji" style="padding:8px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:16px;width:70px">
+            <option>📢</option><option>🚀</option><option>⚡</option><option>🎉</option>
+            <option>🔔</option><option>💎</option><option>🛠️</option><option>✨</option>
+            <option>🔥</option><option>💡</option>
+          </select>
+          <select id="annType" style="padding:8px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:13px;flex:1;min-width:130px">
+            <option value="info">🔵 Información</option>
+            <option value="feature">🟣 Nuevo feature</option>
+            <option value="success">🟢 Novedad positiva</option>
+            <option value="warning">🟡 Importante</option>
+          </select>
+        </div>
+        <textarea id="annMessage" rows="2" placeholder="Ej: ¡Pronto integración con Stripe! Podrás cobrar directamente desde la plataforma 💳"
+          style="width:100%;padding:10px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:13px;resize:vertical;font-family:inherit;margin-bottom:10px"></textarea>
+        <button onclick="createAnnouncement()" style="background:linear-gradient(135deg,#4f8ef7,#9b5de5);border:none;border-radius:8px;padding:10px 20px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;width:100%">
+          📤 Publicar banner
+        </button>
+      </div>
+
+      <!-- Lista de banners existentes -->
+      <div id="announcementsList"><div style="color:var(--muted);font-size:13px;padding:8px 0">Cargando banners…</div></div>
+    </div>
+
+    <!-- Usuarios -->
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
         <h3 style="margin:0;font-size:15px">Usuarios registrados</h3>
@@ -3103,6 +3175,7 @@ function showSection(name) {
   }
   if (name === 'sales') loadSales();
   if (name === 'config') loadConfig();
+  if (name === 'admin') { loadAdminUsers(); loadAdminAnnouncements(); }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -3558,6 +3631,99 @@ async function loadSales() {
   }
 }
 
+// ── Announcements ─────────────────────────────────────────────────────────────
+const _dismissedAnn = new Set(JSON.parse(sessionStorage.getItem('dismissedAnn') || '[]'));
+
+async function loadAnnouncements() {
+  try {
+    const list = await fetch('/api/announcements').then(r => r.json());
+    const container = document.getElementById('announcementBanners');
+    if (!container) return;
+    const visible = list.filter(a => !_dismissedAnn.has(a.id));
+    if (!visible.length) { container.style.display = 'none'; return; }
+    container.style.display = 'flex';
+    const typeLabel = { info:'Información', feature:'Próximo feature', success:'Novedad', warning:'Importante' };
+    container.innerHTML = visible.map(a => `
+      <div class="ann-banner ann-${a.type}" id="ann-${a.id}">
+        <div class="ann-emoji">${a.emoji || '📢'}</div>
+        <div class="ann-body">
+          <div class="ann-label">${typeLabel[a.type] || 'Anuncio'}</div>
+          <div class="ann-message">${a.message}</div>
+        </div>
+        <button class="ann-close" onclick="dismissAnn('${a.id}')" title="Cerrar">✕</button>
+      </div>`).join('');
+  } catch {}
+}
+
+function dismissAnn(id) {
+  _dismissedAnn.add(id);
+  sessionStorage.setItem('dismissedAnn', JSON.stringify([..._dismissedAnn]));
+  const el = document.getElementById('ann-' + id);
+  if (el) { el.style.opacity = '0'; el.style.transition = 'opacity .3s'; setTimeout(() => el.remove(), 300); }
+  const container = document.getElementById('announcementBanners');
+  if (container && !container.querySelector('.ann-banner')) container.style.display = 'none';
+}
+
+async function loadAdminAnnouncements() {
+  const el = document.getElementById('announcementsList');
+  if (!el) return;
+  try {
+    const list = await api('/api/announcements');
+    if (!list.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:4px 0">Sin banners publicados</div>'; return; }
+    const typeColor = { info:'#60a5fa', feature:'#c084fc', success:'#34d399', warning:'#fbbf24' };
+    const typeLabel = { info:'Info', feature:'Feature', success:'Novedad', warning:'Importante' };
+    el.innerHTML = list.map(a => `
+      <div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:10px;margin-bottom:8px">
+        <span style="font-size:20px">${a.emoji || '📢'}</span>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+            <span style="font-size:10px;font-weight:800;color:${typeColor[a.type]};text-transform:uppercase;letter-spacing:1px">${typeLabel[a.type]}</span>
+            <span style="font-size:10px;color:var(--muted)">${new Date(a.created_at).toLocaleDateString('es')}</span>
+          </div>
+          <div style="font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.message}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button onclick="toggleAnn('${a.id}',${!a.active})"
+            style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer">
+            ${a.active ? '⏸ Pausar' : '▶ Activar'}
+          </button>
+          <button onclick="deleteAnn('${a.id}')"
+            style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid rgba(248,81,73,.3);background:rgba(248,81,73,.1);color:#f85149;cursor:pointer">
+            🗑
+          </button>
+        </div>
+      </div>`).join('');
+  } catch(e) {
+    el.innerHTML = `<div style="color:var(--red);font-size:12px">${e.message}</div>`;
+  }
+}
+
+async function createAnnouncement() {
+  const message = document.getElementById('annMessage').value.trim();
+  const type    = document.getElementById('annType').value;
+  const emoji   = document.getElementById('annEmoji').value;
+  if (!message) return alert('Escribe el mensaje del banner');
+  try {
+    await api('/api/admin/announcements', { method:'POST', body: JSON.stringify({ message, type, emoji }) });
+    document.getElementById('annMessage').value = '';
+    loadAdminAnnouncements();
+    loadAnnouncements();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function toggleAnn(id, active) {
+  await api('/api/admin/announcements/toggle', { method:'POST', body: JSON.stringify({ id, active }) });
+  loadAdminAnnouncements();
+  loadAnnouncements();
+}
+
+async function deleteAnn(id) {
+  if (!confirm('¿Eliminar este banner?')) return;
+  await api('/api/admin/announcements', { method:'DELETE', body: JSON.stringify({ id }) });
+  loadAdminAnnouncements();
+  loadAnnouncements();
+}
+
 async function loadAdminUsers() {
   const el = document.getElementById('adminUsersTable');
   try {
@@ -3648,6 +3814,7 @@ async function launchApp() {
       document.getElementById('adminNavItem').style.display = 'flex';
   }
 
+  loadAnnouncements();
   await init();
   initPush();
 }

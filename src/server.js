@@ -839,6 +839,42 @@ const POST = {
     json(res, { ok: true });
   },
 
+  // ── Announcements: obtener activos (todos los usuarios) ─────────────────────
+  '/api/announcements': async (res, _req, _user) => {
+    const { data } = await supabaseAdmin
+      .from('announcements')
+      .select('*')
+      .eq('active', true)
+      .order('created_at', { ascending: false });
+    json(res, data || []);
+  },
+
+  // ── Admin: crear announcement ─────────────────────────────────────────────
+  '/api/admin/announcements': async (res, req, user) => {
+    if (!user || user.role !== 'admin') return err(res, 'No autorizado', 403);
+    if (req.method === 'DELETE') {
+      const { id } = await body(req);
+      await supabaseAdmin.from('announcements').delete().eq('id', id);
+      return json(res, { ok: true });
+    }
+    const { message, type, emoji } = await body(req);
+    if (!message) return err(res, 'message requerido', 400);
+    const { data, error } = await supabaseAdmin
+      .from('announcements')
+      .insert({ message, type: type || 'info', emoji: emoji || '📢', active: true })
+      .select().single();
+    if (error) return err(res, error.message);
+    json(res, data);
+  },
+
+  // ── Admin: toggle announcement activo/inactivo ────────────────────────────
+  '/api/admin/announcements/toggle': async (res, req, user) => {
+    if (!user || user.role !== 'admin') return err(res, 'No autorizado', 403);
+    const { id, active } = await body(req);
+    await supabaseAdmin.from('announcements').update({ active }).eq('id', id);
+    json(res, { ok: true });
+  },
+
   // ── Auth: actualizar nombre ──────────────────────────────────────────────────
   '/api/auth/save-name': async (res, req, user) => {
     if (!user) return err(res, 'No autorizado', 401);
@@ -942,7 +978,7 @@ http.createServer(async (req, res) => {
   const PUBLIC_ROUTES = [
     '/api/auth/login', '/api/auth/register', '/api/auth/refresh',
     '/api/auth/forgot-password', '/api/auth/set-password',
-    '/api/config', '/webhook/hotmart', '/webhook/hotmart-billing',
+    '/api/config', '/api/announcements', '/webhook/hotmart', '/webhook/hotmart-billing',
   ];
 
   // Webhook Hotmart billing (compras de planes)
