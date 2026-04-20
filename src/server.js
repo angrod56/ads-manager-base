@@ -45,8 +45,9 @@ function err(res, msg, status = 500) { json(res, { error: msg }, status); }
 function serveFile(res, file, type) {
   try {
     const isHtml = type === 'text/html';
+    const isSwOrManifest = file.endsWith('sw.js') || file.endsWith('manifest.json');
     const headers = { 'Content-Type': type + '; charset=utf-8' };
-    if (isHtml) {
+    if (isHtml || isSwOrManifest) {
       headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
       headers['Pragma']  = 'no-cache';
       headers['Expires'] = '0';
