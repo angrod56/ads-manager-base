@@ -1242,7 +1242,7 @@
             </tr>
           </thead>
           <tbody id="campaignsTbody">
-            <tr><td colspan="16" class="empty"><div class="empty-icon">⏳</div><div>Cargando campañas…</div></td></tr>
+            <tr><td colspan="16" class="empty"><div class="empty-icon">⚙️</div><div>Configura tu token Meta en <strong>Configuración</strong> para ver tus campañas.</div></td></tr>
           </tbody>
         </table>
       </div>
@@ -2313,8 +2313,27 @@ async function toggleStatus(id, currentStatus) {
 // ═══════════════════════════════════════════════════════════════════
 //  LOAD
 // ═══════════════════════════════════════════════════════════════════
+function noTokenMsg() {
+  return `<tr><td colspan="16" class="empty">
+    <div style="padding:32px 0;display:flex;flex-direction:column;align-items:center;gap:12px">
+      <div style="font-size:40px">⚙️</div>
+      <div style="font-size:15px;font-weight:700;color:var(--text)">Configura tu cuenta primero</div>
+      <div style="font-size:13px;color:var(--muted);text-align:center;max-width:340px;line-height:1.6">
+        Aún no tienes un token de Meta Ads configurado.<br>Ve a <strong style="color:var(--blue)">Configuración</strong> para conectar tu cuenta.
+      </div>
+      <button onclick="showSection('config')" style="margin-top:4px;background:linear-gradient(135deg,#4f8ef7,#9b5de5);border:none;border-radius:10px;padding:10px 20px;color:#fff;font-size:13px;font-weight:700;cursor:pointer">
+        Ir a Configuración →
+      </button>
+    </div>
+  </td></tr>`;
+}
+
 async function loadOverview() {
-  if (!S.account) return;
+  if (!S.account) {
+    const tbody = document.getElementById('campaignsTbody');
+    if (tbody) tbody.innerHTML = noTokenMsg();
+    return;
+  }
   S.adData = {}; // reset drill-down cache
   S.expanded.clear();
 
