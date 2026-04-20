@@ -865,7 +865,7 @@
 
 <!-- ── Banner Preventa ── -->
 <div id="presaleBanner" style="
-  position:fixed;top:0;left:0;right:0;z-index:10000;
+  position:relative;z-index:50;
   background:linear-gradient(90deg,#f72585,#9b5de5,#4f8ef7);
   padding:10px 16px;
   display:flex;align-items:center;justify-content:center;gap:12px;
@@ -877,7 +877,6 @@
   <span id="presaleCount" style="background:rgba(0,0,0,.25);border-radius:20px;padding:3px 12px;font-size:12px;white-space:nowrap">⏳ Quedan pocos cupos</span>
   <button onclick="document.getElementById('presaleBanner').style.display='none'" style="background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:16px;padding:0 4px;line-height:1">✕</button>
 </div>
-<div style="height:44px"></div>
 
 <!-- ── Notificaciones flotantes de compras ── -->
 <div id="saleToast" style="
@@ -1639,9 +1638,19 @@
     if (!isOpen) item.classList.add('open');
   }
 
+  // ── Navbar: posición debajo del banner de preventa
+  const navbar   = document.getElementById('navbar');
+  const banner   = document.getElementById('presaleBanner');
+  function updateNavTop() {
+    const bh = banner && banner.offsetParent !== null ? banner.offsetHeight : 0;
+    navbar.style.top = bh + 'px';
+  }
+  updateNavTop();
+  new ResizeObserver(updateNavTop).observe(document.body);
+
   // ── Navbar scroll effect
   window.addEventListener('scroll', () => {
-    document.getElementById('navbar').style.background =
+    navbar.style.background =
       window.scrollY > 50 ? 'rgba(6,8,24,.95)' : 'rgba(6,8,24,.7)';
   });
 
