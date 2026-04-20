@@ -654,11 +654,18 @@
     }
     .pricing-btn-primary:hover { box-shadow: 0 12px 40px rgba(79,142,247,.5); transform: translateY(-2px); }
     .pricing-btn-outline {
-      background: transparent;
-      border: 1px solid var(--border) !important;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.25) !important;
       color: var(--text);
+      font-weight: 700;
+      box-shadow: 0 4px 16px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.1);
     }
-    .pricing-btn-outline:hover { background: rgba(255,255,255,.05); }
+    .pricing-btn-outline:hover {
+      background: rgba(255,255,255,.12);
+      border-color: rgba(255,255,255,.4) !important;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.15);
+    }
     .pricing-btn-wa {
       background: linear-gradient(135deg, #25d366, #128c7e);
       color: #fff;
