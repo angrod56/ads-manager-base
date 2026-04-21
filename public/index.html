@@ -2344,7 +2344,11 @@ async function toggleStatus(id, currentStatus) {
   const isActive = currentStatus === 'ACTIVE';
   const action   = isActive ? 'pause' : 'activate';
   try {
-    await post(`/api/${action}`, { id });
+    await apiFetch(`/api/${action}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
     toast(`Campaña ${isActive ? 'pausada' : 'activada'} correctamente`, 'success');
     await loadOverview();
   } catch (e) {

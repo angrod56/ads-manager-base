@@ -755,23 +755,27 @@ const GET = {
 // ── Rutas POST ────────────────────────────────────────────────────────────────
 
 const POST = {
-  '/api/pause': async (res, req) => {
-    const { id, token } = await body(req);
+  '/api/pause': async (res, req, user, q) => {
+    const { id, token: bt } = await body(req);
+    const token = bt || q?.token;
     if (!id) return err(res, 'id requerido', 400);
     json(res, await pauseEntity(id, token));
   },
-  '/api/activate': async (res, req) => {
-    const { id, token } = await body(req);
+  '/api/activate': async (res, req, user, q) => {
+    const { id, token: bt } = await body(req);
+    const token = bt || q?.token;
     if (!id) return err(res, 'id requerido', 400);
     json(res, await activateEntity(id, token));
   },
-  '/api/budget': async (res, req) => {
-    const { id, amount, type = 'daily_budget', token } = await body(req);
+  '/api/budget': async (res, req, user, q) => {
+    const { id, amount, type = 'daily_budget', token: bt } = await body(req);
+    const token = bt || q?.token;
     if (!id || !amount) return err(res, 'id y amount requeridos', 400);
     json(res, await setBudget(id, parseInt(amount), type, token));
   },
-  '/api/bulk-action': async (res, req) => {
-    const { ids, action, token } = await body(req);
+  '/api/bulk-action': async (res, req, user, q) => {
+    const { ids, action, token: bt } = await body(req);
+    const token = bt || q?.token;
     if (!ids?.length || !action) return err(res, 'ids y action requeridos', 400);
     const results = await Promise.allSettled(
       ids.map(id => action === 'pause' ? pauseEntity(id, token) : activateEntity(id, token))
