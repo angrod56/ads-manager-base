@@ -1382,12 +1382,27 @@
 
     <!-- Tabla de ventas -->
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
         <h3 style="margin:0;font-size:15px">Transacciones</h3>
         <div style="display:flex;gap:8px">
           <button onclick="loadSales()" style="font-size:12px;padding:6px 12px">↺ Actualizar</button>
           <button onclick="playCashRegister()" style="font-size:12px;padding:6px 12px">🔔 Probar sonido</button>
         </div>
+      </div>
+      <!-- Filtros -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+        <input id="salesFilterName" type="text" placeholder="🔍 Buscar por nombre o producto…"
+          oninput="filterSalesTable()"
+          style="flex:1;min-width:180px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px">
+        <select id="salesFilterStatus" onchange="filterSalesTable()"
+          style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px">
+          <option value="">Todos los estados</option>
+          <option value="approved">🟢 Aprobadas</option>
+          <option value="canceled">🔴 Canceladas</option>
+          <option value="refunded">🟡 Reembolsos</option>
+          <option value="pending">⏳ Pendientes</option>
+        </select>
+        <span id="salesFilterCount" style="font-size:12px;color:var(--muted);align-self:center"></span>
       </div>
       <div style="overflow-x:auto">
         <table style="width:100%;border-collapse:collapse;font-size:13px">
@@ -3812,6 +3827,8 @@ function renderMilestones(totalEarned) {
   }).join('');
 }
 
+let _allSales = [];
+
 async function loadSales() {
   try {
     const params = dateParams();
@@ -3825,31 +3842,56 @@ async function loadSales() {
     document.getElementById('sk-refunds').textContent = s.refunded > 0 ? `-${fmt.usd(s.refunds)} (${s.refunded})` : '0';
 
     renderMilestones(s.totalEarned || 0);
-
-    // ── Gráfico de desempeño diario ──
     renderSalesChart(data.sales);
 
-    const tbody = document.getElementById('salesTbody');
-    if (!data.sales.length) {
-      tbody.innerHTML = `<tr><td colspan="6" class="empty"><div class="empty-icon">🛒</div><div>Sin ventas en este período</div></td></tr>`;
-      return;
-    }
+    _allSales = data.sales;
 
-    const statusLabel = { approved: '🟢 Aprobada', canceled: '🔴 Cancelada', refunded: '🟡 Reembolso', chargeback: '🔴 Chargeback', pending: '⏳ Pendiente' };
+    // Limpiar filtros al recargar
+    const nameEl   = document.getElementById('salesFilterName');
+    const statusEl = document.getElementById('salesFilterStatus');
+    if (nameEl)   nameEl.value   = '';
+    if (statusEl) statusEl.value = '';
 
-    tbody.innerHTML = data.sales.map(s => `
-      <tr style="border-top:1px solid var(--border)">
-        <td style="padding:8px 6px;color:var(--muted);font-size:12px">${s.sale_date ? new Date(s.sale_date).toLocaleDateString('es') : '—'}</td>
-        <td style="padding:8px 6px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${s.product_name}">${s.product_name}</td>
-        <td style="padding:8px 6px;color:var(--muted);font-size:12px">${s.buyer_name || s.buyer_email || '—'}</td>
-        <td style="padding:8px 6px;text-align:right;font-weight:600">${fmt.usd(s.commission || s.amount)}</td>
-        <td style="padding:8px 6px;font-size:12px">${statusLabel[s.status] || s.status}</td>
-        <td style="padding:8px 6px;color:var(--muted);font-size:12px">${s.payment_type || '—'}</td>
-      </tr>`).join('');
+    renderSalesTable(_allSales);
   } catch(e) {
     document.getElementById('salesTbody').innerHTML =
       `<tr><td colspan="6" style="color:var(--red);padding:16px">${e.message}</td></tr>`;
   }
+}
+
+function renderSalesTable(sales) {
+  const tbody = document.getElementById('salesTbody');
+  const countEl = document.getElementById('salesFilterCount');
+  if (!sales.length) {
+    tbody.innerHTML = `<tr><td colspan="6" class="empty"><div class="empty-icon">🔍</div><div>Sin resultados para este filtro</div></td></tr>`;
+    if (countEl) countEl.textContent = '';
+    return;
+  }
+  const statusLabel = { approved: '🟢 Aprobada', canceled: '🔴 Cancelada', refunded: '🟡 Reembolso', chargeback: '🔴 Chargeback', pending: '⏳ Pendiente' };
+  tbody.innerHTML = sales.map(s => `
+    <tr style="border-top:1px solid var(--border)">
+      <td style="padding:8px 6px;color:var(--muted);font-size:12px">${s.sale_date ? new Date(s.sale_date).toLocaleDateString('es') : '—'}</td>
+      <td style="padding:8px 6px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${s.product_name}">${s.product_name}</td>
+      <td style="padding:8px 6px;color:var(--muted);font-size:12px">${s.buyer_name || s.buyer_email || '—'}</td>
+      <td style="padding:8px 6px;text-align:right;font-weight:600">${fmt.usd(s.commission || s.amount)}</td>
+      <td style="padding:8px 6px;font-size:12px">${statusLabel[s.status] || s.status}</td>
+      <td style="padding:8px 6px;color:var(--muted);font-size:12px">${s.payment_type || '—'}</td>
+    </tr>`).join('');
+  if (countEl) countEl.textContent = `${sales.length} resultado${sales.length !== 1 ? 's' : ''}`;
+}
+
+function filterSalesTable() {
+  const q      = (document.getElementById('salesFilterName')?.value   || '').toLowerCase().trim();
+  const status = (document.getElementById('salesFilterStatus')?.value || '');
+  const filtered = _allSales.filter(s => {
+    const matchText = !q ||
+      (s.buyer_name  || '').toLowerCase().includes(q) ||
+      (s.buyer_email || '').toLowerCase().includes(q) ||
+      (s.product_name|| '').toLowerCase().includes(q);
+    const matchStatus = !status || s.status === status;
+    return matchText && matchStatus;
+  });
+  renderSalesTable(filtered);
 }
 
 // ── Sales Chart ───────────────────────────────────────────────────────────────
