@@ -1165,6 +1165,22 @@
   <div id="adminNavItem" class="nav-item" data-section="admin" onclick="showSection('admin')" style="display:none">
     <span class="nav-icon">👥</span> Usuarios
   </div>
+
+  <!-- Widget de progreso de hitos -->
+  <div id="sidebarMilestone" onclick="showSection('sales')" style="display:none;margin:12px 8px 4px;padding:12px;background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.25);border-radius:12px;cursor:pointer;transition:background .2s" onmouseenter="this.style.background='rgba(37,99,235,.15)'" onmouseleave="this.style.background='rgba(37,99,235,.08)'">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span id="smIcon" style="font-size:20px">🌱</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Próximo hito</div>
+        <div id="smTitle" style="font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div>
+      </div>
+      <div id="smPct" style="font-size:13px;font-weight:800;color:var(--blue)">0%</div>
+    </div>
+    <div style="background:rgba(255,255,255,.08);border-radius:99px;height:5px;overflow:hidden">
+      <div id="smBar" style="height:100%;border-radius:99px;background:linear-gradient(90deg,#2563eb,#06d6a0);transition:width 1s cubic-bezier(.4,0,.2,1);width:0%"></div>
+    </div>
+    <div id="smSub" style="font-size:10px;color:var(--muted);margin-top:5px;text-align:center">—</div>
+  </div>
 </nav>
 
 <!-- Main content -->
@@ -3751,10 +3767,19 @@ const MILESTONES = [
   { amount: 1000000, icon: '💰', title: 'Millonario',      desc: '$1,000,000 — el millón es tuyo' },
 ];
 
+let _lastTotalEarned = 0;
+
 function renderMilestones(totalEarned) {
   const grid     = document.getElementById('milestonesGrid');
   const nextCard = document.getElementById('milestoneNextCard');
   if (!grid) return;
+
+  // Detectar hito recién desbloqueado
+  if (_lastTotalEarned > 0 && totalEarned > _lastTotalEarned) {
+    const newlyUnlocked = MILESTONES.filter(m => m.amount <= totalEarned && m.amount > _lastTotalEarned);
+    newlyUnlocked.forEach(m => celebrateMilestone(m));
+  }
+  _lastTotalEarned = totalEarned;
 
   const nextIdx    = MILESTONES.findIndex(m => totalEarned < m.amount);
   const next       = nextIdx >= 0 ? MILESTONES[nextIdx] : null;
@@ -3826,6 +3851,46 @@ function renderMilestones(totalEarned) {
         ${isNext   ? `<span style="font-size:8px;color:#f59e0b">En curso</span>` : ''}
       </div>`;
   }).join('');
+
+  // Actualizar widget del sidebar
+  const sm = document.getElementById('sidebarMilestone');
+  if (!sm) return;
+  sm.style.display = 'block';
+  if (next) {
+    const pct = Math.round(progress);
+    document.getElementById('smIcon').textContent  = next.icon;
+    document.getElementById('smTitle').textContent = `${next.title} · ${fmt.usd(next.amount)}`;
+    document.getElementById('smPct').textContent   = `${pct}%`;
+    document.getElementById('smBar').style.width   = `${pct}%`;
+    document.getElementById('smSub').textContent   = `${fmt.usd(totalEarned)} · faltan ${fmt.usd(next.amount - totalEarned)}`;
+  } else {
+    document.getElementById('smIcon').textContent  = '🏆';
+    document.getElementById('smTitle').textContent = '¡Todos desbloqueados!';
+    document.getElementById('smPct').textContent   = '100%';
+    document.getElementById('smBar').style.width   = '100%';
+    document.getElementById('smSub').textContent   = 'Million Club 🎉';
+  }
+}
+
+function celebrateMilestone(m) {
+  const el = document.createElement('div');
+  el.style.cssText = `
+    position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
+    background:rgba(0,0,0,.75);backdrop-filter:blur(6px);animation:fadeIn .3s ease`;
+  el.innerHTML = `
+    <div style="background:linear-gradient(135deg,#0e1228,#1a2550);border:2px solid rgba(37,99,235,.5);border-radius:24px;padding:40px 32px;text-align:center;max-width:340px;width:90%;box-shadow:0 0 60px rgba(37,99,235,.3)">
+      <div style="font-size:72px;margin-bottom:16px;animation:bounce .6s ease">${m.icon}</div>
+      <div style="font-size:11px;color:var(--blue);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:8px">🏆 ¡Hito desbloqueado!</div>
+      <div style="font-size:26px;font-weight:900;margin-bottom:6px">${m.title}</div>
+      <div style="font-size:20px;font-weight:800;color:var(--blue);margin-bottom:12px">${fmt.usd(m.amount)}</div>
+      <div style="font-size:14px;color:var(--muted);line-height:1.5;margin-bottom:24px">${m.desc}</div>
+      <button onclick="this.closest('div[style*=fixed]').remove()"
+        style="background:linear-gradient(135deg,#2563eb,#06d6a0);border:none;border-radius:12px;padding:12px 32px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;width:100%">
+        ¡A seguir vendiendo! 🚀
+      </button>
+    </div>`;
+  document.body.appendChild(el);
+  el.addEventListener('click', e => { if (e.target === el) el.remove(); });
 }
 
 let _allSales = [];
