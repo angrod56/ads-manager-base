@@ -83,11 +83,11 @@ export async function getTotalEarned(userId) {
 
 function mapStatus(event) {
   const map = {
-    'PURCHASE_APPROVED':   'approved',
-    'PURCHASE_COMPLETE':   'approved',
-    'PURCHASE_CANCELED':   'canceled',
-    'PURCHASE_REFUNDED':   'refunded',
-    'PURCHASE_CHARGEBACK': 'chargeback',
+    'PURCHASE_APPROVED':       'approved',
+    'PURCHASE_COMPLETE':       'complete',
+    'PURCHASE_CANCELED':       'canceled',
+    'PURCHASE_REFUNDED':       'refunded',
+    'PURCHASE_CHARGEBACK':     'chargeback',
     'PURCHASE_BILLET_PRINTED': 'pending',
   };
   return map[event] || event;

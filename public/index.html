@@ -1398,6 +1398,7 @@
           style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px">
           <option value="">Todos los estados</option>
           <option value="approved">🟢 Aprobadas</option>
+          <option value="complete">✅ Completadas</option>
           <option value="canceled">🔴 Canceladas</option>
           <option value="refunded">🟡 Reembolsos</option>
           <option value="pending">⏳ Pendientes</option>
@@ -3867,7 +3868,7 @@ function renderSalesTable(sales) {
     if (countEl) countEl.textContent = '';
     return;
   }
-  const statusLabel = { approved: '🟢 Aprobada', canceled: '🔴 Cancelada', refunded: '🟡 Reembolso', chargeback: '🔴 Chargeback', pending: '⏳ Pendiente' };
+  const statusLabel = { approved: '🟢 Aprobada', complete: '✅ Completada', canceled: '🔴 Cancelada', refunded: '🟡 Reembolso', chargeback: '🔴 Chargeback', pending: '⏳ Pendiente' };
   tbody.innerHTML = sales.map(s => `
     <tr style="border-top:1px solid var(--border)">
       <td style="padding:8px 6px;color:var(--muted);font-size:12px">${s.sale_date ? new Date(s.sale_date).toLocaleDateString('es') : '—'}</td>
