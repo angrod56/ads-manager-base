@@ -402,6 +402,27 @@
     .ann-close   { background:none; border:none; color:rgba(255,255,255,.35); cursor:pointer; font-size:16px; padding:0; flex-shrink:0; line-height:1; }
     .ann-close:hover { color:rgba(255,255,255,.7); }
 
+    /* ── Money Rain ── */
+    @keyframes moneyFly {
+      0%   { transform: translateY(0) rotate(0deg) scale(1);   opacity: 1; }
+      70%  { opacity: 1; }
+      100% { transform: translateY(-100vh) rotate(720deg) scale(0.4); opacity: 0; }
+    }
+    @keyframes moneySway {
+      0%,100% { margin-left: 0; }
+      25%      { margin-left: 30px; }
+      75%      { margin-left: -30px; }
+    }
+    .money-bill {
+      position: fixed;
+      bottom: -60px;
+      font-size: 36px;
+      pointer-events: none;
+      z-index: 99998;
+      animation: moneyFly var(--dur) ease-out forwards, moneySway var(--sway) ease-in-out infinite;
+      filter: drop-shadow(0 4px 8px rgba(0,200,0,.4));
+    }
+
     /* ── Gamificación ── */
     .milestone-next {
       background: linear-gradient(135deg, rgba(37,99,235,.12), rgba(37,99,235,.04));
@@ -4678,6 +4699,28 @@ document.addEventListener('touchstart', unlockAudio, { once: true, passive: true
 document.addEventListener('touchend',   unlockAudio, { once: true, passive: true });
 document.addEventListener('click',      unlockAudio, { once: true });
 
+function moneyRain() {
+  const emojis = ['💵', '💸', '💰', '🤑', '💵', '💸', '💵'];
+  const count  = 18;
+  for (let i = 0; i < count; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'money-bill';
+      el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      const dur  = 1.6 + Math.random() * 1.4;   // 1.6s – 3s de vuelo
+      const sway = 0.4 + Math.random() * 0.4;   // velocidad del bamboleo
+      el.style.cssText = `
+        left: ${5 + Math.random() * 90}%;
+        --dur: ${dur}s;
+        --sway: ${sway}s;
+        font-size: ${28 + Math.random() * 24}px;
+      `;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), dur * 1000 + 100);
+    }, i * 120);
+  }
+}
+
 function playCashRegister() {
   // Si iOS no ha desbloqueado el audio, guardar pendiente
   if (!_audioUnlocked) { _pendingSound = true; return; }
@@ -4755,6 +4798,7 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('message', e => {
     if (e.data?.type === 'SALE_SOUND') {
       playCashRegister();
+      moneyRain();
       document.title = '💰 VENTA! ' + new Date().toLocaleTimeString();
       setTimeout(() => { document.title = 'Adsmanager PRO'; }, 3000);
     }
@@ -4772,8 +4816,7 @@ if ('serviceWorker' in navigator) {
 // Detectar apertura desde notificación (?sale=1) → sonar al cargar
 if (new URLSearchParams(location.search).get('sale') === '1') {
   window.addEventListener('appReady', () => {
-    setTimeout(playCashRegister, 800);
-    // Limpiar URL sin recargar
+    setTimeout(() => { playCashRegister(); moneyRain(); }, 800);
     history.replaceState({}, '', '/app');
   }, { once: true });
 }
@@ -4790,6 +4833,7 @@ async function pollNewSales() {
     if (!latest) return;
     if (_lastSaleId && _lastSaleId !== latest.id) {
       playCashRegister();
+      moneyRain();
       document.title = '💰 VENTA! ' + new Date().toLocaleTimeString();
       setTimeout(() => { document.title = 'Adsmanager PRO'; }, 3000);
     }
