@@ -245,8 +245,9 @@ const GET = {
       const purchases     = getActionValue(ins.actions || [], 'purchase');
       // complete_registration = evento de pixel configurado por el usuario (coincide con Ads Manager)
       // lead = auto-tracked por Meta, puede inflar el número — NO usar para CPL
-      const registrations = getActionValue(ins.actions || [], 'complete_registration') || 0;
-      const lpViews       = getActionValue(ins.actions || [], 'landing_page_view') || 0;
+      const registrations    = getActionValue(ins.actions || [], 'complete_registration') || 0;
+      const lpViews          = getActionValue(ins.actions || [], 'landing_page_view') || 0;
+      const initiateCheckout = getActionValue(ins.actions || [], 'initiate_checkout') || 0;
       const revenue       = getRevenue(ins.action_values || []);
       const roas          = getRoas(ins.purchase_roas || [], spend, revenue);
       const cpl           = calcCPA(spend, registrations);
@@ -258,11 +259,13 @@ const GET = {
         purchases,
         registrations,
         lpViews,
+        initiateCheckout,
         regConv: lpViews > 0 ? registrations / lpViews : null,
         revenue,
         roas,
         cpl,
         cpa:       calcCPA(spend, purchases),
+        costPerCheckout: calcCPA(spend, initiateCheckout),
         ctr:       parseFloat(ins.ctr || 0),
         cpm:       parseFloat(ins.cpm || 0),
         cpc:       parseFloat(ins.cpc || 0),

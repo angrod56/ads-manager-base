@@ -1278,6 +1278,8 @@
               <th data-sort="revenue" class="num">Revenue</th>
               <th data-sort="roas" class="num">ROAS</th>
               <th data-sort="purchases" class="num">Compras</th>
+              <th data-sort="initiateCheckout" class="num" title="Pagos iniciados">Pagos inic.</th>
+              <th data-sort="costPerCheckout" class="num" title="Costo por pago iniciado">Costo/Pago</th>
               <th data-sort="registrations" class="num">Registros</th>
               <th data-sort="regConv" class="num" title="Registros / Visitas a la página">Conv. Reg.</th>
               <th data-sort="cpa" class="num">CPA</th>
@@ -1288,7 +1290,7 @@
             </tr>
           </thead>
           <tbody id="campaignsTbody">
-            <tr><td colspan="16" class="empty"><div class="empty-icon">⚙️</div><div>Configura tu token Meta en <strong>Configuración</strong> para ver tus campañas.</div></td></tr>
+            <tr><td colspan="18" class="empty"><div class="empty-icon">⚙️</div><div>Configura tu token Meta en <strong>Configuración</strong> para ver tus campañas.</div></td></tr>
           </tbody>
         </table>
       </div>
@@ -2177,11 +2179,13 @@ async function saveBudget(id) {
 // ─── Export CSV ──────────────────────────────────────────────────────────────
 function exportCSV() {
   const list = filteredCampaigns();
-  const cols = ['Nombre','Estado','Gasto','Revenue','ROAS','Compras','Registros','CPA','CPL','CTR%','Impr.','Clics','Frec.'];
+  const cols = ['Nombre','Estado','Gasto','Revenue','ROAS','Compras','Pagos iniciados','Costo/Pago','Registros','CPA','CPL','CTR%','Impr.','Clics','Frec.'];
   const rows = list.map(c => [
     `"${c.name}"`, c.effective_status || c.status,
     (c.spend||0).toFixed(2), (c.revenue||0).toFixed(2),
-    c.roas ? c.roas.toFixed(2) : 0, c.purchases||0, c.registrations||0,
+    c.roas ? c.roas.toFixed(2) : 0, c.purchases||0,
+    c.initiateCheckout||0, c.costPerCheckout ? c.costPerCheckout.toFixed(2) : 0,
+    c.registrations||0,
     c.cpa ? c.cpa.toFixed(2) : 0, c.cpl ? c.cpl.toFixed(2) : 0,
     (c.ctr||0).toFixed(2), c.impressions||0, c.clicks||0, (c.frequency||0).toFixed(1)
   ]);
@@ -2208,7 +2212,7 @@ function renderTable() {
   const tbody = document.getElementById('campaignsTbody');
 
   if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="16"><div class="empty"><div class="empty-icon">🔍</div><div>Sin resultados</div></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="18"><div class="empty"><div class="empty-icon">🔍</div><div>Sin resultados</div></div></td></tr>`;
     return;
   }
 
@@ -2238,6 +2242,8 @@ function renderTable() {
         <td class="num ${c.revenue > 0 ? 'green' : 'muted'}">${fmt.usd(c.revenue || 0)}</td>
         <td class="num ${roasClass(c.roas)}">${fmt.roas(c.roas)}</td>
         <td class="num" style="font-weight:${c.purchases>0?'600':'400'}">${c.purchases > 0 ? c.purchases : '<span class="muted">0</span>'}</td>
+        <td class="num" style="color:${(c.initiateCheckout||0)>0?'var(--text)':'var(--muted)'}">${(c.initiateCheckout||0)||'<span class="muted">0</span>'}</td>
+        <td class="num muted">${fmt.usd(c.costPerCheckout)}</td>
         <td class="num" style="color:${(c.registrations||0)>0?'var(--green)':'var(--muted)'}">${(c.registrations||0)||'<span class="muted">0</span>'}</td>
         <td class="num ${regConvClass(c.registrations, c.lpViews)}">${fmtRegConv(c.registrations, c.lpViews)}</td>
         <td class="num ${cpaCls}">${fmt.usd(c.cpa)}</td>
@@ -2249,7 +2255,7 @@ function renderTable() {
 
     if (expanded) {
       const expandData = S.adData[c.id];
-      html += `<tr class="ads-row"><td colspan="16"><div class="ads-inner" id="ads-${c.id}">`;
+      html += `<tr class="ads-row"><td colspan="18"><div class="ads-inner" id="ads-${c.id}">`;
 
       // Tabs: AdSets | Ads
       html += `<div class="adsets-tabs">
@@ -2457,7 +2463,7 @@ async function toggleStatus(id, currentStatus) {
 //  LOAD
 // ═══════════════════════════════════════════════════════════════════
 function noTokenMsg() {
-  return `<tr><td colspan="16" class="empty">
+  return `<tr><td colspan="18" class="empty">
     <div style="padding:32px 0;display:flex;flex-direction:column;align-items:center;gap:12px">
       <div style="font-size:40px">⚙️</div>
       <div style="font-size:15px;font-weight:700;color:var(--text)">Configura tu cuenta primero</div>
