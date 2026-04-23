@@ -3753,20 +3753,33 @@ async function saveConfigMetaToken() {
   errEl.style.display = 'none';
   okEl.style.display  = 'none';
   if (!token) { errEl.textContent = 'Ingresa el token'; errEl.style.display = 'block'; return; }
+  const btn = document.querySelector('#section-config button[onclick="saveConfigMetaToken()"]');
+  if (btn) { btn.disabled = true; btn.textContent = 'Validando…'; }
   try {
-    S.token = token;
-    const accounts = await api('/api/accounts');
-    if (!accounts.length) throw new Error('No se encontraron cuentas para este token');
+    // Validar el token pasándolo explícitamente en la URL
+    const accounts = await api('/api/accounts?token=' + encodeURIComponent(token));
+    if (!accounts.length) throw new Error('No se encontraron cuentas publicitarias para este token');
+
+    // Guardar en Supabase
     await fetch('/api/auth/save-token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${S.jwt}` },
       body: JSON.stringify({ metaToken: token }),
     });
+
+    // Actualizar estado local
+    S.token = token;
     S.user.meta_token = token;
     okEl.style.display = 'block';
+
+    // Si no hay cuentas cargadas aún, inicializar la app con el nuevo token
+    if (!S.account) await init();
   } catch(e) {
+    S.token = S.user?.meta_token || '';
     errEl.textContent = e.message;
     errEl.style.display = 'block';
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Guardar token de Meta'; }
   }
 }
 
