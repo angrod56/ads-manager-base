@@ -4242,19 +4242,15 @@ function renderTutorialsGrid() {
   const grid = document.getElementById('tutorialsGrid');
   if (!grid) return;
   grid.innerHTML = TUTORIAL_SLOTS.map(s => {
-    const vid = _tutorialVideos[s.key] || '';
+    const url = _tutorialVideos[s.key] || '';
     return `
       <div class="card" style="padding:0;overflow:hidden">
-        <div id="tplayer-${s.key}" style="position:relative;width:100%;padding-bottom:56.25%;background:#0a0e1a;cursor:pointer" onclick="loadTutorialVideo('${s.key}')">
-          ${vid
-            ? `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px">
-                 <div style="width:56px;height:56px;border-radius:50%;background:rgba(79,142,247,.2);border:2px solid rgba(79,142,247,.5);display:flex;align-items:center;justify-content:center;font-size:22px">▶</div>
-                 <div style="font-size:12px;color:var(--muted)">Clic para reproducir</div>
-               </div>`
-            : `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px">
-                 <div style="font-size:28px;opacity:.3">🎬</div>
-                 <div style="font-size:11px;color:var(--muted)">Video próximamente</div>
-               </div>`
+        <div id="tplayer-${s.key}" style="width:100%;min-height:180px;background:#0a0e1a;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;cursor:${url ? 'pointer' : 'default'}" ${url ? `onclick="loadTutorialVideo('${s.key}')"` : ''}>
+          ${url
+            ? `<div style="width:56px;height:56px;border-radius:50%;background:rgba(79,142,247,.2);border:2px solid rgba(79,142,247,.5);display:flex;align-items:center;justify-content:center;font-size:22px">▶</div>
+               <div style="font-size:12px;color:var(--muted)">Clic para reproducir</div>`
+            : `<div style="font-size:28px;opacity:.3">🎬</div>
+               <div style="font-size:11px;color:var(--muted)">Video próximamente</div>`
           }
         </div>
         <div style="padding:14px 16px">
@@ -4283,17 +4279,22 @@ function loadTutorialVideo(key) {
   const container = document.getElementById(`tplayer-${key}`);
   if (!container) return;
 
-  // Extraer video ID desde la URL del script
   const match = scriptUrl.match(/\/players\/([^/]+)\//);
-  const vid = match ? match[1] : key;
+  if (!match) return;
+  const vid = match[1];
 
+  container.onclick = null;
   container.style.cursor = 'default';
-  container.innerHTML = `<vturb-smartplayer id="vid-${vid}" style="position:absolute;inset:0;width:100%;height:100%"></vturb-smartplayer>`;
+  container.style.display = 'block';
+  container.style.minHeight = '0';
+  container.innerHTML = `<vturb-smartplayer id="vid-${vid}" style="display:block;width:100%"></vturb-smartplayer>`;
 
-  const s = document.createElement('script');
-  s.src = scriptUrl;
-  s.async = true;
-  document.head.appendChild(s);
+  if (!document.querySelector(`script[src="${scriptUrl}"]`)) {
+    const s = document.createElement('script');
+    s.src = scriptUrl;
+    s.async = true;
+    document.head.appendChild(s);
+  }
 }
 
 async function saveTutorials() {
