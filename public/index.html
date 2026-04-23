@@ -4726,28 +4726,28 @@ let _vapidPublicKey = null;
 
 async function initPush() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  // Solo actuar si el usuario ya otorgó permiso — no pedir en silencio
+  if (Notification.permission !== 'granted') return;
 
   try {
-    const reg = await navigator.serviceWorker.register('/sw.js');
+    const reg = await navigator.serviceWorker.ready;
 
-    // Obtener VAPID public key del servidor
     if (!_vapidPublicKey) {
       const cfg = await fetch('/api/config').then(r => r.json());
       _vapidPublicKey = cfg.vapidPublicKey;
     }
     if (!_vapidPublicKey) return;
 
-    // Pedir permiso de notificaciones
-    const permission = await Notification.requestPermission();
-    if (permission !== 'granted') return;
+    // Reusar suscripción existente o crear una nueva
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(_vapidPublicKey),
+      });
+    }
 
-    // Suscribirse al push
-    const sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(_vapidPublicKey),
-    });
-
-    // Guardar suscripción en el servidor
+    // Sincronizar suscripción con el servidor (idempotente por endpoint)
     await fetch('/api/push/subscribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${S.jwt}` },

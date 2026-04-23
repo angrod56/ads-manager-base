@@ -1,4 +1,4 @@
-const VERSION = 6;
+const VERSION = 7;
 
 self.addEventListener('install', e => { self.skipWaiting(); });
 
@@ -21,16 +21,19 @@ self.addEventListener('push', e => {
       clientList.forEach(c => c.postMessage({ type: 'SALE_SOUND' }));
 
       // Guardar flag en SW storage para que al abrir la app suene
+      const isIOS = /iphone|ipad|ipod/i.test(self.navigator?.userAgent || '');
       return self.registration.showNotification(data.title || '💰 Nueva venta', {
-        body:     data.body || 'Tienes una nueva comisión',
-        icon:     '/icon-192.svg',
-        badge:    '/icon-192.svg',
-        vibrate:  [200, 100, 200, 100, 400],
-        tag:      'sale-notification',
+        body:    data.body || 'Tienes una nueva comisión',
+        icon:    '/icon-192.svg',
+        badge:   '/icon-192.svg',
+        tag:     'sale-notification',
         renotify: true,
-        requireInteraction: false,
-        data:     { ...data, pendingSound: true },
-        actions:  [{ action: 'open', title: 'Ver venta' }],
+        data:    { ...data, pendingSound: true },
+        // vibrate y actions no soportados en iOS — solo agregar en otros
+        ...(isIOS ? {} : {
+          vibrate: [200, 100, 200, 100, 400],
+          actions: [{ action: 'open', title: 'Ver venta' }],
+        }),
       });
     })
   );
