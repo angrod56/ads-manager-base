@@ -1179,6 +1179,9 @@
   <div class="nav-item" data-section="sales" onclick="showSection('sales')">
     <span class="nav-icon">💰</span> Ventas
   </div>
+  <div class="nav-item" data-section="tutorials" onclick="showSection('tutorials')">
+    <span class="nav-icon">🎬</span> Tutoriales
+  </div>
   <div class="sidebar-divider"></div>
   <div class="nav-item" data-section="config" onclick="showSection('config')">
     <span class="nav-icon">⚙️</span> Configuración
@@ -1463,6 +1466,15 @@
 
   </div><!-- /section-sales -->
 
+  <!-- ── SECTION: Tutoriales ── -->
+  <div class="section" id="section-tutorials">
+    <h2 style="font-size:20px;font-weight:800;margin-bottom:4px">🎬 Tutoriales</h2>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:24px">Videos paso a paso para configurar tu cuenta correctamente</p>
+    <div id="tutorialsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">
+      <div style="color:var(--muted);font-size:13px;padding:40px;text-align:center">Cargando tutoriales…</div>
+    </div>
+  </div><!-- /section-tutorials -->
+
   <!-- ── SECTION: Configuración ── -->
   <div class="section" id="section-config">
 
@@ -1689,6 +1701,24 @@
         <button onclick="loadAdminUsers()" style="font-size:12px;padding:6px 12px">↺ Actualizar</button>
       </div>
       <div id="adminUsersTable">Cargando…</div>
+    </div>
+
+    <!-- Videos de tutoriales -->
+    <div class="card" style="margin-top:16px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+        <span style="font-size:22px">🎬</span>
+        <div>
+          <div style="font-size:16px;font-weight:700">Videos Tutoriales</div>
+          <div style="font-size:12px;color:var(--muted)">Pega el ID del video de Vturb para cada tutorial</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px" id="adminTutorialsForm">
+        Cargando…
+      </div>
+      <button onclick="saveTutorials()" style="margin-top:16px;background:linear-gradient(135deg,#4f8ef7,#9b5de5);border:none;border-radius:8px;padding:10px 20px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;width:100%">
+        💾 Guardar videos
+      </button>
+      <div id="tutorialsSaveOk" style="display:none;color:#4caf50;font-size:13px;text-align:center;margin-top:8px">✓ Videos guardados</div>
     </div>
   </div><!-- /section-admin -->
 
@@ -3444,6 +3474,7 @@ function showSection(name) {
   }
   if (name === 'sales') loadSales();
   if (name === 'config') loadConfig();
+  if (name === 'tutorials') loadTutorials();
   if (name === 'admin') { loadAdminUsers(); loadAdminAnnouncements(); }
 }
 
@@ -4187,6 +4218,96 @@ async function deleteAnn(id) {
   });
   loadAdminAnnouncements();
   loadAnnouncements();
+}
+
+// ── Tutoriales ────────────────────────────────────────────────────────────────
+const TUTORIAL_SLOTS = [
+  { key: 'intro',      title: '👋 Introducción',         desc: 'Bienvenida y visión general de la plataforma' },
+  { key: 'meta',       title: '📊 Configurar Meta Ads',  desc: 'Cómo obtener y conectar tu token de Meta' },
+  { key: 'hotmart',    title: '🔥 Configurar Hotmart',   desc: 'Webhook y Hottok paso a paso' },
+  { key: 'notif',      title: '🔔 Notificaciones Push',  desc: 'Activar alertas de ventas en tu teléfono' },
+];
+
+let _tutorialVideos = {};
+
+async function loadTutorials() {
+  try {
+    const d = await api('/api/tutorials');
+    _tutorialVideos = d.videos || {};
+  } catch { _tutorialVideos = {}; }
+  renderTutorialsGrid();
+}
+
+function renderTutorialsGrid() {
+  const grid = document.getElementById('tutorialsGrid');
+  if (!grid) return;
+  grid.innerHTML = TUTORIAL_SLOTS.map(s => {
+    const vid = _tutorialVideos[s.key] || '';
+    return `
+      <div class="card" style="padding:0;overflow:hidden">
+        <div id="tplayer-${s.key}" style="position:relative;width:100%;padding-bottom:56.25%;background:#0a0e1a;cursor:pointer" onclick="loadTutorialVideo('${s.key}')">
+          ${vid
+            ? `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px">
+                 <div style="width:56px;height:56px;border-radius:50%;background:rgba(79,142,247,.2);border:2px solid rgba(79,142,247,.5);display:flex;align-items:center;justify-content:center;font-size:22px">▶</div>
+                 <div style="font-size:12px;color:var(--muted)">Clic para reproducir</div>
+               </div>`
+            : `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px">
+                 <div style="font-size:28px;opacity:.3">🎬</div>
+                 <div style="font-size:11px;color:var(--muted)">Video próximamente</div>
+               </div>`
+          }
+        </div>
+        <div style="padding:14px 16px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:4px">${s.title}</div>
+          <div style="font-size:12px;color:var(--muted)">${s.desc}</div>
+        </div>
+      </div>`;
+  }).join('');
+
+  // Admin form
+  const form = document.getElementById('adminTutorialsForm');
+  if (form) {
+    form.innerHTML = TUTORIAL_SLOTS.map(s => `
+      <div>
+        <label style="font-size:11px;color:var(--muted);font-weight:600;display:block;margin-bottom:4px">${s.title}</label>
+        <input id="tvid-${s.key}" type="text" placeholder="ID del video Vturb (ej: abc123xyz)"
+          value="${_tutorialVideos[s.key] || ''}"
+          style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:13px;font-family:monospace">
+      </div>`).join('');
+  }
+}
+
+function loadTutorialVideo(key) {
+  const vid = _tutorialVideos[key];
+  if (!vid) return;
+  const container = document.getElementById(`tplayer-${key}`);
+  if (!container) return;
+  container.innerHTML = `
+    <iframe
+      src="https://player.vturb.com.br/embed/${vid}"
+      style="position:absolute;inset:0;width:100%;height:100%;border:none"
+      allow="autoplay; fullscreen"
+      allowfullscreen>
+    </iframe>`;
+}
+
+async function saveTutorials() {
+  const videos = {};
+  TUTORIAL_SLOTS.forEach(s => {
+    const val = document.getElementById(`tvid-${s.key}`)?.value.trim();
+    if (val) videos[s.key] = val;
+  });
+  try {
+    await apiFetch('/api/admin/tutorials', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ videos }),
+    });
+    _tutorialVideos = videos;
+    renderTutorialsGrid();
+    const ok = document.getElementById('tutorialsSaveOk');
+    if (ok) { ok.style.display = 'block'; setTimeout(() => ok.style.display = 'none', 3000); }
+  } catch(e) { alert('Error: ' + e.message); }
 }
 
 async function loadAdminUsers() {

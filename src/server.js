@@ -758,6 +758,16 @@ const GET = {
       .order('created_at', { ascending: false });
     json(res, data || []);
   },
+
+  // ── Tutoriales: obtener videos configurados ───────────────────────────────────
+  '/api/tutorials': async (res, _q, _user) => {
+    const { data } = await supabaseAdmin
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'tutorials')
+      .maybeSingle();
+    json(res, { videos: data?.value || {} });
+  },
 };
 
 // ── Rutas POST ────────────────────────────────────────────────────────────────
@@ -892,6 +902,18 @@ const POST = {
     const { userId } = await body(req);
     if (!userId) return err(res, 'userId requerido', 400);
     await deleteUser(userId);
+    json(res, { ok: true });
+  },
+
+  // ── Admin: guardar videos de tutoriales ──────────────────────────────────────
+  '/api/admin/tutorials': async (res, req, user) => {
+    if (!user || user.role !== 'admin') return err(res, 'No autorizado', 403);
+    const { videos } = await body(req);
+    if (!videos || typeof videos !== 'object') return err(res, 'videos requerido', 400);
+    const { error } = await supabaseAdmin
+      .from('app_settings')
+      .upsert({ key: 'tutorials', value: videos }, { onConflict: 'key' });
+    if (error) return err(res, error.message);
     json(res, { ok: true });
   },
 
