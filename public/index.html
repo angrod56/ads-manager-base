@@ -1423,7 +1423,7 @@
         <h3 style="margin:0;font-size:15px">Transacciones</h3>
         <div style="display:flex;gap:8px">
           <button onclick="loadSales()" style="font-size:12px;padding:6px 12px">↺ Actualizar</button>
-          <button onclick="playCashRegister()" style="font-size:12px;padding:6px 12px">🔔 Probar sonido</button>
+          <button onclick="playCashRegister();moneyRain()" style="font-size:12px;padding:6px 12px">🔔 Probar sonido</button>
         </div>
       </div>
       <!-- Filtros -->
@@ -4722,6 +4722,7 @@ function moneyRain() {
 }
 
 function playCashRegister() {
+  moneyRain();
   // Si iOS no ha desbloqueado el audio, guardar pendiente
   if (!_audioUnlocked) { _pendingSound = true; return; }
   try {
@@ -4798,7 +4799,6 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('message', e => {
     if (e.data?.type === 'SALE_SOUND') {
       playCashRegister();
-      moneyRain();
       document.title = '💰 VENTA! ' + new Date().toLocaleTimeString();
       setTimeout(() => { document.title = 'Adsmanager PRO'; }, 3000);
     }
@@ -4816,7 +4816,7 @@ if ('serviceWorker' in navigator) {
 // Detectar apertura desde notificación (?sale=1) → sonar al cargar
 if (new URLSearchParams(location.search).get('sale') === '1') {
   window.addEventListener('appReady', () => {
-    setTimeout(() => { playCashRegister(); moneyRain(); }, 800);
+    setTimeout(() => { playCashRegister(); }, 800);
     history.replaceState({}, '', '/app');
   }, { once: true });
 }
@@ -4833,7 +4833,6 @@ async function pollNewSales() {
     if (!latest) return;
     if (_lastSaleId && _lastSaleId !== latest.id) {
       playCashRegister();
-      moneyRain();
       document.title = '💰 VENTA! ' + new Date().toLocaleTimeString();
       setTimeout(() => { document.title = 'Adsmanager PRO'; }, 3000);
     }
