@@ -4270,7 +4270,7 @@ function renderTutorialsGrid() {
     form.innerHTML = TUTORIAL_SLOTS.map(s => `
       <div>
         <label style="font-size:11px;color:var(--muted);font-weight:600;display:block;margin-bottom:4px">${s.title}</label>
-        <input id="tvid-${s.key}" type="text" placeholder="ID del video Vturb (ej: abc123xyz)"
+        <input id="tvid-${s.key}" type="text" placeholder="URL del script Vturb (src=https://scripts.converteai.net/...)"
           value="${_tutorialVideos[s.key] || ''}"
           style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:13px;font-family:monospace">
       </div>`).join('');
@@ -4278,17 +4278,22 @@ function renderTutorialsGrid() {
 }
 
 function loadTutorialVideo(key) {
-  const vid = _tutorialVideos[key];
-  if (!vid) return;
+  const scriptUrl = _tutorialVideos[key];
+  if (!scriptUrl) return;
   const container = document.getElementById(`tplayer-${key}`);
   if (!container) return;
-  container.innerHTML = `
-    <iframe
-      src="https://player.vturb.com.br/embed/${vid}"
-      style="position:absolute;inset:0;width:100%;height:100%;border:none"
-      allow="autoplay; fullscreen"
-      allowfullscreen>
-    </iframe>`;
+
+  // Extraer video ID desde la URL del script
+  const match = scriptUrl.match(/\/players\/([^/]+)\//);
+  const vid = match ? match[1] : key;
+
+  container.style.cursor = 'default';
+  container.innerHTML = `<vturb-smartplayer id="vid-${vid}" style="position:absolute;inset:0;width:100%;height:100%"></vturb-smartplayer>`;
+
+  const s = document.createElement('script');
+  s.src = scriptUrl;
+  s.async = true;
+  document.head.appendChild(s);
 }
 
 async function saveTutorials() {
