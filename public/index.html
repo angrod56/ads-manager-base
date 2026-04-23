@@ -4287,14 +4287,21 @@ function loadTutorialVideo(key) {
   container.style.cursor = 'default';
   container.style.display = 'block';
   container.style.minHeight = '0';
-  container.innerHTML = `<vturb-smartplayer id="vid-${vid}" style="display:block;width:100%"></vturb-smartplayer>`;
+  container.innerHTML = '';
 
-  if (!document.querySelector(`script[src="${scriptUrl}"]`)) {
-    const s = document.createElement('script');
-    s.src = scriptUrl;
-    s.async = true;
-    document.head.appendChild(s);
-  }
+  const player = document.createElement('vturb-smartplayer');
+  player.id = `vid-${vid}`;
+  player.style.display = 'block';
+  player.style.width = '100%';
+  container.appendChild(player);
+
+  // Eliminar script previo y re-inyectar para forzar inicialización
+  document.querySelectorAll(`script[data-vturb="${vid}"]`).forEach(s => s.remove());
+  const s = document.createElement('script');
+  s.src = scriptUrl;
+  s.async = true;
+  s.setAttribute('data-vturb', vid);
+  document.head.appendChild(s);
 }
 
 async function saveTutorials() {
