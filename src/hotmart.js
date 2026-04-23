@@ -63,7 +63,7 @@ export async function getSales(userId, since, until) {
     .order('sale_date', { ascending: false });
 
   if (since) query = query.gte('sale_date', since);
-  if (until) query = query.lte('sale_date', until + 'T23:59:59Z');
+  if (until) query = query.lte('sale_date', until.includes('T') ? until : until + 'T23:59:59Z');
 
   const { data, error } = await query;
   if (error) throw new Error(error.message);

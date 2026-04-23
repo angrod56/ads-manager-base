@@ -706,8 +706,16 @@ const GET = {
   // ── Ventas Hotmart ───────────────────────────────────────────────────────────
   '/api/sales': async (res, q, user) => {
     if (!user) return err(res, 'No autorizado', 401);
+
+    // Ajustar since/until a UTC según zona horaria del cliente (ej: Colombia tzH=-5)
+    // Medianoche local → UTC: 00:00:00 local = 00:00:00Z + |offset|
+    const tzH  = parseFloat(q.tz || '0') || 0;
+    const tzMs = tzH * 3600000;
+    const sinceUtc = q.since ? new Date(new Date(q.since + 'T00:00:00Z').getTime() - tzMs).toISOString() : undefined;
+    const untilUtc = q.until ? new Date(new Date(q.until + 'T23:59:59Z').getTime() - tzMs).toISOString() : undefined;
+
     const [sales, totalEarned] = await Promise.all([
-      getSales(user.id, q.since, q.until),
+      getSales(user.id, sinceUtc, untilUtc),
       getTotalEarned(user.id),
     ]);
 

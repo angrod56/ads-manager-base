@@ -1724,6 +1724,20 @@ const S = {
 };
 
 // ═══════════════════════════════════════════════════════════════════
+//  TIMEZONE — usa siempre la zona horaria del dispositivo del cliente
+// ═══════════════════════════════════════════════════════════════════
+// Devuelve "YYYY-MM-DD" en la zona horaria local del dispositivo
+function localDateStr(d) {
+  const date = (d instanceof Date) ? d : new Date(d);
+  const y  = date.getFullYear();
+  const m  = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${dd}`;
+}
+// Offset en horas (ej: Colombia = -5)
+const TZ_OFFSET_H = -(new Date().getTimezoneOffset() / 60);
+
+// ═══════════════════════════════════════════════════════════════════
 //  API
 // ═══════════════════════════════════════════════════════════════════
 async function api(path) {
@@ -3897,7 +3911,7 @@ let _allSales = [];
 
 async function loadSales() {
   try {
-    const params = dateParams();
+    const params = dateParams() + `&tz=${TZ_OFFSET_H}`;
     const data = await api(`/api/sales?${params}`);
     const s = data.summary;
 
@@ -3966,7 +3980,7 @@ function renderSalesChart(sales) {
   // Agrupar por día
   const byDay = {};
   for (const s of sales) {
-    const day = (s.sale_date || '').slice(0, 10);
+    const day = s.sale_date ? localDateStr(new Date(s.sale_date)) : '';
     if (!day) continue;
     if (!byDay[day]) byDay[day] = { revenue: 0, canceled: 0, transactions: 0 };
     if (s.status === 'approved') { byDay[day].revenue += s.commission || s.amount || 0; byDay[day].transactions++; }
@@ -4340,8 +4354,8 @@ async function init() {
     const wrap = document.getElementById('customDateWrap');
     if (S.date === 'custom') {
       wrap.style.display = 'flex';
-      const today = new Date().toISOString().slice(0, 10);
-      const week  = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+      const today = localDateStr(new Date());
+      const week  = localDateStr(new Date(Date.now() - 7 * 86400000));
       document.getElementById('dateFrom').value = document.getElementById('dateFrom').value || week;
       document.getElementById('dateTo').value   = document.getElementById('dateTo').value   || today;
     } else {
