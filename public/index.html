@@ -5675,18 +5675,18 @@ async function loadReports() {
   document.getElementById('rpt-commission').textContent = _rptFmt(commission);
   document.getElementById('rpt-ticket').textContent     = _rptFmt(ticket);
 
-  // Construir mapa de días
+  // Construir mapa de días en hora local (igual que el gráfico de Ventas)
   const dayMap = {};
-  const d = new Date(since);
-  const end = new Date(until);
+  const d = new Date(since + 'T12:00:00'); // mediodía evita desfase DST
+  const end = new Date(until + 'T12:00:00');
   while (d <= end) {
-    dayMap[d.toISOString().slice(0,10)] = { commission: 0, sales: 0 };
+    dayMap[localDateStr(d)] = { commission: 0, sales: 0 };
     d.setDate(d.getDate() + 1);
   }
   approved.forEach(s => {
-    const day = (s.sale_date || '').slice(0,10);
+    const day = s.sale_date ? localDateStr(new Date(s.sale_date)) : '';
     if (dayMap[day]) {
-      dayMap[day].commission += (s.commission || s.amount || 0);
+      dayMap[day].commission += (s.commission || 0);
       dayMap[day].sales++;
     }
   });
