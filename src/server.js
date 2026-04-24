@@ -734,12 +734,35 @@ const GET = {
   '/api/sales': async (res, q, user) => {
     if (!user) return err(res, 'No autorizado', 401);
 
-    // Ajustar since/until a UTC según zona horaria del cliente (ej: Colombia tzH=-5)
-    // Medianoche local → UTC: 00:00:00 local = 00:00:00Z + |offset|
     const tzH  = parseFloat(q.tz || '0') || 0;
     const tzMs = tzH * 3600000;
-    const sinceUtc = q.since ? new Date(new Date(q.since + 'T00:00:00Z').getTime() - tzMs).toISOString() : undefined;
-    const untilUtc = q.until ? new Date(new Date(q.until + 'T23:59:59Z').getTime() - tzMs).toISOString() : undefined;
+
+    // Convertir preset de fecha (today, last_7d, last_30d…) a since/until explícitos
+    let since = q.since, until = q.until;
+    if (!since && q.date) {
+      const now      = new Date(Date.now() - tzMs); // medianoche local en UTC
+      const todayStr = now.toISOString().slice(0, 10);
+      const daysBack = n => {
+        const d = new Date(now); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10);
+      };
+      const firstOfMonth = () => { const d = new Date(now); d.setDate(1); return d.toISOString().slice(0, 10); };
+      const firstOfYear  = () => { const d = new Date(now); d.setMonth(0, 1); return d.toISOString().slice(0, 10); };
+      const map = {
+        today:      { since: todayStr,       until: todayStr },
+        yesterday:  { since: daysBack(1),    until: daysBack(1) },
+        last_7d:    { since: daysBack(6),    until: todayStr },
+        last_30d:   { since: daysBack(29),   until: todayStr },
+        last_month: { since: (() => { const d = new Date(now); d.setDate(1); d.setMonth(d.getMonth()-1); return d.toISOString().slice(0,10); })(),
+                      until: (() => { const d = new Date(now); d.setDate(0); return d.toISOString().slice(0,10); })() },
+        this_month: { since: firstOfMonth(), until: todayStr },
+        this_year:  { since: firstOfYear(),  until: todayStr },
+      };
+      const mapped = map[q.date];
+      if (mapped) { since = mapped.since; until = mapped.until; }
+    }
+
+    const sinceUtc = since ? new Date(new Date(since + 'T00:00:00Z').getTime() - tzMs).toISOString() : undefined;
+    const untilUtc = until ? new Date(new Date(until + 'T23:59:59Z').getTime() - tzMs).toISOString() : undefined;
 
     const [sales, totalEarned] = await Promise.all([
       getSales(user.id, sinceUtc, untilUtc),
