@@ -5067,6 +5067,19 @@ async function init() {
     return;
   }
 
+  // Accounts vacío por rate limit pero hay token: usar cuenta guardada y continuar
+  if (!accountsResult.length && S.token) {
+    const saved = S.user?.meta_account_id || localStorage.getItem('meta_account');
+    if (saved) {
+      S.account = saved;
+      document.getElementById('accountSelect').innerHTML = `<option value="${saved}">${saved}</option>`;
+      loadOverview();
+      return;
+    }
+    showToast('Meta API temporalmente limitada — intenta en 1 minuto', true);
+    return;
+  }
+
   const accounts = accountsResult;
   S.accounts = accounts;
 

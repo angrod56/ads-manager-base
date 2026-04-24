@@ -171,7 +171,8 @@ const GET = {
   },
 
   '/api/accounts': async (res, q, user) => {
-    const accounts = await listAccounts(q.token);
+    const cKey    = `accounts:${q.token?.slice(-8) || 'env'}`;
+    const accounts = await cachedMeta(cKey, () => listAccounts(q.token));
     const isAdmin  = user?.role === 'admin';
     const plan     = user?.plan || 'basic';
     const limit    = isAdmin ? Infinity : (PLAN_LIMITS[plan]?.metaAccounts ?? 5);
