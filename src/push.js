@@ -46,8 +46,9 @@ export async function sendPushToUser(userId, payload) {
 
   console.log(`[Push] Enviando a ${subs.length} dispositivo(s) de user ${userId}`);
 
+  const options = { urgency: 'high', TTL: 60 };
   const results = await Promise.allSettled(
-    subs.map(s => webpush.sendNotification(s.subscription, JSON.stringify(payload)))
+    subs.map(s => webpush.sendNotification(s.subscription, JSON.stringify(payload), options))
   );
 
   results.forEach((r, i) => {

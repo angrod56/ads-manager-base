@@ -1505,7 +1505,7 @@
       <div style="margin-bottom:14px">
         <label style="font-size:11px;color:var(--muted);font-weight:600;display:block;margin-bottom:4px">URL DE CHECKOUT HOTMART (base — la misma para todas)</label>
         <input id="utmHotmartUrl" type="text" placeholder="https://pay.hotmart.com/TU_PRODUCTO"
-          oninput="buildUtmUrls()"
+          oninput="buildUtmUrls();saveUtmState()"
           style="width:100%;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px">
       </div>
 
@@ -3642,7 +3642,7 @@ function showSection(name) {
   if (name === 'sales') loadSales();
   if (name === 'config') loadConfig();
   if (name === 'tutorials') loadTutorials();
-  if (name === 'utm') { loadUtmStats(); if (!_utmRowCount) addUtmRow(); }
+  if (name === 'utm') { loadUtmStats(); if (!_utmRowCount) { if (!restoreUtmState()) addUtmRow(); } }
   if (name === 'admin') { loadAdminUsers(); loadAdminAnnouncements(); loadTutorials(); }
 }
 
@@ -4433,6 +4433,32 @@ function renderUtmCharts(rows) {
   });
 }
 
+const UTM_STORAGE_KEY = () => `utm_generator_${S.user?.id || 'default'}`;
+
+function saveUtmState() {
+  const base = document.getElementById('utmHotmartUrl')?.value.trim() || '';
+  const names = [];
+  document.querySelectorAll('[id^="utmRow-"]').forEach(row => {
+    const val = row.querySelector('input')?.value.trim();
+    if (val !== undefined) names.push(val);
+  });
+  try { localStorage.setItem(UTM_STORAGE_KEY(), JSON.stringify({ base, names })); } catch {}
+}
+
+function restoreUtmState() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(UTM_STORAGE_KEY()) || 'null');
+    if (!saved) return false;
+    const urlInput = document.getElementById('utmHotmartUrl');
+    if (urlInput && saved.base) urlInput.value = saved.base;
+    if (saved.names?.length) {
+      saved.names.forEach(n => addUtmRow(n));
+      return true;
+    }
+  } catch {}
+  return false;
+}
+
 function addUtmRow(name = '') {
   const id = ++_utmRowCount;
   const container = document.getElementById('utmCampaignRows');
@@ -4442,11 +4468,11 @@ function addUtmRow(name = '') {
   div.style.cssText = 'display:flex;gap:8px;align-items:center';
   div.innerHTML = `
     <input type="text" placeholder="Nombre campaña/anuncio (ej: MAYO_VIDEO1)" value="${name}"
-      oninput="buildUtmUrls()"
+      oninput="buildUtmUrls();saveUtmState()"
       style="flex:1;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-size:12px">
     <code id="utmOut-${id}" style="flex:2;padding:7px 10px;background:rgba(0,0,0,.35);border:1px solid rgba(79,142,247,.2);border-radius:8px;font-size:11px;color:#a5f3fc;word-break:break-all;min-height:34px;display:flex;align-items:center">—</code>
     <button onclick="copyUtmRowUrl(${id})" id="utmCopyRow-${id}" style="flex-shrink:0;background:rgba(79,142,247,.2);border:1px solid rgba(79,142,247,.4);border-radius:6px;padding:6px 12px;color:#4f8ef7;font-size:11px;cursor:pointer;white-space:nowrap">Copiar</button>
-    <button onclick="document.getElementById('utmRow-${id}').remove();buildUtmUrls()" style="flex-shrink:0;background:rgba(255,80,80,.1);border:1px solid rgba(255,80,80,.2);border-radius:6px;padding:6px 8px;color:#f87171;font-size:11px;cursor:pointer">✕</button>`;
+    <button onclick="document.getElementById('utmRow-${id}').remove();buildUtmUrls();saveUtmState()" style="flex-shrink:0;background:rgba(255,80,80,.1);border:1px solid rgba(255,80,80,.2);border-radius:6px;padding:6px 8px;color:#f87171;font-size:11px;cursor:pointer">✕</button>`;
   container.appendChild(div);
   buildUtmUrls();
 }
