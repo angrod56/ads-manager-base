@@ -28,22 +28,30 @@ export async function processHotmartEvent(payload, userId) {
     || purchase.price?.value
     || 0;
 
+  const trackingSource = purchase.tracking_source || null;
+  const trackingCode   = purchase.tracking_code   || purchase.xod || null;
+
   const sale = {
-    id:           purchase.transaction || `${Date.now()}`,
-    user_id:      userId,
-    product_name: product.name || '—',
-    product_id:   String(product.id || ''),
-    buyer_email:  buyer.email || null,
-    buyer_name:   buyer.name  || null,
-    amount:       purchase.price?.value || 0,
-    currency:     'USD',
+    id:              purchase.transaction || `${Date.now()}`,
+    user_id:         userId,
+    product_name:    product.name || '—',
+    product_id:      String(product.id || ''),
+    buyer_email:     buyer.email || null,
+    buyer_name:      buyer.name  || null,
+    amount:          purchase.price?.value || 0,
+    currency:        'USD',
     commission,
     status,
-    payment_type: purchase.payment?.type || null,
-    hotmart_event: event,
-    sale_date:    purchase.approved_date
+    payment_type:    purchase.payment?.type || null,
+    hotmart_event:   event,
+    sale_date:       purchase.approved_date
       ? new Date(purchase.approved_date).toISOString()
       : new Date().toISOString(),
+    tracking_source: trackingSource,
+    utm_campaign:    trackingSource || null,
+    utm_content:     trackingCode   || null,
+    utm_source:      trackingSource ? 'meta' : null,
+    utm_medium:      trackingSource ? 'paid' : null,
   };
 
   const { error } = await supabaseAdmin

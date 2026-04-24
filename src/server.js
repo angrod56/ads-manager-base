@@ -104,6 +104,30 @@ const SERVER_START = Date.now();
 
 const GET = {
 
+  '/r': async (res, q, _user, _body, req) => {
+    const { u: userId, url, utm_campaign, utm_content, utm_source = 'meta', utm_medium = 'paid' } = q;
+    if (!userId || !url) { res.writeHead(400); return res.end('Parámetros inválidos'); }
+
+    // Registrar click (fire-and-forget)
+    const rawIp = (req?.headers?.['x-forwarded-for'] || req?.socket?.remoteAddress || '').split(',')[0].trim();
+    const ip = rawIp.split('.').slice(0, 3).join('.') + '.0';
+    supabaseAdmin.from('utm_clicks').insert({
+      user_id: userId, utm_campaign, utm_content, utm_source, utm_medium,
+      destination: url, ip,
+    }).then(() => {}).catch(() => {});
+
+    // Construir URL destino con params de tracking para Hotmart
+    try {
+      const dest = new URL(decodeURIComponent(url));
+      if (utm_campaign) dest.searchParams.set('src',  utm_campaign.slice(0, 50));
+      if (utm_content)  dest.searchParams.set('xcod', utm_content.slice(0, 50));
+      res.writeHead(302, { Location: dest.toString() });
+    } catch {
+      res.writeHead(302, { Location: decodeURIComponent(url) });
+    }
+    res.end();
+  },
+
   '/api/version': async (res) => {
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache, no-store', 'Access-Control-Allow-Origin': '*' });
     res.end(JSON.stringify({ v: SERVER_START }));
@@ -762,6 +786,58 @@ const GET = {
     json(res, data || []);
   },
 
+  // ── UTM: estadísticas de atribución ──────────────────────────────────────────
+  '/api/utm/stats': async (res, q, user) => {
+    if (!user) return err(res, 'No autorizado', 401);
+
+    const tzH  = parseFloat(q.tz || '0') || 0;
+    const tzMs = tzH * 3600000;
+    const sinceUtc = q.since ? new Date(new Date(q.since + 'T00:00:00Z').getTime() - tzMs).toISOString() : undefined;
+    const untilUtc = q.until ? new Date(new Date(q.until + 'T23:59:59Z').getTime() - tzMs).toISOString() : undefined;
+
+    const group = q.group === 'content' ? 'utm_content' : 'utm_campaign';
+
+    let clicksQ = supabaseAdmin
+      .from('utm_clicks')
+      .select('utm_campaign, utm_content, clicked_at')
+      .eq('user_id', user.id);
+    if (sinceUtc) clicksQ = clicksQ.gte('clicked_at', sinceUtc);
+    if (untilUtc) clicksQ = clicksQ.lte('clicked_at', untilUtc);
+
+    let salesQ = supabaseAdmin
+      .from('sales')
+      .select('utm_campaign, utm_content, commission, amount, status, sale_date')
+      .eq('user_id', user.id)
+      .eq('status', 'approved');
+    if (sinceUtc) salesQ = salesQ.gte('sale_date', sinceUtc);
+    if (untilUtc) salesQ = salesQ.lte('sale_date', untilUtc);
+
+    const [{ data: clicks }, { data: sales }] = await Promise.all([clicksQ, salesQ]);
+
+    const map = {};
+    const key = r => (group === 'utm_content' ? r.utm_content : r.utm_campaign) || '(sin tracking)';
+
+    for (const c of clicks || []) {
+      const k = key(c);
+      if (!map[k]) map[k] = { label: k, clicks: 0, sales: 0, revenue: 0 };
+      map[k].clicks++;
+    }
+    for (const s of sales || []) {
+      const k = key(s);
+      if (!map[k]) map[k] = { label: k, clicks: 0, sales: 0, revenue: 0 };
+      map[k].sales++;
+      map[k].revenue += s.commission || s.amount || 0;
+    }
+
+    const rows = Object.values(map).map(r => ({
+      ...r,
+      conversion: r.clicks > 0 ? (r.sales / r.clicks) * 100 : null,
+      revenuePerClick: r.clicks > 0 ? r.revenue / r.clicks : null,
+    })).sort((a, b) => b.revenue - a.revenue);
+
+    json(res, { rows, group });
+  },
+
   // ── Tutoriales: obtener videos configurados ───────────────────────────────────
   '/api/tutorials': async (res, _q, _user) => {
     const { data } = await supabaseAdmin
@@ -1066,7 +1142,7 @@ http.createServer(async (req, res) => {
   const PUBLIC_ROUTES = [
     '/api/auth/login', '/api/auth/register', '/api/auth/refresh',
     '/api/auth/forgot-password', '/api/auth/set-password',
-    '/api/config', '/api/announcements', '/webhook/hotmart', '/webhook/hotmart-billing',
+    '/api/config', '/api/announcements', '/webhook/hotmart', '/webhook/hotmart-billing', '/r',
   ];
 
   // Webhook Hotmart billing (compras de planes)
@@ -1096,7 +1172,7 @@ http.createServer(async (req, res) => {
       }
     }
 
-    if (req.method === 'GET' && GET[path2]) return await GET[path2](res, q, user);
+    if (req.method === 'GET' && GET[path2]) return await GET[path2](res, q, user, null, req);
     if (req.method === 'POST' && POST[path2]) return await POST[path2](res, req, user, q);
   } catch (e) {
     console.error(`[Error] ${path2}:`, e.message);

@@ -1179,6 +1179,9 @@
   <div class="nav-item" data-section="sales" onclick="showSection('sales')">
     <span class="nav-icon">💰</span> Ventas
   </div>
+  <div class="nav-item" data-section="utm" onclick="showSection('utm')">
+    <span class="nav-icon">🔗</span> UTM Tracking
+  </div>
   <div class="nav-item" data-section="tutorials" onclick="showSection('tutorials')">
     <span class="nav-icon">🎬</span> Tutoriales
   </div>
@@ -1476,6 +1479,78 @@
       <div style="color:var(--muted);font-size:13px;padding:40px;text-align:center">Cargando tutoriales…</div>
     </div>
   </div><!-- /section-tutorials -->
+
+  <!-- ── SECTION: UTM Tracking ── -->
+  <div class="section" id="section-utm">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px">
+      <div>
+        <h2 style="font-size:20px;font-weight:800;margin-bottom:2px">🔗 UTM Tracking</h2>
+        <p style="color:var(--muted);font-size:13px;margin:0">Atribución de ventas por campaña y anuncio</p>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <select id="utmGroupSel" onchange="utmGroupMode=this.value;loadUtmStats()" style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-size:13px">
+          <option value="campaign">Por campaña</option>
+          <option value="content">Por anuncio</option>
+        </select>
+        <button onclick="loadUtmStats()" style="background:rgba(79,142,247,.15);border:1px solid rgba(79,142,247,.3);border-radius:8px;padding:6px 14px;color:#4f8ef7;font-size:13px;cursor:pointer">↺ Actualizar</button>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:20px">
+      <div class="card" style="padding:14px 16px">
+        <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px">CLICS RASTREADOS</div>
+        <div id="utmKpiClicks" class="kpi-value" style="font-size:22px">—</div>
+      </div>
+      <div class="card" style="padding:14px 16px">
+        <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px">VENTAS ATRIBUIDAS</div>
+        <div id="utmKpiSales" class="kpi-value green" style="font-size:22px">—</div>
+      </div>
+      <div class="card" style="padding:14px 16px">
+        <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px">REVENUE ATRIBUIDO</div>
+        <div id="utmKpiRevenue" class="kpi-value green" style="font-size:22px">—</div>
+      </div>
+      <div class="card" style="padding:14px 16px">
+        <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px">CONVERSIÓN MEDIA</div>
+        <div id="utmKpiConv" class="kpi-value" style="font-size:22px">—</div>
+      </div>
+    </div>
+
+    <!-- Tabla -->
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th id="utmColLabel">Campaña</th>
+              <th class="num">Clics</th>
+              <th class="num">Ventas</th>
+              <th class="num">Revenue</th>
+              <th class="num" title="Ventas / Clics × 100">Conv. %</th>
+              <th class="num" title="Revenue / Clics">Rev./Click</th>
+            </tr>
+          </thead>
+          <tbody id="utmTableBody">
+            <tr><td colspan="6" class="empty"><div class="empty-icon">🔗</div><div>Cargando datos…</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Instrucciones -->
+    <div class="card" style="margin-top:16px;padding:18px 20px">
+      <div style="font-size:14px;font-weight:700;margin-bottom:12px">📋 Cómo configurar el tracking</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.7">
+        <strong style="color:var(--text)">1. URL de tracking para tus anuncios en Meta:</strong><br>
+        <code id="utmExampleUrl" style="display:block;margin:8px 0;padding:10px 12px;background:rgba(0,0,0,.3);border-radius:8px;font-size:11px;word-break:break-all;border:1px solid var(--border)">Cargando…</code>
+        <span style="font-size:11px">Reemplaza <strong>NOMBRE_CAMPAÑA</strong> y <strong>NOMBRE_ANUNCIO</strong> con valores cortos (máx 50 caracteres, sin espacios).</span>
+        <br><br>
+        <strong style="color:var(--text)">2. En Meta Ads:</strong> Pega esta URL como "URL del sitio web" en cada anuncio.<br>
+        <strong style="color:var(--text)">3. En Hotmart:</strong> Verifica que tu producto tenga activados los "Parámetros de rastreamento" en Checkout → Configuración avanzada.<br>
+        <strong style="color:var(--text)">4. Prueba:</strong> Abre la URL de tracking en el navegador — debe redirigirte a Hotmart con <code>?src=NOMBRE_CAMPAÑA</code> al final.
+      </div>
+    </div>
+  </div><!-- /section-utm -->
 
   <!-- Modal pantalla completa tutoriales -->
   <div id="tutorialModal" onclick="closeTutorialModal(event)" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.92);align-items:center;justify-content:center;padding:16px">
@@ -3492,6 +3567,7 @@ function showSection(name) {
   if (name === 'sales') loadSales();
   if (name === 'config') loadConfig();
   if (name === 'tutorials') loadTutorials();
+  if (name === 'utm') loadUtmStats();
   if (name === 'admin') { loadAdminUsers(); loadAdminAnnouncements(); loadTutorials(); }
 }
 
@@ -4235,6 +4311,71 @@ async function deleteAnn(id) {
   });
   loadAdminAnnouncements();
   loadAnnouncements();
+}
+
+// ── UTM Tracking ─────────────────────────────────────────────────────────────
+let utmGroupMode = 'campaign';
+
+async function loadUtmStats() {
+  const tbody = document.getElementById('utmTableBody');
+  const colLabel = document.getElementById('utmColLabel');
+  if (colLabel) colLabel.textContent = utmGroupMode === 'content' ? 'Anuncio' : 'Campaña';
+  if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="empty"><div class="empty-icon">⏳</div><div>Cargando…</div></td></tr>`;
+
+  try {
+    const p = new URLSearchParams();
+    p.set('group', utmGroupMode);
+    p.set('tz', String(TZ_OFFSET_H));
+    if (S.since) p.set('since', S.since);
+    if (S.until) p.set('until', S.until);
+    const d = await api('/api/utm/stats?' + p.toString());
+
+    // KPIs
+    const totalClicks  = d.rows.filter(r => r.label !== '(sin tracking)').reduce((s,r) => s + r.clicks, 0);
+    const totalSales   = d.rows.reduce((s,r) => s + r.sales, 0);
+    const totalRevenue = d.rows.reduce((s,r) => s + r.revenue, 0);
+    const trackedRows  = d.rows.filter(r => r.label !== '(sin tracking)' && r.clicks > 0);
+    const avgConv      = trackedRows.length
+      ? trackedRows.reduce((s,r) => s + (r.conversion || 0), 0) / trackedRows.length : null;
+
+    const setKpi = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    setKpi('utmKpiClicks',  fmt.num(totalClicks));
+    setKpi('utmKpiSales',   fmt.num(totalSales));
+    setKpi('utmKpiRevenue', fmt.usd(totalRevenue));
+    setKpi('utmKpiConv',    avgConv !== null ? avgConv.toFixed(1) + '%' : '—');
+
+    // URL de ejemplo
+    const exUrl = document.getElementById('utmExampleUrl');
+    if (exUrl) {
+      const base = location.origin;
+      exUrl.textContent = `${base}/r?u=${S.user?.id || 'TU_USER_ID'}&url=https://pay.hotmart.com/TU_PRODUCTO&utm_campaign=NOMBRE_CAMPAÑA&utm_content=NOMBRE_ANUNCIO&utm_source=meta&utm_medium=paid`;
+    }
+
+    renderUtmTable(d.rows);
+  } catch(e) {
+    if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="empty"><div>Error: ${e.message}</div></td></tr>`;
+  }
+}
+
+function renderUtmTable(rows) {
+  const tbody = document.getElementById('utmTableBody');
+  if (!tbody) return;
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="6" class="empty"><div class="empty-icon">🔗</div><div>Sin datos aún — configura las URLs de tracking en tus anuncios</div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map(r => {
+    const isSin = r.label === '(sin tracking)';
+    const convCls = r.conversion === null ? 'muted' : r.conversion >= 3 ? 'green' : r.conversion >= 1 ? '' : 'red';
+    return `<tr style="${isSin ? 'opacity:.5' : ''}">
+      <td style="font-size:13px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.label}">${isSin ? '<span style="color:var(--muted)">Sin tracking (orgánico/directo)</span>' : r.label}</td>
+      <td class="num">${r.clicks > 0 ? fmt.num(r.clicks) : '<span class="muted">—</span>'}</td>
+      <td class="num ${r.sales > 0 ? 'green' : 'muted'}" style="font-weight:${r.sales>0?'700':'400'}">${r.sales || 0}</td>
+      <td class="num ${r.revenue > 0 ? 'green' : 'muted'}">${fmt.usd(r.revenue)}</td>
+      <td class="num ${convCls}">${r.conversion !== null ? r.conversion.toFixed(1) + '%' : '—'}</td>
+      <td class="num muted">${r.revenuePerClick !== null ? fmt.usd(r.revenuePerClick) : '—'}</td>
+    </tr>`;
+  }).join('');
 }
 
 // ── Tutoriales ────────────────────────────────────────────────────────────────
