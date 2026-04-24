@@ -23,20 +23,21 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
 const PUBLIC = path.join(__dirname, '..', 'public');
 
-// ── Caché en memoria para llamadas a Meta API (TTL: 2 min) ────────────────────
+// ── Caché en memoria para llamadas a Meta API (TTL: 10 min) ───────────────────
 const _cache = new Map();
-const CACHE_TTL = 2 * 60 * 1000; // 2 minutos
+const CACHE_TTL     = 10 * 60 * 1000; // 10 minutos — endpoints de métricas
+const CACHE_TTL_IMG =  5 * 60 * 1000; //  5 minutos — previews/creativos
 
-function cacheGet(key) {
+function cacheGet(key, ttl = CACHE_TTL) {
   const entry = _cache.get(key);
   if (!entry) return null;
-  if (Date.now() - entry.ts > CACHE_TTL) { _cache.delete(key); return null; }
+  if (Date.now() - entry.ts > ttl) { _cache.delete(key); return null; }
   return entry.data;
 }
 function cacheSet(key, data) { _cache.set(key, { ts: Date.now(), data }); }
 
-async function cachedMeta(key, fn) {
-  const cached = cacheGet(key);
+async function cachedMeta(key, fn, ttl = CACHE_TTL) {
+  const cached = cacheGet(key, ttl);
   if (cached) return cached;
   const data = await fn();
   cacheSet(key, data);
@@ -432,49 +433,58 @@ const GET = {
   '/api/top-ads': async (res, q) => {
     if (!q.account) return err(res, 'account requerido', 400);
 
-    const insights = await getInsights(q.account, { ...dateOpts(q), level: 'ad' }, q.token);
-
-    const mapped = insights.map(row => {
-      const spend     = parseFloat(row.spend || 0);
-      const purchases = getActionValue(row.actions || [], 'purchase');
-      const revenue   = getRevenue(row.action_values || []);
-      const roas      = getRoas(row.purchase_roas || [], spend, revenue);
-      return {
-        id:           row.ad_id,
-        name:         row.ad_name || row.ad_id,
-        campaignId:   row.campaign_id,
-        campaignName: row.campaign_name || '—',
-        adsetName:    row.adset_name   || '—',
-        spend, purchases, revenue, roas,
-        cpa:          calcCPA(spend, purchases),
-        ctr:          parseFloat(row.ctr || 0),
-        cpm:          parseFloat(row.cpm || 0),
-        impressions:  parseInt(row.impressions || 0),
-        clicks:       parseInt(row.clicks || 0),
-        frequency:    parseFloat(row.frequency || 0),
-      };
-    }).sort((a, b) =>
-      b.purchases - a.purchases ||
-      b.revenue   - a.revenue   ||
-      b.spend     - a.spend
-    ).slice(0, parseInt(q.limit || '5'));
-
     const format = q.format || 'MOBILE_FEED_STANDARD';
+    const limit  = parseInt(q.limit || '5');
+    const cKey   = `top-ads:${q.account}:${q.date||''}:${q.since||''}:${q.until||''}:${format}:${limit}`;
 
-    // Preview + creativo en paralelo para cada ad
-    const withPreviews = await Promise.all(mapped.map(async ad => {
-      const [preview, creative] = await Promise.allSettled([
-        getAdPreview(ad.id, format, q.token),
-        getAdCreative(ad.id, q.token),
-      ]);
-      return {
-        ...ad,
-        preview:   preview.status   === 'fulfilled' ? preview.value   : null,
-        thumbnail: creative.status  === 'fulfilled' ? creative.value?.thumbnail_url || null : null,
-        imageUrl:  creative.status  === 'fulfilled' ? creative.value?.image_url     || null : null,
-        objectType: creative.status === 'fulfilled' ? creative.value?.object_type   || null : null,
-      };
-    }));
+    const withPreviews = await cachedMeta(cKey, async () => {
+      const insights = await getInsights(q.account, { ...dateOpts(q), level: 'ad' }, q.token);
+
+      const mapped = insights.map(row => {
+        const spend     = parseFloat(row.spend || 0);
+        const purchases = getActionValue(row.actions || [], 'purchase');
+        const revenue   = getRevenue(row.action_values || []);
+        const roas      = getRoas(row.purchase_roas || [], spend, revenue);
+        return {
+          id:           row.ad_id,
+          name:         row.ad_name || row.ad_id,
+          campaignId:   row.campaign_id,
+          campaignName: row.campaign_name || '—',
+          adsetName:    row.adset_name   || '—',
+          spend, purchases, revenue, roas,
+          cpa:          calcCPA(spend, purchases),
+          ctr:          parseFloat(row.ctr || 0),
+          cpm:          parseFloat(row.cpm || 0),
+          impressions:  parseInt(row.impressions || 0),
+          clicks:       parseInt(row.clicks || 0),
+          frequency:    parseFloat(row.frequency || 0),
+        };
+      }).sort((a, b) =>
+        b.purchases - a.purchases ||
+        b.revenue   - a.revenue   ||
+        b.spend     - a.spend
+      ).slice(0, limit);
+
+      // Preview + creativo en paralelo para cada ad (cacheado con TTL de imagen)
+      return Promise.all(mapped.map(async ad => {
+        const imgKey = `ad-creative:${ad.id}:${format}`;
+        const cached = cacheGet(imgKey, CACHE_TTL_IMG);
+        if (cached) return { ...ad, ...cached };
+
+        const [preview, creative] = await Promise.allSettled([
+          getAdPreview(ad.id, format, q.token),
+          getAdCreative(ad.id, q.token),
+        ]);
+        const imgs = {
+          preview:    preview.status   === 'fulfilled' ? preview.value   : null,
+          thumbnail:  creative.status  === 'fulfilled' ? creative.value?.thumbnail_url || null : null,
+          imageUrl:   creative.status  === 'fulfilled' ? creative.value?.image_url     || null : null,
+          objectType: creative.status  === 'fulfilled' ? creative.value?.object_type   || null : null,
+        };
+        if (imgs.preview || imgs.thumbnail) cacheSet(imgKey, imgs);
+        return { ...ad, ...imgs };
+      }));
+    }, CACHE_TTL_IMG);
 
     json(res, withPreviews);
   },
