@@ -1,4 +1,4 @@
-const VERSION = 7;
+const VERSION = 8;
 
 self.addEventListener('install', e => { self.skipWaiting(); });
 
@@ -17,22 +17,21 @@ self.addEventListener('push', e => {
 
   e.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      const isCancel = data.type === 'cancel';
       // Notificar clientes abiertos para reproducir sonido inmediatamente
-      clientList.forEach(c => c.postMessage({ type: 'SALE_SOUND' }));
+      clientList.forEach(c => c.postMessage({ type: isCancel ? 'CANCEL_SOUND' : 'SALE_SOUND' }));
 
-      // Guardar flag en SW storage para que al abrir la app suene
       const isIOS = /iphone|ipad|ipod/i.test(self.navigator?.userAgent || '');
       return self.registration.showNotification(data.title || '💰 Nueva venta', {
         body:    data.body || 'Tienes una nueva comisión',
         icon:    '/icon-192.svg',
         badge:   '/icon-192.svg',
-        tag:     'sale-notification',
+        tag:     isCancel ? 'cancel-notification' : 'sale-notification',
         renotify: true,
         data:    { ...data, pendingSound: true },
-        // vibrate y actions no soportados en iOS — solo agregar en otros
         ...(isIOS ? {} : {
-          vibrate: [200, 100, 200, 100, 400],
-          actions: [{ action: 'open', title: 'Ver venta' }],
+          vibrate: isCancel ? [400, 200, 400] : [200, 100, 200, 100, 400],
+          actions: [{ action: 'open', title: isCancel ? 'Ver detalle' : 'Ver venta' }],
         }),
       });
     })

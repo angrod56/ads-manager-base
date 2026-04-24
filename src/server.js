@@ -1087,18 +1087,32 @@ const POST = {
     const result = await processHotmartEvent(payload, ownerId);
     console.log('[Hotmart] Resultado:', JSON.stringify({ ok: result.ok, status: result.sale?.status, commission: result.commission, ignored: result.ignored }));
 
-    // Notificación push si la venta fue aprobada
-    if (result.ok && result.sale && result.sale.status === 'approved') {
-      const sale  = result.sale;
-      const fmt   = new Intl.NumberFormat('en-US', { style: 'currency', currency: sale.currency || 'USD' });
-      const buyer = sale.buyer_name || sale.buyer_email || 'Cliente';
-      const comm  = fmt.format(result.commission);
-      sendPushToUser(ownerId, {
-        title: `💰 Venta realizada en Hotmart`,
-        body:  `🛍 ${sale.product_name}\n👤 ${buyer}\n💵 Tu comisión: ${comm}`,
-        icon:  '/icon-192.svg',
-        data:  { product: sale.product_name, buyer, commission: comm },
-      }).catch(e => console.error('[Push]', e.message));
+    // Notificación push según estado de la venta
+    if (result.ok && result.sale) {
+      const sale   = result.sale;
+      const fmt    = new Intl.NumberFormat('en-US', { style: 'currency', currency: sale.currency || 'USD' });
+      const buyer  = sale.buyer_name || sale.buyer_email || 'Cliente';
+      const comm   = fmt.format(result.commission || sale.amount || 0);
+      const CANCEL = ['canceled', 'refunded', 'chargeback'];
+
+      if (sale.status === 'approved' || sale.status === 'complete') {
+        sendPushToUser(ownerId, {
+          type:  'sale',
+          title: `💰 Venta realizada en Hotmart`,
+          body:  `🛍 ${sale.product_name}\n👤 ${buyer}\n💵 Tu comisión: ${comm}`,
+          icon:  '/icon-192.svg',
+          data:  { type: 'sale', product: sale.product_name, buyer, commission: comm },
+        }).catch(e => console.error('[Push]', e.message));
+      } else if (CANCEL.includes(sale.status)) {
+        const label = sale.status === 'chargeback' ? 'Chargeback' : sale.status === 'refunded' ? 'Reembolso' : 'Cancelación';
+        sendPushToUser(ownerId, {
+          type:  'cancel',
+          title: `⚠️ ${label} en Hotmart`,
+          body:  `🛍 ${sale.product_name}\n👤 ${buyer}\n💸 ${comm}`,
+          icon:  '/icon-192.svg',
+          data:  { type: 'cancel', product: sale.product_name, buyer, amount: comm },
+        }).catch(e => console.error('[Push]', e.message));
+      }
     }
 
     json(res, result);

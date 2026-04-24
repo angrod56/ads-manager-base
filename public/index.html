@@ -5424,6 +5424,34 @@ function playCashRegister() {
   } catch(e) {}
 }
 
+function playCancelAlert() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    const ctx = new AC();
+    const tone = (freq, t, vol, decay) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, t);
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.5, t + decay);
+      gain.gain.setValueAtTime(vol, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + decay);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(t); osc.stop(t + decay + 0.05);
+    };
+    const play = () => {
+      const n = ctx.currentTime;
+      // Tres tonos descendentes — señal de alerta
+      tone(440, n,        0.5, 0.25);
+      tone(330, n + 0.28, 0.5, 0.25);
+      tone(220, n + 0.56, 0.6, 0.40);
+    };
+    if (ctx.state === 'suspended') ctx.resume().then(play);
+    else play();
+  } catch(e) {}
+}
+
 // Escuchar mensajes del service worker
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('message', e => {
@@ -5431,6 +5459,11 @@ if ('serviceWorker' in navigator) {
       playCashRegister();
       document.title = '💰 VENTA! ' + new Date().toLocaleTimeString();
       setTimeout(() => { document.title = 'Adsmanager PRO'; }, 3000);
+    }
+    if (e.data?.type === 'CANCEL_SOUND') {
+      playCancelAlert();
+      document.title = '⚠️ Cancelación · ' + new Date().toLocaleTimeString();
+      setTimeout(() => { document.title = 'Adsmanager PRO'; }, 4000);
     }
     if (e.data?.type === 'SW_UPDATED') {
       window.location.reload();
