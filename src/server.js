@@ -746,8 +746,8 @@ const GET = {
       getTotalEarned(user.id),
     ]);
 
-    const approved  = sales.filter(s => s.status === 'approved');
-    const refunded  = sales.filter(s => s.status === 'refunded' || s.status === 'chargeback');
+    const approved  = sales.filter(s => s.status === 'approved' || s.status === 'complete');
+    const refunded  = sales.filter(s => ['refunded', 'chargeback', 'canceled'].includes(s.status));
     const pending   = sales.filter(s => s.status === 'pending');
 
     const revenue    = approved.reduce((a, s) => a + (s.commission || s.amount || 0), 0);
