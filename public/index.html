@@ -176,6 +176,15 @@
     }
     .chart-wrap { position: relative; height: 240px; }
 
+    /* ── Reports range buttons ── */
+    .rpt-range {
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+      padding: 6px 14px; color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer;
+      transition: all .2s;
+    }
+    .rpt-range:hover { border-color: var(--blue); color: var(--blue); }
+    .rpt-range.active { background: rgba(79,142,247,.15); border-color: var(--blue); color: var(--blue); }
+
     /* ── Campaigns table ── */
     .table-controls {
       display: flex;
@@ -1182,6 +1191,9 @@
   <div class="nav-item" data-section="utm" onclick="showSection('utm')">
     <span class="nav-icon">🔗</span> UTM Tracking
   </div>
+  <div class="nav-item" data-section="reports" onclick="showSection('reports')">
+    <span class="nav-icon">📋</span> Informes
+  </div>
   <div class="nav-item" data-section="tutorials" onclick="showSection('tutorials')">
     <span class="nav-icon">🎬</span> Tutoriales
   </div>
@@ -1635,6 +1647,78 @@
       <div id="tutorialModalPlayer" style="width:100%;padding:0"></div>
     </div>
   </div>
+
+  <!-- ── SECTION: Informes ── -->
+  <div class="section" id="section-reports">
+
+    <!-- Header + selector de período -->
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px">
+      <h2 style="margin:0;font-size:18px;font-weight:800">📋 Informes</h2>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="rpt-range active" data-days="7"  onclick="setReportRange(7)">7 días</button>
+        <button class="rpt-range"        data-days="30" onclick="setReportRange(30)">30 días</button>
+        <button class="rpt-range"        data-days="90" onclick="setReportRange(90)">90 días</button>
+        <input id="rptFrom" type="date" onchange="setReportCustom()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-size:12px">
+        <input id="rptTo"   type="date" onchange="setReportCustom()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-size:12px">
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-grid" style="margin-bottom:20px">
+      <div class="kpi-card"><div class="kpi-label">Revenue</div><div class="kpi-value" id="rpt-revenue">—</div></div>
+      <div class="kpi-card"><div class="kpi-label">Gasto Meta</div><div class="kpi-value" id="rpt-spend">—</div></div>
+      <div class="kpi-card"><div class="kpi-label">ROAS</div><div class="kpi-value" id="rpt-roas">—</div></div>
+      <div class="kpi-card"><div class="kpi-label">Ventas</div><div class="kpi-value" id="rpt-sales">—</div></div>
+      <div class="kpi-card"><div class="kpi-label">Comisión</div><div class="kpi-value" id="rpt-commission">—</div></div>
+      <div class="kpi-card"><div class="kpi-label">Ticket prom.</div><div class="kpi-value" id="rpt-ticket">—</div></div>
+    </div>
+
+    <!-- Gráficos fila 1 -->
+    <div class="charts-grid" style="margin-bottom:16px">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Revenue vs Gasto diario</span></div>
+        <div class="chart-wrap"><canvas id="rptLineChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">ROAS diario</span></div>
+        <div class="chart-wrap"><canvas id="rptRoasChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Gráficos fila 2 -->
+    <div class="charts-grid" style="margin-bottom:16px">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Ventas por día</span></div>
+        <div class="chart-wrap"><canvas id="rptBarChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Revenue por campaña (UTM)</span></div>
+        <div style="position:relative;height:240px"><canvas id="rptCampaignChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Tabla por campaña -->
+    <div class="card">
+      <div class="card-header"><span class="card-title">Detalle por campaña</span></div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead>
+            <tr style="color:var(--muted);font-size:11px;font-weight:700;text-align:left">
+              <th style="padding:8px 12px;border-bottom:1px solid var(--border)">Campaña (UTM)</th>
+              <th style="padding:8px 12px;border-bottom:1px solid var(--border);text-align:right">Ventas</th>
+              <th style="padding:8px 12px;border-bottom:1px solid var(--border);text-align:right">Revenue</th>
+              <th style="padding:8px 12px;border-bottom:1px solid var(--border);text-align:right">Comisión</th>
+              <th style="padding:8px 12px;border-bottom:1px solid var(--border);text-align:right">Ticket prom.</th>
+            </tr>
+          </thead>
+          <tbody id="rptCampaignTableBody">
+            <tr><td colspan="5" style="padding:20px;text-align:center;color:var(--muted)">Cargando…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /section-reports -->
 
   <!-- ── SECTION: Configuración ── -->
   <div class="section" id="section-config">
@@ -3511,6 +3595,7 @@ const SECTION_PLAN = {
   projections:     'basic',
   recommendations: 'pro',
   utm:             'pro',
+  reports:         'pro',
 };
 
 const SECTION_LABEL = {
@@ -3520,6 +3605,7 @@ const SECTION_LABEL = {
   projections:     'Proyecciones',
   recommendations: 'Recomendaciones IA',
   utm:             'UTM Tracking',
+  reports:         'Informes',
 };
 
 const UPGRADE_LINK = {
@@ -3643,6 +3729,7 @@ function showSection(name) {
   if (name === 'config') loadConfig();
   if (name === 'tutorials') loadTutorials();
   if (name === 'utm') { loadUtmStats(); if (!_utmRowCount) { if (!restoreUtmState()) addUtmRow(); } }
+  if (name === 'reports') loadReports();
   if (name === 'admin') { loadAdminUsers(); loadAdminAnnouncements(); loadTutorials(); }
 }
 
@@ -5509,6 +5596,168 @@ function urlBase64ToUint8Array(base64String) {
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
   const raw = atob(base64);
   return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+// ── Módulo Informes ──────────────────────────────────────────────────────────
+let _rptDays = 7;
+let _rptLineChart = null, _rptRoasChart = null, _rptBarChart = null, _rptCampaignChart = null;
+
+function setReportRange(days) {
+  _rptDays = days;
+  document.querySelectorAll('.rpt-range').forEach(b => b.classList.toggle('active', +b.dataset.days === days));
+  document.getElementById('rptFrom').value = '';
+  document.getElementById('rptTo').value   = '';
+  loadReports();
+}
+
+function setReportCustom() {
+  const from = document.getElementById('rptFrom').value;
+  const to   = document.getElementById('rptTo').value;
+  if (!from || !to) return;
+  _rptDays = null;
+  document.querySelectorAll('.rpt-range').forEach(b => b.classList.remove('active'));
+  loadReports();
+}
+
+function _rptDateRange() {
+  if (_rptDays) {
+    const to   = new Date();
+    const from = new Date(); from.setDate(from.getDate() - _rptDays + 1);
+    return { since: from.toISOString().slice(0,10), until: to.toISOString().slice(0,10) };
+  }
+  return {
+    since: document.getElementById('rptFrom').value,
+    until: document.getElementById('rptTo').value,
+  };
+}
+
+function _destroyRptChart(ref) { try { ref?.destroy(); } catch {} return null; }
+
+function _rptFmt(n) { return new Intl.NumberFormat('en-US', { style:'currency', currency:'USD', maximumFractionDigits:0 }).format(n || 0); }
+
+async function loadReports() {
+  const { since, until } = _rptDateRange();
+
+  // Cargar sales (siempre) y overview Meta (solo si hay cuenta)
+  const [salesRes, overviewRes] = await Promise.allSettled([
+    api(`/api/sales?since=${since}&until=${until}`),
+    S.account ? api(`/api/overview?account=${S.account}&since=${since}&until=${until}`) : Promise.resolve(null),
+  ]);
+
+  const sales    = salesRes.status === 'fulfilled' ? (salesRes.value?.sales || []) : [];
+  const totals   = overviewRes.status === 'fulfilled' && overviewRes.value ? (overviewRes.value.totals || {}) : {};
+
+  const approved   = sales.filter(s => s.status === 'approved' || s.status === 'complete');
+  const revenue    = approved.reduce((s, x) => s + (x.amount || 0), 0);
+  const commission = approved.reduce((s, x) => s + (x.commission || x.amount || 0), 0);
+  const spend      = totals.spend || 0;
+  const roas       = spend > 0 ? revenue / spend : 0;
+  const ticket     = approved.length ? revenue / approved.length : 0;
+
+  document.getElementById('rpt-revenue').textContent    = _rptFmt(revenue);
+  document.getElementById('rpt-spend').textContent      = _rptFmt(spend);
+  document.getElementById('rpt-roas').textContent       = roas ? roas.toFixed(2) + 'x' : '—';
+  document.getElementById('rpt-sales').textContent      = approved.length;
+  document.getElementById('rpt-commission').textContent = _rptFmt(commission);
+  document.getElementById('rpt-ticket').textContent     = _rptFmt(ticket);
+
+  // Construir mapa de días
+  const dayMap = {};
+  const d = new Date(since);
+  const end = new Date(until);
+  while (d <= end) {
+    dayMap[d.toISOString().slice(0,10)] = { revenue: 0, sales: 0 };
+    d.setDate(d.getDate() + 1);
+  }
+  approved.forEach(s => {
+    const day = (s.sale_date || '').slice(0,10);
+    if (dayMap[day]) { dayMap[day].revenue += (s.amount || 0); dayMap[day].sales++; }
+  });
+  const labels  = Object.keys(dayMap).map(d => d.slice(5)); // MM-DD
+  const revenues = Object.values(dayMap).map(v => v.revenue);
+  const salesCnt = Object.values(dayMap).map(v => v.sales);
+
+  // ROAS diario: calculado con gasto total distribuido proporcionalmente al revenue
+  const totalRevForRoas = revenues.reduce((a, b) => a + b, 0);
+  const roasArr = revenues.map(r => spend > 0 && totalRevForRoas > 0 ? +(r / (spend * r / totalRevForRoas)).toFixed(2) : null);
+  const metaSpend = new Array(labels.length).fill(+(spend / labels.length).toFixed(2));
+
+  const rptOpts = { ...chartBase, interaction: { mode: 'index', intersect: false } };
+
+  // Gráfico 1: Revenue vs Gasto
+  _rptLineChart = _destroyRptChart(_rptLineChart);
+  _rptLineChart = new Chart(document.getElementById('rptLineChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Revenue', data: revenues, borderColor: '#06d6a0', backgroundColor: 'rgba(6,214,160,.08)', tension: .4, fill: true, pointRadius: 2 },
+        { label: 'Gasto Meta', data: metaSpend.slice(0, labels.length), borderColor: '#f87171', backgroundColor: 'rgba(248,113,113,.08)', tension: .4, fill: true, pointRadius: 2 },
+      ],
+    },
+    options: rptOpts,
+  });
+
+  // Gráfico 2: ROAS diario
+  _rptRoasChart = _destroyRptChart(_rptRoasChart);
+  _rptRoasChart = new Chart(document.getElementById('rptRoasChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'ROAS', data: roasArr, borderColor: '#4f8ef7', backgroundColor: 'rgba(79,142,247,.1)', tension: .4, fill: true, pointRadius: 2, spanGaps: true },
+        { label: 'Mínimo (1.2x)', data: new Array(labels.length).fill(1.2), borderColor: 'rgba(248,113,113,.5)', borderDash: [4,4], pointRadius: 0 },
+      ],
+    },
+    options: rptOpts,
+  });
+
+  // Gráfico 3: Ventas por día (barras)
+  _rptBarChart = _destroyRptChart(_rptBarChart);
+  _rptBarChart = new Chart(document.getElementById('rptBarChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{ label: 'Ventas', data: salesCnt, backgroundColor: 'rgba(155,93,229,.7)', borderRadius: 4 }],
+    },
+    options: chartBase,
+  });
+
+  // Gráfico 4 + Tabla: Por campaña UTM
+  const campMap = {};
+  approved.forEach(s => {
+    const k = s.utm_campaign || '(Sin UTM)';
+    if (!campMap[k]) campMap[k] = { revenue: 0, commission: 0, sales: 0 };
+    campMap[k].revenue    += (s.amount || 0);
+    campMap[k].commission += (s.commission || s.amount || 0);
+    campMap[k].sales++;
+  });
+  const camps = Object.entries(campMap).sort((a,b) => b[1].revenue - a[1].revenue);
+  const campColors = ['#4f8ef7','#9b5de5','#06d6a0','#ffd166','#f72585','#ff6b35','#a5f3fc','#fb7185'];
+
+  _rptCampaignChart = _destroyRptChart(_rptCampaignChart);
+  _rptCampaignChart = new Chart(document.getElementById('rptCampaignChart'), {
+    type: 'doughnut',
+    data: {
+      labels: camps.map(([k]) => k),
+      datasets: [{ data: camps.map(([,v]) => v.revenue), backgroundColor: campColors, borderWidth: 0, hoverOffset: 6 }],
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#8892b0', font: { size: 11 }, boxWidth: 12 } } } },
+  });
+
+  const tbody = document.getElementById('rptCampaignTableBody');
+  if (!camps.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="padding:20px;text-align:center;color:var(--muted)">Sin ventas con UTM en este período</td></tr>';
+  } else {
+    tbody.innerHTML = camps.map(([name, v]) => `
+      <tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:9px 12px;font-weight:600">${name}</td>
+        <td style="padding:9px 12px;text-align:right">${v.sales}</td>
+        <td style="padding:9px 12px;text-align:right;color:#06d6a0;font-weight:700">${_rptFmt(v.revenue)}</td>
+        <td style="padding:9px 12px;text-align:right">${_rptFmt(v.commission)}</td>
+        <td style="padding:9px 12px;text-align:right">${_rptFmt(v.sales ? v.revenue / v.sales : 0)}</td>
+      </tr>`).join('');
+  }
 }
 
 // Efecto de luz que sigue el cursor en los botones
