@@ -1519,6 +1519,60 @@
       </div>
     </div>
 
+    <!-- Parámetros dinámicos de Meta -->
+    <div class="card" style="margin-bottom:20px;padding:20px">
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px">🎯 Parámetros dinámicos de Meta Ads</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px">
+        En lugar de crear una URL por anuncio, usa estas variables en el campo <strong style="color:var(--text)">"Parámetros de URL"</strong> de tus anuncios. Meta las rellena automáticamente con el nombre real de cada campaña o anuncio.
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px">
+
+        <!-- Opción recomendada -->
+        <div style="background:rgba(6,214,160,.06);border:1px solid rgba(6,214,160,.2);border-radius:10px;padding:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+            <div>
+              <div style="font-size:11px;font-weight:700;color:#06d6a0;margin-bottom:4px">⭐ RECOMENDADO — Por anuncio + campaña</div>
+              <code style="font-size:12px;color:#a5f3fc">src={{ad.name}}&xcod={{campaign.name}}</code>
+              <div style="font-size:11px;color:var(--muted);margin-top:4px">Identifica cada anuncio individual y la campaña a la que pertenece</div>
+            </div>
+            <button onclick="copyMetaParam('src={{ad.name}}&xcod={{campaign.name}}', this)" style="flex-shrink:0;background:rgba(6,214,160,.15);border:1px solid rgba(6,214,160,.3);border-radius:6px;padding:6px 14px;color:#06d6a0;font-size:12px;cursor:pointer;white-space:nowrap">Copiar</button>
+          </div>
+        </div>
+
+        <!-- Solo anuncio -->
+        <div style="background:rgba(0,0,0,.2);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+            <div>
+              <div style="font-size:11px;font-weight:700;color:#4f8ef7;margin-bottom:4px">Por anuncio</div>
+              <code style="font-size:12px;color:#a5f3fc">src={{ad.name}}</code>
+              <div style="font-size:11px;color:var(--muted);margin-top:4px">Usa el nombre del anuncio como identificador</div>
+            </div>
+            <button onclick="copyMetaParam('src={{ad.name}}', this)" style="flex-shrink:0;background:rgba(79,142,247,.15);border:1px solid rgba(79,142,247,.3);border-radius:6px;padding:6px 14px;color:#4f8ef7;font-size:12px;cursor:pointer;white-space:nowrap">Copiar</button>
+          </div>
+        </div>
+
+        <!-- Solo campaña -->
+        <div style="background:rgba(0,0,0,.2);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+            <div>
+              <div style="font-size:11px;font-weight:700;color:#a78bfa;margin-bottom:4px">Por campaña</div>
+              <code style="font-size:12px;color:#a5f3fc">src={{campaign.name}}</code>
+              <div style="font-size:11px;color:var(--muted);margin-top:4px">Agrupa todas las ventas de una campaña completa</div>
+            </div>
+            <button onclick="copyMetaParam('src={{campaign.name}}', this)" style="flex-shrink:0;background:rgba(167,139,250,.15);border:1px solid rgba(167,139,250,.3);border-radius:6px;padding:6px 14px;color:#a78bfa;font-size:12px;cursor:pointer;white-space:nowrap">Copiar</button>
+          </div>
+        </div>
+
+        <div style="background:rgba(251,191,36,.05);border:1px solid rgba(251,191,36,.15);border-radius:8px;padding:12px;font-size:11px;color:var(--muted);line-height:1.6">
+          <strong style="color:#fbbf24">¿Cómo pegarlo en Meta?</strong><br>
+          Edita el anuncio → <strong style="color:var(--text)">URL del sitio web</strong> = tu URL de Hotmart normal →
+          <strong style="color:var(--text)">Parámetros de URL</strong> = pega el código copiado arriba.<br>
+          Meta construye la URL final automáticamente con el nombre real de cada anuncio.
+        </div>
+      </div>
+    </div>
+
     <!-- KPIs -->
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:16px">
       <div class="card" style="padding:14px 16px">
@@ -4371,6 +4425,14 @@ function copyUtmRowUrl(id) {
 }
 
 function copyUtmUrl() {} // kept for compatibility
+
+function copyMetaParam(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copiado';
+    setTimeout(() => btn.textContent = orig, 2000);
+  });
+}
 
 async function loadUtmStats() {
   const tbody    = document.getElementById('utmTableBody');
