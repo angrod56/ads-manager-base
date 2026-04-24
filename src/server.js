@@ -23,6 +23,26 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
 const PUBLIC = path.join(__dirname, '..', 'public');
 
+// ── Caché en memoria para llamadas a Meta API (TTL: 2 min) ────────────────────
+const _cache = new Map();
+const CACHE_TTL = 2 * 60 * 1000; // 2 minutos
+
+function cacheGet(key) {
+  const entry = _cache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.ts > CACHE_TTL) { _cache.delete(key); return null; }
+  return entry.data;
+}
+function cacheSet(key, data) { _cache.set(key, { ts: Date.now(), data }); }
+
+async function cachedMeta(key, fn) {
+  const cached = cacheGet(key);
+  if (cached) return cached;
+  const data = await fn();
+  cacheSet(key, data);
+  return data;
+}
+
 const PLAN_LIMITS = {
   basic:  { metaAccounts: 5,  label: 'Básico' },
   pro:    { metaAccounts: 10, label: 'Pro' },
@@ -193,10 +213,11 @@ const GET = {
   '/api/projections': async (res, q) => {
     if (!q.account) return err(res, 'account requerido', 400);
 
-    const [campaigns, insights] = await Promise.all([
+    const cKey = `proj:${q.account}:${q.date||''}:${q.since||''}:${q.until||''}`;
+    const [campaigns, insights] = await cachedMeta(cKey, () => Promise.all([
       listCampaigns(q.account, 'ALL', q.token),
       getInsights(q.account, { ...dateOpts(q), level: 'campaign' }, q.token),
-    ]);
+    ]));
 
     const iMap = {};
     for (const r of insights) iMap[r.campaign_id] = r;
@@ -255,10 +276,11 @@ const GET = {
   '/api/overview': async (res, q) => {
     if (!q.account) return err(res, 'account requerido', 400);
 
-    const [campaigns, insights] = await Promise.all([
+    const cKey = `overview:${q.account}:${q.date||''}:${q.since||''}:${q.until||''}`;
+    const [campaigns, insights] = await cachedMeta(cKey, () => Promise.all([
       listCampaigns(q.account, 'ALL', q.token),
       getInsights(q.account, { ...dateOpts(q), level: 'campaign' }, q.token),
-    ]);
+    ]));
 
     const iMap = {};
     for (const row of insights) iMap[row.campaign_id] = row;
@@ -466,10 +488,11 @@ const GET = {
   '/api/launches': async (res, q) => {
     if (!q.account) return err(res, 'account requerido', 400);
 
-    const [campaigns, insights] = await Promise.all([
+    const cKey = `launches:${q.account}:${q.date||''}:${q.since||''}:${q.until||''}`;
+    const [campaigns, insights] = await cachedMeta(cKey, () => Promise.all([
       listCampaigns(q.account, 'ALL', q.token),
       getInsights(q.account, { ...dateOpts(q), level: 'campaign' }, q.token),
-    ]);
+    ]));
 
     const iMap = {};
     for (const r of insights) iMap[r.campaign_id] = r;
@@ -629,12 +652,13 @@ const GET = {
 
     const date7  = q.date || 'last_7d';
     const date3  = 'last_3d';
+    const cKey   = `reco:${q.account}:${date7}`;
 
-    const [campaigns7, insights7, insights3] = await Promise.all([
+    const [campaigns7, insights7, insights3] = await cachedMeta(cKey, () => Promise.all([
       listCampaigns(q.account, 'ALL', q.token),
       getInsights(q.account, { datePreset: date7, level: 'campaign' }, q.token),
       getInsights(q.account, { datePreset: date3, level: 'campaign' }, q.token),
-    ]);
+    ]));
 
     const map7 = {}, map3 = {};
     for (const r of insights7) map7[r.campaign_id] = r;
@@ -701,11 +725,12 @@ const GET = {
   // Análisis por país para una cuenta
   '/api/countries': async (res, q) => {
     if (!q.account) return err(res, 'account requerido', 400);
-    const data = await getInsights(q.account, {
+    const cKey = `countries:${q.account}:${q.date||''}:${q.since||''}:${q.until||''}`;
+    const data = await cachedMeta(cKey, () => getInsights(q.account, {
       ...dateOpts(q),
       level: q.level || 'campaign',
       breakdowns: 'country',
-    }, q.token);
+    }, q.token));
     const map = {};
     for (const row of data) {
       const c = row.country || 'XX';
