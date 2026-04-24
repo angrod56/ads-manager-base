@@ -4253,10 +4253,7 @@ async function loadSales() {
     document.getElementById('sk-net').textContent     = fmt.usd(s.netRevenue);
     document.getElementById('sk-total').textContent   = s.total;
     document.getElementById('sk-ticket').textContent  = fmt.usd(s.avgTicket);
-    document.getElementById('sk-refunds').textContent =
-      s.refunded > 0
-        ? `-${fmt.usd(s.refunds)} (${s.refunded})${s.canceled > 0 ? ` · ${s.canceled} canc.` : ''}`
-        : (s.canceled > 0 ? `0 · ${s.canceled} canc.` : '0');
+    document.getElementById('sk-refunds').textContent = s.refunded > 0 ? `-${fmt.usd(s.refunds)} (${s.refunded})` : '0';
 
     renderMilestones(s.totalEarned || 0);
     renderSalesChart(data.sales);
