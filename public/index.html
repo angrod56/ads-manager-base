@@ -963,13 +963,13 @@
       .table-controls { flex-wrap: wrap; width: 100%; }
       #searchInput { width: 100%; flex: none; }
 
-      /* Top Ads */
-      .top-ads-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-      .creative-card { min-height: auto; }
+      /* Top Ads — 1 columna en mobile para que el preview se vea completo */
+      .top-ads-grid { grid-template-columns: 1fr; gap: 12px; }
+      .creative-card { min-height: auto; flex-direction: column; }
       .top-ads-header { flex-direction: column; align-items: flex-start; }
-      .preview-thumb, .preview-placeholder { aspect-ratio: 1/1; }
-      .preview-outer { min-height: unset; aspect-ratio: 1/1; }
-      .preview-outer iframe { width: 100% !important; height: 100% !important; transform: none !important; }
+      .preview-outer { min-height: unset; width: 100%; }
+      .preview-thumb { aspect-ratio: 4/5; width: 100%; }
+      .preview-placeholder { aspect-ratio: 4/5; width: 100%; }
 
       /* Analysis grid */
       .analysis-grid { grid-template-columns: 1fr; gap: 10px; }
@@ -1005,7 +1005,7 @@
     @media (max-width: 480px) {
       .kpi-grid { grid-template-columns: repeat(2, 1fr); }
       .kpi-value { font-size: 19px; }
-      .top-ads-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+      .top-ads-grid { grid-template-columns: 1fr; gap: 10px; }
       .proj-baseline { grid-template-columns: repeat(2, 1fr); }
       .launch-card-header { flex-direction: column; align-items: flex-start; }
     }
@@ -2889,10 +2889,12 @@ function renderTopAds(ads) {
       </div>`;
   }).join('');
 
-  // Escalar iframes después de renderizar
+  // Doble RAF: primer frame pinta el DOM, segundo tiene dimensiones reales
   requestAnimationFrame(() => {
-    ads.forEach(ad => {
-      if (ad.preview) scaleIframe(`prev-${ad.id}`);
+    requestAnimationFrame(() => {
+      ads.forEach(ad => {
+        if (ad.preview) scaleIframe(`prev-${ad.id}`);
+      });
     });
   });
 }
@@ -2910,7 +2912,14 @@ function scaleIframe(containerId) {
   iframe.style.width  = iw + 'px';
   iframe.style.height = ih + 'px';
   iframe.style.transform = `scale(${scale})`;
+  iframe.style.transformOrigin = 'top left';
   container.style.height = (ih * scale) + 'px';
+
+  // Re-escalar al cambiar tamaño de ventana / rotar pantalla
+  if (!container._resizeObserver) {
+    container._resizeObserver = new ResizeObserver(() => scaleIframe(containerId));
+    container._resizeObserver.observe(container);
+  }
 }
 
 // ── Modal ──────────────────────────────────────────────────────────
