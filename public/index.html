@@ -5067,9 +5067,8 @@ async function init() {
     return;
   }
 
-  // Si accounts falló por rate limit pero hay token: avisar y usar cuenta guardada si existe
+  // Si accounts falló por rate limit pero hay token: usar cuenta guardada si existe
   if (!accountsResult.length && S.token) {
-    showToast('Meta API temporalmente limitada — recargá en 1 minuto', true);
     const saved = S.user?.meta_account_id || localStorage.getItem('meta_account');
     if (saved) {
       S.account = saved;
