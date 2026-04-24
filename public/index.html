@@ -4239,10 +4239,115 @@ async function deleteAnn(id) {
 
 // ── Tutoriales ────────────────────────────────────────────────────────────────
 const TUTORIAL_SLOTS = [
-  { key: 'intro',      title: '👋 Introducción',         desc: 'Bienvenida y visión general de la plataforma' },
-  { key: 'meta',       title: '📊 Configurar Meta Ads',  desc: 'Cómo obtener y conectar tu token de Meta' },
-  { key: 'hotmart',    title: '🔥 Configurar Hotmart',   desc: 'Webhook y Hottok paso a paso' },
-  { key: 'notif',      title: '🔔 Notificaciones Push',  desc: 'Activar alertas de ventas en tu teléfono' },
+  {
+    key: 'intro', title: '👋 Introducción', desc: 'Bienvenida y visión general de la plataforma',
+    thumb: `<svg viewBox="0 0 400 220" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block">
+      <defs>
+        <linearGradient id="tg0a" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#1e1040"/><stop offset="100%" stop-color="#2d1b69"/></linearGradient>
+        <linearGradient id="tg0b" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#4f8ef7"/></linearGradient>
+      </defs>
+      <rect width="400" height="220" fill="url(#tg0a)"/>
+      <circle cx="200" cy="95" r="52" fill="url(#tg0b)" opacity=".18"/>
+      <circle cx="200" cy="95" r="36" fill="url(#tg0b)" opacity=".28"/>
+      <!-- rocket -->
+      <g transform="translate(200,95) rotate(-35)">
+        <rect x="-9" y="-24" width="18" height="32" rx="9" fill="#a78bfa"/>
+        <polygon points="0,-36 -9,-18 9,-18" fill="#7c3aed"/>
+        <rect x="-14" y="2" width="8" height="14" rx="4" fill="#6d28d9"/>
+        <rect x="6"  y="2" width="8" height="14" rx="4" fill="#6d28d9"/>
+        <ellipse cx="0" cy="12" rx="6" ry="9" fill="#fbbf24" opacity=".85"/>
+        <ellipse cx="0" cy="16" rx="4" ry="6" fill="#f97316" opacity=".7"/>
+      </g>
+      <!-- stars -->
+      <circle cx="80"  cy="50"  r="2" fill="#fff" opacity=".4"/>
+      <circle cx="130" cy="30"  r="1.5" fill="#fff" opacity=".3"/>
+      <circle cx="300" cy="40"  r="2" fill="#fff" opacity=".35"/>
+      <circle cx="340" cy="70"  r="1.5" fill="#fff" opacity=".25"/>
+      <circle cx="60"  cy="140" r="1.5" fill="#fff" opacity=".2"/>
+      <circle cx="350" cy="150" r="2" fill="#fff" opacity=".3"/>
+      <text x="200" y="170" text-anchor="middle" fill="#e2d9f3" font-size="13" font-family="sans-serif" font-weight="700" letter-spacing="1">BIENVENIDO</text>
+      <text x="200" y="188" text-anchor="middle" fill="#9580c0" font-size="10" font-family="sans-serif">Comienza aquí tu configuración</text>
+    </svg>`,
+  },
+  {
+    key: 'meta', title: '📊 Configurar Meta Ads', desc: 'Cómo obtener y conectar tu token de Meta',
+    thumb: `<svg viewBox="0 0 400 220" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block">
+      <defs>
+        <linearGradient id="tg1a" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#0d1b3e"/><stop offset="100%" stop-color="#0f2d5c"/></linearGradient>
+        <linearGradient id="tg1b" x1="0" y1="1" x2="0" y2="0"><stop offset="0%" stop-color="#1877f2"/><stop offset="100%" stop-color="#42a5f5"/></linearGradient>
+        <linearGradient id="tg1c" x1="0" y1="1" x2="0" y2="0"><stop offset="0%" stop-color="#0d5bbd"/><stop offset="100%" stop-color="#1877f2"/></linearGradient>
+      </defs>
+      <rect width="400" height="220" fill="url(#tg1a)"/>
+      <!-- grid lines -->
+      <line x1="60" y1="40" x2="60" y2="155" stroke="#1877f2" stroke-width=".5" opacity=".2"/>
+      <line x1="60" y1="155" x2="340" y2="155" stroke="#1877f2" stroke-width=".5" opacity=".2"/>
+      <line x1="60" y1="100" x2="340" y2="100" stroke="#1877f2" stroke-width=".3" opacity=".15" stroke-dasharray="4,4"/>
+      <line x1="60" y1="70"  x2="340" y2="70"  stroke="#1877f2" stroke-width=".3" opacity=".15" stroke-dasharray="4,4"/>
+      <!-- bars -->
+      <rect x="85"  y="105" width="34" height="50" rx="4" fill="url(#tg1c)" opacity=".7"/>
+      <rect x="140" y="80"  width="34" height="75" rx="4" fill="url(#tg1b)" opacity=".85"/>
+      <rect x="195" y="60"  width="34" height="95" rx="4" fill="url(#tg1b)"/>
+      <rect x="250" y="72"  width="34" height="83" rx="4" fill="url(#tg1b)" opacity=".9"/>
+      <rect x="305" y="48"  width="34" height="107" rx="4" fill="#42a5f5"/>
+      <!-- trend line -->
+      <polyline points="102,118 157,92 212,70 267,82 322,56" fill="none" stroke="#90caf9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".8"/>
+      <circle cx="322" cy="56" r="5" fill="#42a5f5"/>
+      <circle cx="322" cy="56" r="9" fill="#42a5f5" opacity=".2"/>
+      <text x="200" y="178" text-anchor="middle" fill="#90caf9" font-size="13" font-family="sans-serif" font-weight="700" letter-spacing="1">META ADS</text>
+      <text x="200" y="196" text-anchor="middle" fill="#4a7fc1" font-size="10" font-family="sans-serif">Conecta tu cuenta publicitaria</text>
+    </svg>`,
+  },
+  {
+    key: 'hotmart', title: '🔥 Configurar Hotmart', desc: 'Webhook y Hottok paso a paso',
+    thumb: `<svg viewBox="0 0 400 220" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block">
+      <defs>
+        <linearGradient id="tg2a" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#1a0a00"/><stop offset="100%" stop-color="#2d1200"/></linearGradient>
+        <linearGradient id="tg2b" x1="0" y1="1" x2="0" y2="0"><stop offset="0%" stop-color="#ea580c"/><stop offset="100%" stop-color="#fbbf24"/></linearGradient>
+        <radialGradient id="tg2c" cx="50%" cy="70%"><stop offset="0%" stop-color="#f97316" stop-opacity=".4"/><stop offset="100%" stop-color="#f97316" stop-opacity="0"/></radialGradient>
+      </defs>
+      <rect width="400" height="220" fill="url(#tg2a)"/>
+      <ellipse cx="200" cy="160" rx="100" ry="40" fill="url(#tg2c)"/>
+      <!-- flame -->
+      <path d="M200,48 C200,48 230,80 228,108 C240,90 238,68 228,55 C245,78 248,105 235,128 C248,118 252,98 244,78 C260,100 255,140 230,155 C218,162 182,162 170,155 C145,140 140,100 156,78 C148,98 152,118 165,128 C152,105 155,78 172,55 C162,68 160,90 172,108 C170,80 200,48 200,48Z" fill="url(#tg2b)"/>
+      <path d="M200,80 C200,80 215,100 214,115 C220,105 219,92 214,84 C222,96 220,115 212,126 C218,121 220,110 216,100 C222,112 220,132 208,140 C203,143 197,143 192,140 C180,132 178,112 184,100 C180,110 182,121 188,126 C180,115 178,96 186,84 C181,92 180,105 186,115 C185,100 200,80 200,80Z" fill="#fde68a" opacity=".7"/>
+      <text x="200" y="178" text-anchor="middle" fill="#fdba74" font-size="13" font-family="sans-serif" font-weight="700" letter-spacing="1">HOTMART</text>
+      <text x="200" y="196" text-anchor="middle" fill="#92400e" font-size="10" font-family="sans-serif">Webhook y notificaciones de venta</text>
+    </svg>`,
+  },
+  {
+    key: 'notif', title: '🔔 Notificaciones Push', desc: 'Activar alertas de ventas en tu teléfono',
+    thumb: `<svg viewBox="0 0 400 220" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block">
+      <defs>
+        <linearGradient id="tg3a" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#0a1628"/><stop offset="100%" stop-color="#0d2137"/></linearGradient>
+        <linearGradient id="tg3b" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#06b6d4"/><stop offset="100%" stop-color="#0ea5e9"/></linearGradient>
+        <radialGradient id="tg3c" cx="50%" cy="50%"><stop offset="0%" stop-color="#06d6a0" stop-opacity=".25"/><stop offset="100%" stop-color="#06d6a0" stop-opacity="0"/></radialGradient>
+      </defs>
+      <rect width="400" height="220" fill="url(#tg3a)"/>
+      <!-- pulse rings -->
+      <circle cx="200" cy="95" r="65" fill="url(#tg3c)"/>
+      <circle cx="200" cy="95" r="50" fill="none" stroke="#06d6a0" stroke-width="1" opacity=".2"/>
+      <circle cx="200" cy="95" r="35" fill="none" stroke="#06d6a0" stroke-width="1" opacity=".3"/>
+      <!-- phone -->
+      <rect x="178" y="55" width="44" height="76" rx="7" fill="#0f2d4a" stroke="#0ea5e9" stroke-width="1.5"/>
+      <rect x="182" y="62" width="36" height="54" rx="3" fill="#0a1f35"/>
+      <!-- notification on screen -->
+      <rect x="184" y="66" width="32" height="18" rx="3" fill="#06b6d4" opacity=".9"/>
+      <circle cx="190" cy="75" r="4" fill="#fff"/>
+      <rect x="196" y="71" width="16" height="2.5" rx="1" fill="#fff" opacity=".9"/>
+      <rect x="196" y="75" width="12" height="2" rx="1" fill="#fff" opacity=".6"/>
+      <!-- bell on top -->
+      <path d="M200,42 C200,42 188,50 188,62 L212,62 C212,50 200,42 200,42Z" fill="url(#tg3b)"/>
+      <rect x="196" y="61" width="8" height="4" rx="1" fill="#0ea5e9"/>
+      <circle cx="200" cy="68" r="3" fill="#0ea5e9"/>
+      <!-- signal waves -->
+      <path d="M224,68 Q232,75 224,82" fill="none" stroke="#06d6a0" stroke-width="2" stroke-linecap="round" opacity=".7"/>
+      <path d="M230,62 Q242,75 230,88" fill="none" stroke="#06d6a0" stroke-width="1.5" stroke-linecap="round" opacity=".4"/>
+      <path d="M176,68 Q168,75 176,82" fill="none" stroke="#06d6a0" stroke-width="2" stroke-linecap="round" opacity=".7"/>
+      <path d="M170,62 Q158,75 170,88" fill="none" stroke="#06d6a0" stroke-width="1.5" stroke-linecap="round" opacity=".4"/>
+      <text x="200" y="178" text-anchor="middle" fill="#67e8f9" font-size="13" font-family="sans-serif" font-weight="700" letter-spacing="1">NOTIFICACIONES</text>
+      <text x="200" y="196" text-anchor="middle" fill="#0e7490" font-size="10" font-family="sans-serif">Alertas de ventas en tiempo real</text>
+    </svg>`,
+  },
 ];
 
 let _tutorialVideos = {};
@@ -4261,13 +4366,16 @@ function renderTutorialsGrid() {
   grid.innerHTML = TUTORIAL_SLOTS.map(s => {
     const url = _tutorialVideos[s.key] || '';
     return `
-      <div class="card" style="padding:0;overflow:hidden">
-        <div id="tplayer-${s.key}" style="width:100%;min-height:180px;background:#0a0e1a;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;cursor:${url ? 'pointer' : 'default'}" ${url ? `onclick="openTutorialModal('${s.key}')"` : ''}>
+      <div class="card" style="padding:0;overflow:hidden;cursor:${url ? 'pointer' : 'default'}" ${url ? `onclick="openTutorialModal('${s.key}')"` : ''}>
+        <div id="tplayer-${s.key}" style="position:relative;width:100%;aspect-ratio:16/9;overflow:hidden">
+          ${s.thumb}
           ${url
-            ? `<div style="width:56px;height:56px;border-radius:50%;background:rgba(79,142,247,.2);border:2px solid rgba(79,142,247,.5);display:flex;align-items:center;justify-content:center;font-size:22px">▶</div>
-               <div style="font-size:12px;color:var(--muted)">Clic para ver</div>`
-            : `<div style="font-size:28px;opacity:.3">🎬</div>
-               <div style="font-size:11px;color:var(--muted)">Video próximamente</div>`
+            ? `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.35);transition:background .2s" onmouseenter="this.style.background='rgba(0,0,0,.2)'" onmouseleave="this.style.background='rgba(0,0,0,.35)'">
+                 <div style="width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.6);display:flex;align-items:center;justify-content:center;font-size:24px;backdrop-filter:blur(4px)">▶</div>
+               </div>`
+            : `<div style="position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:14px">
+                 <span style="font-size:11px;color:rgba(255,255,255,.4);background:rgba(0,0,0,.4);padding:3px 10px;border-radius:20px">Próximamente</span>
+               </div>`
           }
         </div>
         <div style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px">
@@ -4275,7 +4383,7 @@ function renderTutorialsGrid() {
             <div style="font-size:14px;font-weight:700;margin-bottom:2px">${s.title}</div>
             <div style="font-size:12px;color:var(--muted)">${s.desc}</div>
           </div>
-          ${url ? `<button onclick="openTutorialModal('${s.key}')" style="flex-shrink:0;background:rgba(79,142,247,.15);border:1px solid rgba(79,142,247,.3);border-radius:8px;padding:6px 12px;color:#4f8ef7;font-size:12px;cursor:pointer;white-space:nowrap">⛶ Pantalla completa</button>` : ''}
+          ${url ? `<button onclick="event.stopPropagation();openTutorialModal('${s.key}')" style="flex-shrink:0;background:rgba(79,142,247,.15);border:1px solid rgba(79,142,247,.3);border-radius:8px;padding:6px 12px;color:#4f8ef7;font-size:12px;cursor:pointer;white-space:nowrap">⛶ Ampliar</button>` : ''}
         </div>
       </div>`;
   }).join('');
