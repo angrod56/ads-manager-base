@@ -5728,7 +5728,7 @@ async function loadReports() {
   });
 
   // Gráfico 2: ROAS del período (total, no diario — sin datos diarios de Meta no es calculable)
-  const roasPeriod = spend > 0 ? +(revenue / spend).toFixed(2) : null;
+  const roasPeriod = spend > 0 ? +(commission / spend).toFixed(2) : null;
   _rptRoasChart = _destroyRptChart(_rptRoasChart);
   _rptRoasChart = new Chart(document.getElementById('rptRoasChart'), {
     type: 'bar',
@@ -5757,26 +5757,24 @@ async function loadReports() {
   // Gráfico 4 + Tablas: Por anuncio (utm_campaign) y por campaña (utm_content)
   const adMap   = {}; // key: ad name (utm_campaign)
   const campMap = {}; // key: campaign name (utm_content)
-  const totalRevAll = approved.reduce((s, x) => s + (x.amount || 0), 0);
+  const totalCommAll = approved.reduce((s, x) => s + (x.commission || 0), 0);
 
   approved.forEach(s => {
     const adKey   = s.utm_campaign || '(Sin UTM)';
     const campKey = s.utm_content  || '(Sin campaña)';
 
-    if (!adMap[adKey]) adMap[adKey] = { revenue: 0, commission: 0, sales: 0, campaign: campKey };
-    adMap[adKey].revenue    += (s.amount || 0);
-    adMap[adKey].commission += (s.commission || s.amount || 0);
+    if (!adMap[adKey]) adMap[adKey] = { commission: 0, sales: 0, campaign: campKey };
+    adMap[adKey].commission += (s.commission || 0);
     adMap[adKey].sales++;
 
-    if (!campMap[campKey]) campMap[campKey] = { revenue: 0, commission: 0, sales: 0, ads: new Set() };
-    campMap[campKey].revenue    += (s.amount || 0);
-    campMap[campKey].commission += (s.commission || s.amount || 0);
+    if (!campMap[campKey]) campMap[campKey] = { commission: 0, sales: 0, ads: new Set() };
+    campMap[campKey].commission += (s.commission || 0);
     campMap[campKey].sales++;
     campMap[campKey].ads.add(adKey);
   });
 
-  const ads   = Object.entries(adMap).sort((a,b) => b[1].revenue - a[1].revenue);
-  const camps = Object.entries(campMap).sort((a,b) => b[1].revenue - a[1].revenue);
+  const ads   = Object.entries(adMap).sort((a,b) => b[1].commission - a[1].commission);
+  const camps = Object.entries(campMap).sort((a,b) => b[1].commission - a[1].commission);
   const adColors = ['#4f8ef7','#9b5de5','#06d6a0','#ffd166','#f72585','#ff6b35','#a5f3fc','#fb7185'];
 
   // Gráfico torta por anuncio
@@ -5785,7 +5783,7 @@ async function loadReports() {
     type: 'doughnut',
     data: {
       labels: ads.map(([k]) => k),
-      datasets: [{ data: ads.map(([,v]) => v.revenue), backgroundColor: adColors, borderWidth: 0, hoverOffset: 6 }],
+      datasets: [{ data: ads.map(([,v]) => v.commission), backgroundColor: adColors, borderWidth: 0, hoverOffset: 6 }],
     },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#8892b0', font: { size: 11 }, boxWidth: 12 } } } },
   });
@@ -5796,15 +5794,15 @@ async function loadReports() {
     adTbody.innerHTML = '<tr><td colspan="7" style="padding:20px;text-align:center;color:var(--muted)">Sin ventas con UTM en este período</td></tr>';
   } else {
     adTbody.innerHTML = ads.map(([name, v], i) => {
-      const pct = totalRevAll > 0 ? ((v.revenue / totalRevAll) * 100).toFixed(1) : '0';
+      const pct = totalCommAll > 0 ? ((v.commission / totalCommAll) * 100).toFixed(1) : '0';
       const bar = `<div style="width:${pct}%;height:3px;background:${adColors[i % adColors.length]};border-radius:2px;margin-top:3px"></div>`;
       return `<tr style="border-bottom:1px solid var(--border)">
         <td style="padding:9px 12px;font-weight:700">${name}${bar}</td>
         <td style="padding:9px 12px;color:var(--muted);font-size:11px">${v.campaign}</td>
         <td style="padding:9px 12px;text-align:right">${v.sales}</td>
-        <td style="padding:9px 12px;text-align:right;color:#06d6a0;font-weight:700">${_rptFmt(v.revenue)}</td>
+        <td style="padding:9px 12px;text-align:right;color:#06d6a0;font-weight:700">${_rptFmt(v.commission)}</td>
         <td style="padding:9px 12px;text-align:right">${_rptFmt(v.commission)}</td>
-        <td style="padding:9px 12px;text-align:right">${_rptFmt(v.sales ? v.revenue / v.sales : 0)}</td>
+        <td style="padding:9px 12px;text-align:right">${_rptFmt(v.sales ? v.commission / v.sales : 0)}</td>
         <td style="padding:9px 12px;text-align:right;color:var(--muted)">${pct}%</td>
       </tr>`;
     }).join('');
@@ -5820,7 +5818,7 @@ async function loadReports() {
         <td style="padding:9px 12px;font-weight:700">${name}</td>
         <td style="padding:9px 12px;text-align:right;color:var(--muted)">${v.ads.size}</td>
         <td style="padding:9px 12px;text-align:right">${v.sales}</td>
-        <td style="padding:9px 12px;text-align:right;color:#06d6a0;font-weight:700">${_rptFmt(v.revenue)}</td>
+        <td style="padding:9px 12px;text-align:right;color:#06d6a0;font-weight:700">${_rptFmt(v.commission)}</td>
         <td style="padding:9px 12px;text-align:right">${_rptFmt(v.commission)}</td>
       </tr>`).join('');
   }
