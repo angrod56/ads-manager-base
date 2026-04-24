@@ -1573,6 +1573,18 @@
       </div>
     </div>
 
+    <!-- Gráficos de torta -->
+    <div id="utmChartsWrap" style="display:none;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div class="card" style="padding:16px">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:12px">VENTAS POR FUENTE</div>
+        <div style="position:relative;height:220px"><canvas id="utmSalesChart"></canvas></div>
+      </div>
+      <div class="card" style="padding:16px">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:12px">REVENUE POR FUENTE</div>
+        <div style="position:relative;height:220px"><canvas id="utmRevenueChart"></canvas></div>
+      </div>
+    </div>
+
     <!-- KPIs -->
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:16px">
       <div class="card" style="padding:14px 16px">
@@ -4377,7 +4389,47 @@ async function deleteAnn(id) {
 // ── UTM Tracking ─────────────────────────────────────────────────────────────
 let utmGroupMode = 'campaign';
 
-let _utmRowCount = 0;
+let _utmRowCount = 0, _utmSalesChart = null, _utmRevenueChart = null;
+
+const UTM_COLORS = [
+  '#7c3aed','#4f8ef7','#06d6a0','#fbbf24','#f97316',
+  '#ec4899','#14b8a6','#a78bfa','#34d399','#fb923c',
+];
+
+function renderUtmCharts(rows) {
+  const tracked = rows.filter(r => r.label !== '(sin tracking)' && (r.sales > 0 || r.revenue > 0));
+  const wrap = document.getElementById('utmChartsWrap');
+  if (!wrap) return;
+  if (!tracked.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'grid';
+
+  const labels  = tracked.map(r => r.label.length > 20 ? r.label.slice(0, 18) + '…' : r.label);
+  const sales   = tracked.map(r => r.sales);
+  const revenue = tracked.map(r => parseFloat(r.revenue.toFixed(2)));
+  const colors  = tracked.map((_, i) => UTM_COLORS[i % UTM_COLORS.length]);
+
+  const pieOpts = {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom', labels: { color: '#9ca3af', font: { size: 11 }, padding: 10, boxWidth: 12 } },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed}` } },
+    },
+  };
+
+  if (_utmSalesChart) _utmSalesChart.destroy();
+  _utmSalesChart = new Chart(document.getElementById('utmSalesChart'), {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: sales, backgroundColor: colors, borderWidth: 2, borderColor: '#0d0f1a' }] },
+    options: { ...pieOpts, plugins: { ...pieOpts.plugins, tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed} venta${ctx.parsed !== 1 ? 's' : ''}` } } } },
+  });
+
+  if (_utmRevenueChart) _utmRevenueChart.destroy();
+  _utmRevenueChart = new Chart(document.getElementById('utmRevenueChart'), {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: revenue, backgroundColor: colors, borderWidth: 2, borderColor: '#0d0f1a' }] },
+    options: { ...pieOpts, plugins: { ...pieOpts.plugins, tooltip: { callbacks: { label: ctx => ` ${ctx.label}: $${ctx.parsed.toFixed(2)}` } } } },
+  });
+}
 
 function addUtmRow(name = '') {
   const id = ++_utmRowCount;
@@ -4458,6 +4510,7 @@ async function loadUtmStats() {
     set('utmKpiTicket',    fmt.usd(avgTicket));
 
     renderUtmTable(d.rows);
+    renderUtmCharts(d.rows);
   } catch(e) {
     if (tbody) tbody.innerHTML = `<tr><td colspan="4" class="empty"><div>Error: ${e.message}</div></td></tr>`;
   }
