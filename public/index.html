@@ -1496,39 +1496,26 @@
       </div>
     </div>
 
-    <!-- Generador de URL -->
+    <!-- Generador de URLs múltiples -->
     <div class="card" style="margin-bottom:20px;padding:20px;background:linear-gradient(135deg,rgba(79,142,247,.08),rgba(124,58,237,.08));border:1px solid rgba(79,142,247,.2)">
-      <div style="font-size:15px;font-weight:700;margin-bottom:4px">⚡ Genera tu URL de tracking</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Escribe el nombre de la campaña → copia la URL → pégala en Meta Ads como URL de destino del anuncio</div>
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px">⚡ Genera tus URLs de tracking</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Una URL por campaña o anuncio. Pégala como URL de destino en cada anuncio de Meta Ads.</div>
 
-      <div style="display:flex;flex-direction:column;gap:10px">
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <div style="flex:1;min-width:200px">
-            <label style="font-size:11px;color:var(--muted);font-weight:600;display:block;margin-bottom:4px">URL DE CHECKOUT HOTMART</label>
-            <input id="utmHotmartUrl" type="text" placeholder="https://pay.hotmart.com/TU_PRODUCTO"
-              oninput="buildUtmUrl()"
-              style="width:100%;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px">
-          </div>
-          <div style="flex:1;min-width:160px">
-            <label style="font-size:11px;color:var(--muted);font-weight:600;display:block;margin-bottom:4px">NOMBRE DE CAMPAÑA / ANUNCIO</label>
-            <input id="utmCampaignName" type="text" placeholder="ej: LANZAMIENTO_MAYO"
-              oninput="buildUtmUrl()"
-              style="width:100%;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px">
-          </div>
-        </div>
+      <!-- URL base de Hotmart -->
+      <div style="margin-bottom:14px">
+        <label style="font-size:11px;color:var(--muted);font-weight:600;display:block;margin-bottom:4px">URL DE CHECKOUT HOTMART (base — la misma para todas)</label>
+        <input id="utmHotmartUrl" type="text" placeholder="https://pay.hotmart.com/TU_PRODUCTO"
+          oninput="buildUtmUrls()"
+          style="width:100%;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px">
+      </div>
 
-        <div>
-          <label style="font-size:11px;color:var(--muted);font-weight:600;display:block;margin-bottom:4px">URL GENERADA — usa esta como URL de destino en tu anuncio de Meta</label>
-          <div style="position:relative">
-            <code id="utmGeneratedUrl" style="display:block;padding:11px 80px 11px 14px;background:rgba(0,0,0,.4);border:1px solid rgba(79,142,247,.3);border-radius:8px;font-size:12px;color:#a5f3fc;word-break:break-all;line-height:1.6;min-height:42px">
-              Completa los campos de arriba…
-            </code>
-            <button onclick="copyUtmUrl()" id="utmCopyBtn" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:rgba(79,142,247,.2);border:1px solid rgba(79,142,247,.4);border-radius:6px;padding:5px 12px;color:#4f8ef7;font-size:11px;cursor:pointer;white-space:nowrap">Copiar</button>
-          </div>
-          <div style="font-size:11px;color:var(--muted);margin-top:6px">
-            💡 Hotmart captura automáticamente el parámetro <code style="color:#e2d9f3">src</code> y lo registra en cada compra. Usa un nombre diferente por campaña o anuncio para identificarlos en la tabla de abajo.
-          </div>
-        </div>
+      <!-- Lista de campañas -->
+      <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:6px">CAMPAÑAS / ANUNCIOS</div>
+      <div id="utmCampaignRows" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px"></div>
+      <button onclick="addUtmRow()" style="background:rgba(79,142,247,.12);border:1px dashed rgba(79,142,247,.4);border-radius:8px;padding:8px;color:#4f8ef7;font-size:12px;cursor:pointer;width:100%">+ Agregar campaña</button>
+
+      <div style="font-size:11px;color:var(--muted);margin-top:10px">
+        💡 Hotmart captura el parámetro <code style="color:#e2d9f3">src</code> automáticamente. Usa nombres cortos sin espacios (ej: <code style="color:#e2d9f3">MAYO_VIDEO1</code>).
       </div>
     </div>
 
@@ -3587,7 +3574,7 @@ function showSection(name) {
   if (name === 'sales') loadSales();
   if (name === 'config') loadConfig();
   if (name === 'tutorials') loadTutorials();
-  if (name === 'utm') loadUtmStats();
+  if (name === 'utm') { loadUtmStats(); if (!_utmRowCount) addUtmRow(); }
   if (name === 'admin') { loadAdminUsers(); loadAdminAnnouncements(); loadTutorials(); }
 }
 
@@ -4336,29 +4323,54 @@ async function deleteAnn(id) {
 // ── UTM Tracking ─────────────────────────────────────────────────────────────
 let utmGroupMode = 'campaign';
 
-function buildUtmUrl() {
-  const base = document.getElementById('utmHotmartUrl')?.value.trim();
-  const name = document.getElementById('utmCampaignName')?.value.trim().replace(/\s+/g, '_');
-  const out  = document.getElementById('utmGeneratedUrl');
-  if (!out) return;
-  if (!base || !name) { out.textContent = 'Completa los campos de arriba…'; return; }
-  try {
-    const url = new URL(base);
-    url.searchParams.set('src', name);
-    out.textContent = url.toString();
-  } catch {
-    out.textContent = base + (base.includes('?') ? '&' : '?') + 'src=' + name;
-  }
+let _utmRowCount = 0;
+
+function addUtmRow(name = '') {
+  const id = ++_utmRowCount;
+  const container = document.getElementById('utmCampaignRows');
+  if (!container) return;
+  const div = document.createElement('div');
+  div.id = `utmRow-${id}`;
+  div.style.cssText = 'display:flex;gap:8px;align-items:center';
+  div.innerHTML = `
+    <input type="text" placeholder="Nombre campaña/anuncio (ej: MAYO_VIDEO1)" value="${name}"
+      oninput="buildUtmUrls()"
+      style="flex:1;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-size:12px">
+    <code id="utmOut-${id}" style="flex:2;padding:7px 10px;background:rgba(0,0,0,.35);border:1px solid rgba(79,142,247,.2);border-radius:8px;font-size:11px;color:#a5f3fc;word-break:break-all;min-height:34px;display:flex;align-items:center">—</code>
+    <button onclick="copyUtmRowUrl(${id})" id="utmCopyRow-${id}" style="flex-shrink:0;background:rgba(79,142,247,.2);border:1px solid rgba(79,142,247,.4);border-radius:6px;padding:6px 12px;color:#4f8ef7;font-size:11px;cursor:pointer;white-space:nowrap">Copiar</button>
+    <button onclick="document.getElementById('utmRow-${id}').remove();buildUtmUrls()" style="flex-shrink:0;background:rgba(255,80,80,.1);border:1px solid rgba(255,80,80,.2);border-radius:6px;padding:6px 8px;color:#f87171;font-size:11px;cursor:pointer">✕</button>`;
+  container.appendChild(div);
+  buildUtmUrls();
 }
 
-function copyUtmUrl() {
-  const text = document.getElementById('utmGeneratedUrl')?.textContent?.trim();
-  if (!text || text.includes('Completa')) return;
-  navigator.clipboard.writeText(text).then(() => {
-    const btn = document.getElementById('utmCopyBtn');
-    if (btn) { btn.textContent = '✓ Copiado'; setTimeout(() => btn.textContent = 'Copiar', 2000); }
+function buildUtmUrls() {
+  const base = document.getElementById('utmHotmartUrl')?.value.trim();
+  document.querySelectorAll('[id^="utmRow-"]').forEach(row => {
+    const id   = row.id.replace('utmRow-', '');
+    const name = row.querySelector('input')?.value.trim().replace(/\s+/g, '_');
+    const out  = document.getElementById(`utmOut-${id}`);
+    if (!out) return;
+    if (!base || !name) { out.textContent = '—'; return; }
+    try {
+      const url = new URL(base);
+      url.searchParams.set('src', name);
+      out.textContent = url.toString();
+    } catch {
+      out.textContent = base + (base.includes('?') ? '&' : '?') + 'src=' + name;
+    }
   });
 }
+
+function copyUtmRowUrl(id) {
+  const text = document.getElementById(`utmOut-${id}`)?.textContent?.trim();
+  if (!text || text === '—') return;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById(`utmCopyRow-${id}`);
+    if (btn) { btn.textContent = '✓'; setTimeout(() => btn.textContent = 'Copiar', 2000); }
+  });
+}
+
+function copyUtmUrl() {} // kept for compatibility
 
 async function loadUtmStats() {
   const tbody    = document.getElementById('utmTableBody');
