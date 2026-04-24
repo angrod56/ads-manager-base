@@ -1676,11 +1676,11 @@
     <!-- Gráficos fila 1 -->
     <div class="charts-grid" style="margin-bottom:16px">
       <div class="card">
-        <div class="card-header"><span class="card-title">Revenue vs Gasto diario</span></div>
+        <div class="card-header"><span class="card-title">Comisiones por día</span></div>
         <div class="chart-wrap"><canvas id="rptLineChart"></canvas></div>
       </div>
       <div class="card">
-        <div class="card-header"><span class="card-title">ROAS diario</span></div>
+        <div class="card-header"><span class="card-title">ROAS del período</span></div>
         <div class="chart-wrap"><canvas id="rptRoasChart"></canvas></div>
       </div>
     </div>
@@ -5679,50 +5679,49 @@ async function loadReports() {
   const d = new Date(since);
   const end = new Date(until);
   while (d <= end) {
-    dayMap[d.toISOString().slice(0,10)] = { revenue: 0, sales: 0 };
+    dayMap[d.toISOString().slice(0,10)] = { commission: 0, sales: 0 };
     d.setDate(d.getDate() + 1);
   }
   approved.forEach(s => {
     const day = (s.sale_date || '').slice(0,10);
-    if (dayMap[day]) { dayMap[day].revenue += (s.amount || 0); dayMap[day].sales++; }
+    if (dayMap[day]) {
+      dayMap[day].commission += (s.commission || s.amount || 0);
+      dayMap[day].sales++;
+    }
   });
-  const labels  = Object.keys(dayMap).map(d => d.slice(5)); // MM-DD
-  const revenues = Object.values(dayMap).map(v => v.revenue);
-  const salesCnt = Object.values(dayMap).map(v => v.sales);
-
-  // ROAS diario: calculado con gasto total distribuido proporcionalmente al revenue
-  const totalRevForRoas = revenues.reduce((a, b) => a + b, 0);
-  const roasArr = revenues.map(r => spend > 0 && totalRevForRoas > 0 ? +(r / (spend * r / totalRevForRoas)).toFixed(2) : null);
-  const metaSpend = new Array(labels.length).fill(+(spend / labels.length).toFixed(2));
+  const labels      = Object.keys(dayMap).map(d => d.slice(5)); // MM-DD
+  const commissions = Object.values(dayMap).map(v => v.commission);
+  const salesCnt    = Object.values(dayMap).map(v => v.sales);
 
   const rptOpts = { ...chartBase, interaction: { mode: 'index', intersect: false } };
 
-  // Gráfico 1: Revenue vs Gasto
+  // Gráfico 1: Comisiones por día (datos reales de Hotmart)
   _rptLineChart = _destroyRptChart(_rptLineChart);
   _rptLineChart = new Chart(document.getElementById('rptLineChart'), {
     type: 'line',
     data: {
       labels,
       datasets: [
-        { label: 'Revenue', data: revenues, borderColor: '#06d6a0', backgroundColor: 'rgba(6,214,160,.08)', tension: .4, fill: true, pointRadius: 2 },
-        { label: 'Gasto Meta', data: metaSpend.slice(0, labels.length), borderColor: '#f87171', backgroundColor: 'rgba(248,113,113,.08)', tension: .4, fill: true, pointRadius: 2 },
+        { label: 'Comisión diaria', data: commissions, borderColor: '#06d6a0', backgroundColor: 'rgba(6,214,160,.08)', tension: .4, fill: true, pointRadius: 3 },
       ],
     },
-    options: rptOpts,
+    options: { ...rptOpts, plugins: { ...rptOpts.plugins, tooltip: { ...rptOpts.plugins?.tooltip, callbacks: { label: ctx => ` ${ctx.dataset.label}: $${ctx.raw.toFixed(2)}` } } } },
   });
 
-  // Gráfico 2: ROAS diario
+  // Gráfico 2: ROAS del período (total, no diario — sin datos diarios de Meta no es calculable)
+  const roasPeriod = spend > 0 ? +(revenue / spend).toFixed(2) : null;
   _rptRoasChart = _destroyRptChart(_rptRoasChart);
   _rptRoasChart = new Chart(document.getElementById('rptRoasChart'), {
-    type: 'line',
+    type: 'bar',
     data: {
-      labels,
-      datasets: [
-        { label: 'ROAS', data: roasArr, borderColor: '#4f8ef7', backgroundColor: 'rgba(79,142,247,.1)', tension: .4, fill: true, pointRadius: 2, spanGaps: true },
-        { label: 'Mínimo (1.2x)', data: new Array(labels.length).fill(1.2), borderColor: 'rgba(248,113,113,.5)', borderDash: [4,4], pointRadius: 0 },
-      ],
+      labels: ['ROAS del período', 'Mínimo aceptable'],
+      datasets: [{
+        data: [roasPeriod, 1.2],
+        backgroundColor: [roasPeriod >= 1.2 ? 'rgba(6,214,160,.7)' : 'rgba(248,113,113,.7)', 'rgba(255,209,102,.4)'],
+        borderRadius: 6,
+      }],
     },
-    options: rptOpts,
+    options: { ...chartBase, plugins: { ...chartBase.plugins, legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.raw}x` } } }, scales: { ...chartBase.scales, y: { ...chartBase.scales.y, ticks: { callback: v => v + 'x' } } } },
   });
 
   // Gráfico 3: Ventas por día (barras)
