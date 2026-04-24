@@ -1477,6 +1477,17 @@
     </div>
   </div><!-- /section-tutorials -->
 
+  <!-- Modal pantalla completa tutoriales -->
+  <div id="tutorialModal" onclick="closeTutorialModal(event)" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.92);align-items:center;justify-content:center;padding:16px">
+    <div style="position:relative;width:100%;max-width:960px;background:#0a0e1a;border-radius:16px;overflow:hidden" onclick="event.stopPropagation()">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border)">
+        <span id="tutorialModalTitle" style="font-size:15px;font-weight:700"></span>
+        <button onclick="closeTutorialModal()" style="background:rgba(255,255,255,.08);border:none;border-radius:8px;padding:6px 14px;color:var(--text);font-size:13px;cursor:pointer">✕ Cerrar</button>
+      </div>
+      <div id="tutorialModalPlayer" style="width:100%;padding:0"></div>
+    </div>
+  </div>
+
   <!-- ── SECTION: Configuración ── -->
   <div class="section" id="section-config">
 
@@ -4251,17 +4262,20 @@ function renderTutorialsGrid() {
     const url = _tutorialVideos[s.key] || '';
     return `
       <div class="card" style="padding:0;overflow:hidden">
-        <div id="tplayer-${s.key}" style="width:100%;min-height:180px;background:#0a0e1a;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;cursor:${url ? 'pointer' : 'default'}" ${url ? `onclick="loadTutorialVideo('${s.key}')"` : ''}>
+        <div id="tplayer-${s.key}" style="width:100%;min-height:180px;background:#0a0e1a;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;cursor:${url ? 'pointer' : 'default'}" ${url ? `onclick="openTutorialModal('${s.key}')"` : ''}>
           ${url
             ? `<div style="width:56px;height:56px;border-radius:50%;background:rgba(79,142,247,.2);border:2px solid rgba(79,142,247,.5);display:flex;align-items:center;justify-content:center;font-size:22px">▶</div>
-               <div style="font-size:12px;color:var(--muted)">Clic para reproducir</div>`
+               <div style="font-size:12px;color:var(--muted)">Clic para ver</div>`
             : `<div style="font-size:28px;opacity:.3">🎬</div>
                <div style="font-size:11px;color:var(--muted)">Video próximamente</div>`
           }
         </div>
-        <div style="padding:14px 16px">
-          <div style="font-size:14px;font-weight:700;margin-bottom:4px">${s.title}</div>
-          <div style="font-size:12px;color:var(--muted)">${s.desc}</div>
+        <div style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <div>
+            <div style="font-size:14px;font-weight:700;margin-bottom:2px">${s.title}</div>
+            <div style="font-size:12px;color:var(--muted)">${s.desc}</div>
+          </div>
+          ${url ? `<button onclick="openTutorialModal('${s.key}')" style="flex-shrink:0;background:rgba(79,142,247,.15);border:1px solid rgba(79,142,247,.3);border-radius:8px;padding:6px 12px;color:#4f8ef7;font-size:12px;cursor:pointer;white-space:nowrap">⛶ Pantalla completa</button>` : ''}
         </div>
       </div>`;
   }).join('');
@@ -4279,35 +4293,61 @@ function renderTutorialsGrid() {
   }
 }
 
-function loadTutorialVideo(key) {
-  const scriptUrl = _tutorialVideos[key];
-  if (!scriptUrl) return;
-  const container = document.getElementById(`tplayer-${key}`);
-  if (!container) return;
-
+function _injectVturbPlayer(container, scriptUrl) {
   const match = scriptUrl.match(/\/players\/([^/]+)\//);
   if (!match) return;
   const vid = match[1];
 
-  container.onclick = null;
-  container.style.cursor = 'default';
-  container.style.display = 'block';
-  container.style.minHeight = '0';
   container.innerHTML = '';
-
   const player = document.createElement('vturb-smartplayer');
   player.id = `vid-${vid}`;
   player.style.display = 'block';
   player.style.width = '100%';
   container.appendChild(player);
 
-  // Eliminar script previo y re-inyectar para forzar inicialización
   document.querySelectorAll(`script[data-vturb="${vid}"]`).forEach(s => s.remove());
   const s = document.createElement('script');
   s.src = scriptUrl;
   s.async = true;
   s.setAttribute('data-vturb', vid);
   document.head.appendChild(s);
+}
+
+function loadTutorialVideo(key) {
+  const scriptUrl = _tutorialVideos[key];
+  if (!scriptUrl) return;
+  const container = document.getElementById(`tplayer-${key}`);
+  if (!container) return;
+  container.onclick = null;
+  container.style.cursor = 'default';
+  container.style.display = 'block';
+  container.style.minHeight = '0';
+  _injectVturbPlayer(container, scriptUrl);
+}
+
+function openTutorialModal(key) {
+  const scriptUrl = _tutorialVideos[key];
+  if (!scriptUrl) return;
+  const slot = TUTORIAL_SLOTS.find(s => s.key === key);
+  const modal = document.getElementById('tutorialModal');
+  const title = document.getElementById('tutorialModalTitle');
+  const playerDiv = document.getElementById('tutorialModalPlayer');
+
+  title.textContent = slot ? slot.title : '';
+  playerDiv.innerHTML = '';
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+
+  _injectVturbPlayer(playerDiv, scriptUrl);
+}
+
+function closeTutorialModal(e) {
+  if (e && e.target !== document.getElementById('tutorialModal')) return;
+  const modal = document.getElementById('tutorialModal');
+  const playerDiv = document.getElementById('tutorialModalPlayer');
+  playerDiv.innerHTML = '';
+  modal.style.display = 'none';
+  document.body.style.overflow = '';
 }
 
 async function saveTutorials() {
