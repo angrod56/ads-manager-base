@@ -770,11 +770,14 @@ const GET = {
     ]);
 
     const approved  = sales.filter(s => s.status === 'approved' || s.status === 'complete');
-    const refunded  = sales.filter(s => ['refunded', 'chargeback', 'canceled'].includes(s.status));
+    // Solo refunded y chargeback son dinero real devuelto; canceled puede no haber sido cobrado nunca
+    const refunded  = sales.filter(s => s.status === 'refunded' || s.status === 'chargeback');
+    const canceled  = sales.filter(s => s.status === 'canceled');
     const pending   = sales.filter(s => s.status === 'pending');
 
-    const revenue    = approved.reduce((a, s) => a + (s.commission || s.amount || 0), 0);
-    const refunds    = refunded.reduce((a, s) => a + (s.commission || s.amount || 0), 0);
+    // Usar solo commission (comisión real en USD); amount puede estar en COP
+    const revenue    = approved.reduce((a, s) => a + (s.commission || 0), 0);
+    const refunds    = refunded.reduce((a, s) => a + (s.commission || 0), 0);
     const netRevenue = revenue - refunds;
     const avgTicket  = approved.length ? revenue / approved.length : 0;
 
@@ -788,6 +791,7 @@ const GET = {
         avgTicket,
         pending:    pending.length,
         refunded:   refunded.length,
+        canceled:   canceled.length,
         totalEarned,
       },
     });

@@ -4253,7 +4253,10 @@ async function loadSales() {
     document.getElementById('sk-net').textContent     = fmt.usd(s.netRevenue);
     document.getElementById('sk-total').textContent   = s.total;
     document.getElementById('sk-ticket').textContent  = fmt.usd(s.avgTicket);
-    document.getElementById('sk-refunds').textContent = s.refunded > 0 ? `-${fmt.usd(s.refunds)} (${s.refunded})` : '0';
+    document.getElementById('sk-refunds').textContent =
+      s.refunded > 0
+        ? `-${fmt.usd(s.refunds)} (${s.refunded})${s.canceled > 0 ? ` · ${s.canceled} canc.` : ''}`
+        : (s.canceled > 0 ? `0 · ${s.canceled} canc.` : '0');
 
     renderMilestones(s.totalEarned || 0);
     renderSalesChart(data.sales);
@@ -5663,13 +5666,12 @@ async function loadReports() {
   const totals   = overviewRes.status === 'fulfilled' && overviewRes.value ? (overviewRes.value.totals || {}) : {};
 
   const approved   = sales.filter(s => s.status === 'approved' || s.status === 'complete');
-  const revenue    = approved.reduce((s, x) => s + (x.amount || 0), 0);
-  const commission = approved.reduce((s, x) => s + (x.commission || x.amount || 0), 0);
+  const commission = approved.reduce((s, x) => s + (x.commission || 0), 0);
   const spend      = totals.spend || 0;
-  const roas       = spend > 0 ? revenue / spend : 0;
-  const ticket     = approved.length ? revenue / approved.length : 0;
+  const roas       = spend > 0 ? commission / spend : 0;
+  const ticket     = approved.length ? commission / approved.length : 0;
 
-  document.getElementById('rpt-revenue').textContent    = _rptFmt(revenue);
+  document.getElementById('rpt-revenue').textContent    = _rptFmt(commission);
   document.getElementById('rpt-spend').textContent      = _rptFmt(spend);
   document.getElementById('rpt-roas').textContent       = roas ? roas.toFixed(2) + 'x' : '—';
   document.getElementById('rpt-sales').textContent      = approved.length;
