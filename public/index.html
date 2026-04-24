@@ -1496,31 +1496,38 @@
       </div>
     </div>
 
-    <!-- Setup rápido -->
+    <!-- Generador de URL -->
     <div class="card" style="margin-bottom:20px;padding:20px;background:linear-gradient(135deg,rgba(79,142,247,.08),rgba(124,58,237,.08));border:1px solid rgba(79,142,247,.2)">
-      <div style="font-size:15px;font-weight:700;margin-bottom:4px">⚡ Configuración en 2 pasos</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Solo necesitas copiar un código y pegarlo en Meta Ads</div>
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px">⚡ Genera tu URL de tracking</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Escribe el nombre de la campaña → copia la URL → pégala en Meta Ads como URL de destino del anuncio</div>
 
-      <!-- Paso 1 -->
-      <div style="background:rgba(0,0,0,.25);border-radius:12px;padding:16px;margin-bottom:12px">
-        <div style="font-size:12px;font-weight:700;color:#4f8ef7;margin-bottom:8px">PASO 1 — Copia este código y pégalo en Meta Ads</div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:10px">
-          En el anuncio → <strong style="color:var(--text)">Destino → Parámetros de URL</strong> → pega esto:
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <div style="flex:1;min-width:200px">
+            <label style="font-size:11px;color:var(--muted);font-weight:600;display:block;margin-bottom:4px">URL DE CHECKOUT HOTMART</label>
+            <input id="utmHotmartUrl" type="text" placeholder="https://pay.hotmart.com/TU_PRODUCTO"
+              oninput="buildUtmUrl()"
+              style="width:100%;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px">
+          </div>
+          <div style="flex:1;min-width:160px">
+            <label style="font-size:11px;color:var(--muted);font-weight:600;display:block;margin-bottom:4px">NOMBRE DE CAMPAÑA / ANUNCIO</label>
+            <input id="utmCampaignName" type="text" placeholder="ej: LANZAMIENTO_MAYO"
+              oninput="buildUtmUrl()"
+              style="width:100%;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px">
+          </div>
         </div>
-        <div style="position:relative">
-          <code id="utmSnippet" style="display:block;padding:12px 48px 12px 14px;background:rgba(0,0,0,.4);border:1px solid rgba(79,142,247,.3);border-radius:8px;font-size:12px;color:#a5f3fc;word-break:break-all;line-height:1.6">src={{campaign.name}}&xcod={{ad.name}}</code>
-          <button onclick="copyUtmSnippet()" title="Copiar" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:rgba(79,142,247,.2);border:1px solid rgba(79,142,247,.4);border-radius:6px;padding:4px 10px;color:#4f8ef7;font-size:11px;cursor:pointer" id="utmCopyBtn">Copiar</button>
-        </div>
-        <div style="font-size:11px;color:var(--muted);margin-top:8px">Meta reemplaza automáticamente <code style="color:#e2d9f3">{{campaign.name}}</code> y <code style="color:#e2d9f3">{{ad.name}}</code> con el nombre real de cada campaña y anuncio.</div>
-      </div>
 
-      <!-- Paso 2 -->
-      <div style="background:rgba(0,0,0,.25);border-radius:12px;padding:16px">
-        <div style="font-size:12px;font-weight:700;color:#06d6a0;margin-bottom:8px">PASO 2 — Activa parámetros en Hotmart</div>
-        <div style="font-size:12px;color:var(--muted);line-height:1.7">
-          En Hotmart: <strong style="color:var(--text)">tu producto → Checkout → Configuración avanzada</strong><br>
-          Activa la opción <strong style="color:var(--text)">"Parâmetros de rastreamento"</strong> (o "Tracking parameters").<br>
-          <span style="font-size:11px">Esto permite que Hotmart capture el código del anuncio y lo envíe al webhook.</span>
+        <div>
+          <label style="font-size:11px;color:var(--muted);font-weight:600;display:block;margin-bottom:4px">URL GENERADA — usa esta como URL de destino en tu anuncio de Meta</label>
+          <div style="position:relative">
+            <code id="utmGeneratedUrl" style="display:block;padding:11px 80px 11px 14px;background:rgba(0,0,0,.4);border:1px solid rgba(79,142,247,.3);border-radius:8px;font-size:12px;color:#a5f3fc;word-break:break-all;line-height:1.6;min-height:42px">
+              Completa los campos de arriba…
+            </code>
+            <button onclick="copyUtmUrl()" id="utmCopyBtn" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:rgba(79,142,247,.2);border:1px solid rgba(79,142,247,.4);border-radius:6px;padding:5px 12px;color:#4f8ef7;font-size:11px;cursor:pointer;white-space:nowrap">Copiar</button>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:6px">
+            💡 Hotmart captura automáticamente el parámetro <code style="color:#e2d9f3">src</code> y lo registra en cada compra. Usa un nombre diferente por campaña o anuncio para identificarlos en la tabla de abajo.
+          </div>
         </div>
       </div>
     </div>
@@ -4329,8 +4336,25 @@ async function deleteAnn(id) {
 // ── UTM Tracking ─────────────────────────────────────────────────────────────
 let utmGroupMode = 'campaign';
 
-function copyUtmSnippet() {
-  navigator.clipboard.writeText('src={{campaign.name}}&xcod={{ad.name}}').then(() => {
+function buildUtmUrl() {
+  const base = document.getElementById('utmHotmartUrl')?.value.trim();
+  const name = document.getElementById('utmCampaignName')?.value.trim().replace(/\s+/g, '_');
+  const out  = document.getElementById('utmGeneratedUrl');
+  if (!out) return;
+  if (!base || !name) { out.textContent = 'Completa los campos de arriba…'; return; }
+  try {
+    const url = new URL(base);
+    url.searchParams.set('src', name);
+    out.textContent = url.toString();
+  } catch {
+    out.textContent = base + (base.includes('?') ? '&' : '?') + 'src=' + name;
+  }
+}
+
+function copyUtmUrl() {
+  const text = document.getElementById('utmGeneratedUrl')?.textContent?.trim();
+  if (!text || text.includes('Completa')) return;
+  navigator.clipboard.writeText(text).then(() => {
     const btn = document.getElementById('utmCopyBtn');
     if (btn) { btn.textContent = '✓ Copiado'; setTimeout(() => btn.textContent = 'Copiar', 2000); }
   });
