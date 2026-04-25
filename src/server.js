@@ -554,24 +554,25 @@ const GET = {
       let funnel = [];
       if (funnelType === 'webinar') {
         funnel = [
-          { stage: 'Impresiones',  value: impressions, rate: null },
-          { stage: 'Clics',        value: clicks,      rate: ctr ? ctr.toFixed(1) + '%' : null,    label: 'CTR' },
-          { stage: 'Registros',    value: regs,        rate: regRate ? regRate.toFixed(1) + '%' : null, label: 'Tasa reg.' },
-          { stage: 'Ventas',       value: purchases,   rate: closeRate ? closeRate.toFixed(1) + '%' : null, label: 'Cierre' },
+          { stage: 'Impresiones', value: impressions, rate: null },
+          { stage: 'Clics',       value: clicks,      rate: ctr     ? ctr.toFixed(1)     + '%' : null, label: 'CTR' },
+          ...(lpViews > 0 ? [{ stage: 'Visitas LP', value: lpViews, rate: lpRate ? lpRate.toFixed(1) + '%' : null, label: 'Conv. LP' }] : []),
+          { stage: 'Registros',   value: regs,        rate: regRate ? regRate.toFixed(1)  + '%' : null, label: 'Tasa reg.' },
+          { stage: 'Ventas',      value: purchases,   rate: closeRate ? closeRate.toFixed(1) + '%' : null, label: 'Cierre' },
         ];
       } else if (funnelType === 'leads') {
         funnel = [
-          { stage: 'Impresiones',  value: impressions, rate: null },
-          { stage: 'Clics',        value: clicks,      rate: ctr ? ctr.toFixed(1) + '%' : null,    label: 'CTR' },
-          { stage: 'Leads',        value: leads,       rate: lpRate ? lpRate.toFixed(1) + '%' : null, label: 'Conv. LP' },
-          { stage: 'Ventas',       value: purchases,   rate: closeRate ? closeRate.toFixed(1) + '%' : null, label: 'Cierre' },
+          { stage: 'Impresiones', value: impressions, rate: null },
+          { stage: 'Clics',       value: clicks,      rate: ctr    ? ctr.toFixed(1)    + '%' : null, label: 'CTR' },
+          { stage: 'Leads',       value: leads,       rate: lpRate ? lpRate.toFixed(1) + '%' : null, label: 'Conv. LP' },
+          { stage: 'Ventas',      value: purchases,   rate: closeRate ? closeRate.toFixed(1) + '%' : null, label: 'Cierre' },
         ];
       } else {
         funnel = [
-          { stage: 'Impresiones',  value: impressions, rate: null },
-          { stage: 'Clics',        value: clicks,      rate: ctr ? ctr.toFixed(1) + '%' : null,    label: 'CTR' },
-          { stage: 'Compras',      value: purchases,   rate: null },
-          { stage: 'Revenue',      value: revenue > 0 ? '$' + revenue.toFixed(0) : 0, rate: roas ? roas.toFixed(2) + 'x' : null, label: 'ROAS' },
+          { stage: 'Impresiones', value: impressions, rate: null },
+          { stage: 'Clics',       value: clicks,      rate: ctr ? ctr.toFixed(1) + '%' : null, label: 'CTR' },
+          { stage: 'Compras',     value: purchases,   rate: null },
+          { stage: 'Revenue',     value: revenue > 0 ? '$' + revenue.toFixed(0) : 0, rate: roas ? roas.toFixed(2) + 'x' : null, label: 'ROAS' },
         ];
       }
 
@@ -612,11 +613,17 @@ const GET = {
       if (alerts.length === 0)
         alerts.push({ type: 'info', msg: 'Sin alertas críticas en este período' });
 
+      const frequency   = reach > 0 ? impressions / reach : null;
+      const cpm         = impressions > 0 ? (spend / impressions) * 1000 : null;
+      const avgTicket   = purchases > 0 && revenue > 0 ? revenue / purchases : null;
+      const revPerLead  = (leads > 0 || regs > 0) && revenue > 0 ? revenue / (leads || regs) : null;
+
       return {
         name: g.name, funnelType, isActive,
         campaigns: g.ids.length,
-        spend, impressions, clicks, purchases, leads, regs, revenue, reach,
-        ctr, cpl, cpa, roas, closeRate,
+        spend, impressions, clicks, purchases, leads, regs, revenue, reach, lpViews,
+        ctr, cpl, cpa, roas, closeRate, lpRate, regRate,
+        frequency, cpm, avgTicket, revPerLead,
         funnel, alerts,
       };
     }).filter(Boolean).sort((a, b) => b.spend - a.spend);

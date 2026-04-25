@@ -623,15 +623,22 @@
     .launch-metric-value { font-size: 14px; font-weight: 600; }
     .launch-detail { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); display: none; }
     .launch-detail.open { display: block; }
-    /* Funnel */
-    .funnel-wrap { display: flex; align-items: center; gap: 0; margin-bottom: 16px; flex-wrap: wrap; }
-    .funnel-stage { display: flex; align-items: center; }
-    .funnel-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; text-align: center; min-width: 110px; }
-    .funnel-box-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
-    .funnel-box-value { font-size: 18px; font-weight: 700; }
-    .funnel-arrow { display: flex; flex-direction: column; align-items: center; padding: 0 8px; }
-    .funnel-arrow-rate { font-size: 10px; color: var(--muted); white-space: nowrap; }
-    .funnel-arrow-icon { font-size: 16px; color: var(--muted); }
+    /* ── Cone Funnel ── */
+    .cone-funnel { display: flex; flex-direction: column; align-items: center; gap: 0; width: 100%; margin-bottom: 20px; }
+    .cone-stage-wrap { width: 100%; display: flex; flex-direction: column; align-items: center; }
+    .cone-stage {
+      height: 52px; width: 100%;
+      display: flex; align-items: center; justify-content: center; gap: 14px;
+      position: relative; cursor: default;
+      transition: filter .15s;
+    }
+    .cone-stage:hover { filter: brightness(1.1); }
+    .cone-stage-name { font-size: 11px; font-weight: 600; color: rgba(255,255,255,.85); text-transform: uppercase; letter-spacing: .6px; }
+    .cone-stage-val  { font-size: 18px; font-weight: 800; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,.3); }
+    .cone-rate {
+      font-size: 11px; padding: 3px 0; text-align: center;
+      color: var(--muted); display: flex; align-items: center; gap: 4px;
+    }
     /* Alertas de lanzamiento */
     .launch-alerts { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
     .launch-alert { padding: 8px 12px; border-radius: 6px; font-size: 12px; display: flex; align-items: flex-start; gap: 8px; }
@@ -1025,11 +1032,10 @@
       /* Analysis grid */
       .analysis-grid { grid-template-columns: 1fr; gap: 10px; }
 
-      /* Launches funnel — vertical stacking on small screens */
-      .funnel-wrap { flex-direction: column; align-items: flex-start; gap: 4px; }
-      .funnel-arrow { flex-direction: row; transform: rotate(90deg); padding: 0 4px; }
-      .funnel-box { min-width: 80px; padding: 8px 12px; }
-      .funnel-box-value { font-size: 16px; }
+      /* Launches funnel — smaller on mobile */
+      .cone-stage { height: 44px; }
+      .cone-stage-val { font-size: 15px; }
+      .cone-stage-name { font-size: 10px; }
 
       /* Launch metrics: 2 columns instead of row */
       .launch-metrics { gap: 12px; }
@@ -3294,12 +3300,52 @@ function alertIcon(type) {
   return type === 'error' ? '🔴' : type === 'warning' ? '🟡' : type === 'success' ? '🟢' : '🔵';
 }
 
+function renderConeFunnel(funnel) {
+  const COLORS = [
+    ['#1d4ed8','#3b82f6'], ['#6d28d9','#8b5cf6'],
+    ['#0f766e','#14b8a6'], ['#b45309','#f59e0b'], ['#b91c1c','#ef4444'],
+  ];
+  const n = funnel.length;
+  // Insets: 0% at top, up to 36% at bottom (per side), linearly distributed
+  const insets = Array.from({length: n + 1}, (_, i) => Math.round((i / n) * 36));
+
+  return `<div class="cone-funnel">
+    ${funnel.map((s, i) => {
+      const topIn  = insets[i];
+      const botIn  = insets[i + 1] ?? insets[i];
+      const clip   = `polygon(${topIn}% 0%,${100-topIn}% 0%,${100-botIn}% 100%,${botIn}% 100%)`;
+      const [c1, c2] = COLORS[i % COLORS.length];
+      const val    = typeof s.value === 'number' ? s.value.toLocaleString('en-US') : s.value;
+      return `
+        <div class="cone-stage-wrap">
+          <div class="cone-stage" style="clip-path:${clip};background:linear-gradient(135deg,${c1},${c2})">
+            <span class="cone-stage-name">${s.stage}</span>
+            <span class="cone-stage-val">${val}</span>
+          </div>
+          ${i < n - 1 && s.rate ? `
+            <div class="cone-rate">
+              <strong style="color:${c2}">${s.rate}</strong>
+              ${s.label ? `<span>${s.label}</span>` : ''}
+            </div>` : i < n - 1 ? `<div class="cone-rate" style="opacity:.3">↓</div>` : ''}
+        </div>`;
+    }).join('')}
+  </div>`;
+}
+
 function renderLaunchCard(l, idx) {
-  const roas  = l.roas  ? l.roas.toFixed(2)  + 'x' : '—';
-  const cpl   = l.cpl   ? '$' + l.cpl.toFixed(2)   : '—';
-  const cpa   = l.cpa   ? '$' + l.cpa.toFixed(2)   : '—';
-  const spend = '$' + (l.spend || 0).toFixed(2);
-  const statusDot = l.isActive ? '<span style="color:var(--green);font-size:10px">● ACTIVO</span>' : '<span style="color:var(--muted);font-size:10px">● PAUSADO</span>';
+  const f   = v => v != null ? v : '—';
+  const fd  = (v, d=2) => v != null ? v.toFixed(d) : '—';
+  const fm  = v => v != null ? '$' + v.toFixed(2) : '—';
+  const statusDot = l.isActive
+    ? '<span style="color:var(--green);font-size:10px">● ACTIVO</span>'
+    : '<span style="color:var(--muted);font-size:10px">● PAUSADO</span>';
+  const roasColor = !l.roas ? '' : l.roas >= 1.2 ? 'color:var(--green)' : l.roas >= 1 ? 'color:var(--yellow)' : 'color:var(--red)';
+
+  const metric = (label, val, color='') =>
+    `<div class="launch-metric">
+      <span class="launch-metric-label">${label}</span>
+      <span class="launch-metric-value" style="${color}">${val}</span>
+    </div>`;
 
   return `
   <div class="launch-card" id="lcard-${idx}" onclick="toggleLaunch(${idx})">
@@ -3310,30 +3356,34 @@ function renderLaunchCard(l, idx) {
         <span class="launch-type-badge ${l.funnelType}">${funnelTypeLabel(l.funnelType)}</span>
       </div>
     </div>
-    <div class="launch-metrics">
-      <div class="launch-metric"><span class="launch-metric-label">Gasto</span><span class="launch-metric-value">${spend}</span></div>
-      ${l.funnelType !== 'direct' ? `<div class="launch-metric"><span class="launch-metric-label">${l.funnelType === 'webinar' ? 'Registros' : 'Leads'}</span><span class="launch-metric-value" style="color:var(--green)">${l.funnelType === 'webinar' ? (l.regs||0) : (l.leads||0)}</span></div>` : ''}
-      ${l.purchases > 0 ? `<div class="launch-metric"><span class="launch-metric-label">Ventas</span><span class="launch-metric-value" style="color:var(--green)">${l.purchases}</span></div>` : ''}
-      <div class="launch-metric"><span class="launch-metric-label">CPL</span><span class="launch-metric-value">${cpl}</span></div>
-      <div class="launch-metric"><span class="launch-metric-label">CPA</span><span class="launch-metric-value">${cpa}</span></div>
-      <div class="launch-metric"><span class="launch-metric-label">ROAS</span><span class="launch-metric-value ${l.roas >= 1.2 ? 'green' : l.roas >= 1 ? 'yellow' : 'red'}">${roas}</span></div>
-      <div class="launch-metric"><span class="launch-metric-label">CTR</span><span class="launch-metric-value">${(l.ctr||0).toFixed(2)}%</span></div>
+
+    <div class="launch-metrics" style="margin-top:10px">
+      ${metric('Gasto', fm(l.spend))}
+      ${metric('Impresiones', (l.impressions||0).toLocaleString('en-US'))}
+      ${metric('Alcance', (l.reach||0).toLocaleString('en-US'))}
+      ${metric('Frecuencia', l.frequency ? fd(l.frequency,1)+'x' : '—')}
+      ${metric('CTR', fd(l.ctr,2)+'%')}
+      ${metric('CPM', l.cpm ? '$'+fd(l.cpm,2) : '—')}
     </div>
+    <div class="launch-metrics" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">
+      ${l.funnelType !== 'direct' ? metric(l.funnelType==='webinar'?'Registros':'Leads', f(l.funnelType==='webinar'?l.regs:l.leads), 'color:var(--blue)') : ''}
+      ${metric('Ventas', f(l.purchases), 'color:var(--green)')}
+      ${metric('CPL', fm(l.cpl))}
+      ${metric('CPA', fm(l.cpa))}
+      ${metric('ROAS', l.roas ? fd(l.roas,2)+'x' : '—', roasColor)}
+      ${metric('Cierre', l.closeRate ? fd(l.closeRate,1)+'%' : '—')}
+      ${l.revenue > 0 ? metric('Revenue', '$'+fd(l.revenue,0)) : ''}
+      ${l.avgTicket ? metric('Ticket promedio', fm(l.avgTicket)) : ''}
+    </div>
+
     <div class="launch-detail" id="ldetail-${idx}">
-      <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:10px">EMBUDO</div>
-      <div class="funnel-wrap">
-        ${l.funnel.map((s, i) => `
-          ${i > 0 ? `<div class="funnel-arrow"><span class="funnel-arrow-rate">${l.funnel[i].rate || ''}</span><span class="funnel-arrow-icon">→</span><span class="funnel-arrow-rate" style="font-size:9px">${l.funnel[i].label || ''}</span></div>` : ''}
-          <div class="funnel-box">
-            <div class="funnel-box-label">${s.stage}</div>
-            <div class="funnel-box-value">${typeof s.value === 'number' ? s.value.toLocaleString('en-US') : s.value}</div>
-          </div>`).join('')}
-      </div>
-      <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px">ALERTAS</div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:10px;margin-top:4px">EMBUDO DE CONVERSIÓN</div>
+      ${renderConeFunnel(l.funnel)}
+      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:8px">ALERTAS</div>
       <div class="launch-alerts">
         ${l.alerts.map(a => `<div class="launch-alert ${a.type}">${alertIcon(a.type)} ${a.msg}</div>`).join('')}
       </div>
-      <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px">TENDENCIA</div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:8px;margin-top:4px">TENDENCIA DIARIA</div>
       <div class="launch-trend-wrap"><canvas id="ltchart-${idx}"></canvas></div>
     </div>
   </div>`;
