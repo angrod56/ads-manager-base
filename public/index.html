@@ -2142,7 +2142,12 @@ function applyCustomDate() {
   loadOverview();
 }
 async function post(path, body) {
-  const r = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const token = localStorage.getItem('token');
+  const r = await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
+    body: JSON.stringify(body),
+  });
   const d = await r.json();
   if (d.error) throw new Error(d.error);
   return d;
