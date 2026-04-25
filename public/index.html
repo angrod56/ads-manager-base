@@ -1926,6 +1926,49 @@
   <!-- ── SECTION: Admin ── -->
   <div class="section" id="section-admin">
 
+    <!-- Registrar venta manual — al tope para acceso rápido -->
+    <div class="card" style="margin-bottom:16px;border:1px solid rgba(248,113,113,.5);background:rgba(248,113,113,.04)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <span style="font-size:20px">🔧</span>
+        <div>
+          <div style="font-size:15px;font-weight:700">Registrar venta manual</div>
+          <div style="font-size:12px;color:var(--muted)">Úsalo si llegó la notificación push pero la venta no aparece en el dashboard</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Transaction ID</div>
+          <input id="msTxid" placeholder="HP1540743893" style="width:100%;padding:8px 10px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:13px">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Comisión USD</div>
+          <input id="msCommission" type="number" step="0.01" placeholder="17.72" style="width:100%;padding:8px 10px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:13px">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Producto</div>
+          <input id="msProduct" placeholder="Konektaa2" style="width:100%;padding:8px 10px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:13px">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Comprador</div>
+          <input id="msBuyer" placeholder="Yoseph Masso" style="width:100%;padding:8px 10px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:13px">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Fecha y hora local</div>
+          <input id="msSaleDate" type="datetime-local" style="width:100%;padding:8px 10px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:13px">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Usuario</div>
+          <select id="msUserId" style="width:100%;padding:8px 10px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:13px">
+            <option value="">Cargando…</option>
+          </select>
+        </div>
+      </div>
+      <button onclick="submitManualSale()" style="background:linear-gradient(135deg,#f87171,#e55b5b);border:none;border-radius:8px;padding:10px 20px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;width:100%">
+        💾 Guardar venta
+      </button>
+      <div id="msSaveMsg" style="display:none;font-size:13px;text-align:center;margin-top:8px"></div>
+    </div>
+
     <!-- Banners / Anuncios -->
     <div class="card" style="margin-bottom:20px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px">
@@ -1970,49 +2013,6 @@
         <button onclick="loadAdminUsers()" style="font-size:12px;padding:6px 12px">↺ Actualizar</button>
       </div>
       <div id="adminUsersTable">Cargando…</div>
-    </div>
-
-    <!-- Registrar venta manual -->
-    <div class="card" style="margin-top:16px;border-color:rgba(248,113,113,.3)">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
-        <span style="font-size:22px">🔧</span>
-        <div>
-          <div style="font-size:15px;font-weight:700">Registrar venta manual</div>
-          <div style="font-size:12px;color:var(--muted)">Úsalo si una venta llegó la notificación pero no se guardó en el dashboard</div>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-        <div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Transaction ID (ej: HP1540743893)</div>
-          <input id="msTxid" placeholder="HP..." style="width:100%;padding:8px 10px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:13px">
-        </div>
-        <div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Comisión USD</div>
-          <input id="msCommission" type="number" step="0.01" placeholder="17.72" style="width:100%;padding:8px 10px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:13px">
-        </div>
-        <div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Producto</div>
-          <input id="msProduct" placeholder="Konektaa2" style="width:100%;padding:8px 10px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:13px">
-        </div>
-        <div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Comprador</div>
-          <input id="msBuyer" placeholder="Yoseph Masso" style="width:100%;padding:8px 10px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:13px">
-        </div>
-        <div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Fecha y hora local</div>
-          <input id="msSaleDate" type="datetime-local" style="width:100%;padding:8px 10px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:13px">
-        </div>
-        <div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Usuario destino</div>
-          <select id="msUserId" style="width:100%;padding:8px 10px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:13px">
-            <option value="">Cargando usuarios…</option>
-          </select>
-        </div>
-      </div>
-      <button onclick="submitManualSale()" style="background:linear-gradient(135deg,#f87171,#e55b5b);border:none;border-radius:8px;padding:10px 20px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;width:100%">
-        💾 Guardar venta
-      </button>
-      <div id="msSaveMsg" style="display:none;font-size:13px;text-align:center;margin-top:8px"></div>
     </div>
 
     <!-- Videos de tutoriales -->
