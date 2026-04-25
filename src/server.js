@@ -776,7 +776,7 @@ const GET = {
     // Convertir preset de fecha (today, last_7d, last_30d…) a since/until explícitos
     let since = q.since, until = q.until;
     if (!since && q.date) {
-      const now      = new Date(Date.now() - tzMs); // medianoche local en UTC
+      const now      = new Date(Date.now() + tzMs); // hora local: UTC + offset
       const todayStr = now.toISOString().slice(0, 10);
       const daysBack = n => {
         const d = new Date(now); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10);
