@@ -839,6 +839,17 @@ const GET = {
     json(res, await listUsers());
   },
 
+  // ── Admin: buscar venta por transaction ID ────────────────────────────────────
+  '/api/admin/find-sale': async (res, q, user) => {
+    if (!user || user.role !== 'admin') return err(res, 'No autorizado', 403);
+    const { data } = await supabaseAdmin
+      .from('sales')
+      .select('*')
+      .eq('id', q.txid)
+      .maybeSingle();
+    json(res, { found: !!data, sale: data || null });
+  },
+
   // ── Announcements: obtener activos ───────────────────────────────────────────
   '/api/announcements': async (res, _q, _user) => {
     const { data } = await supabaseAdmin
@@ -1045,6 +1056,29 @@ const POST = {
     if (!userId) return err(res, 'userId requerido', 400);
     await deleteUser(userId);
     json(res, { ok: true });
+  },
+
+  // ── Admin: registrar venta manual ─────────────────────────────────────────────
+  '/api/admin/manual-sale': async (res, req, user) => {
+    if (!user || user.role !== 'admin') return err(res, 'No autorizado', 403);
+    const b = await body(req);
+    const { txid, userId, product, buyer, commission, saleDate } = b;
+    if (!txid || !userId || !commission) return err(res, 'txid, userId y commission son requeridos', 400);
+    const sale = {
+      id:           txid,
+      user_id:      userId,
+      product_name: product || '—',
+      buyer_name:   buyer  || null,
+      amount:       parseFloat(commission),
+      commission:   parseFloat(commission),
+      currency:     'USD',
+      status:       'approved',
+      hotmart_event:'PURCHASE_APPROVED',
+      sale_date:    saleDate ? new Date(saleDate).toISOString() : new Date().toISOString(),
+    };
+    const { error } = await supabaseAdmin.from('sales').upsert(sale, { onConflict: 'id' });
+    if (error) return err(res, error.message);
+    json(res, { ok: true, sale });
   },
 
   // ── Admin: guardar videos de tutoriales ──────────────────────────────────────
