@@ -5578,16 +5578,27 @@ if ('serviceWorker' in navigator) {
       playCashRegister();
       document.title = '💰 VENTA! ' + new Date().toLocaleTimeString();
       setTimeout(() => { document.title = 'Adsmanager PRO'; }, 3000);
+      showToast('💰 Nueva venta — actualizando datos...', 'success');
+      setTimeout(_refreshSalesSections, 2000);
     }
     if (e.data?.type === 'CANCEL_SOUND') {
       playCancelAlert();
       document.title = '⚠️ Cancelación · ' + new Date().toLocaleTimeString();
       setTimeout(() => { document.title = 'Adsmanager PRO'; }, 4000);
+      showToast('⚠️ Cancelación recibida — actualizando...', 'error');
+      setTimeout(_refreshSalesSections, 2000);
     }
     if (e.data?.type === 'SW_UPDATED') {
       window.location.reload();
     }
   });
+
+  function _refreshSalesSections() {
+    const isActive = id => document.getElementById(id)?.classList.contains('active');
+    if (isActive('section-sales'))     loadSales();
+    if (isActive('section-reports'))   loadReports();
+    if (isActive('section-dashboard')) loadOverview();
+  }
 
   // Verificar actualizaciones del SW cada 5 minutos
   setInterval(() => {
