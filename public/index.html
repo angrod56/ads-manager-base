@@ -382,34 +382,69 @@
     .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
 
     /* ── Banners de anuncios ── */
+    @keyframes annSlideIn {
+      from { opacity:0; transform:translateY(-12px) scale(.97); }
+      to   { opacity:1; transform:translateY(0)     scale(1);   }
+    }
+    @keyframes gradientFlow {
+      0%   { background-position: 0% 60%; }
+      50%  { background-position: 100% 40%; }
+      100% { background-position: 0% 60%; }
+    }
+    @keyframes annShimmer {
+      0%   { transform: translateX(-120%) skewX(-15deg); }
+      100% { transform: translateX(220%)  skewX(-15deg); }
+    }
+    @keyframes annPulse {
+      0%,100% { box-shadow: 0 4px 24px var(--ann-glow); }
+      50%      { box-shadow: 0 8px 40px var(--ann-glow), 0 0 0 4px var(--ann-glow2); }
+    }
     .ann-banner {
       display: flex;
       align-items: flex-start;
       gap: 14px;
-      padding: 14px 16px;
-      border-radius: 12px;
-      border-left: 4px solid;
+      padding: 16px 18px;
+      border-radius: 16px;
       position: relative;
-      animation: annSlideIn .4s cubic-bezier(.34,1.56,.64,1);
+      overflow: hidden;
+      background-size: 300% 300%;
+      border: 1px solid rgba(255,255,255,.18);
+      animation: annSlideIn .5s cubic-bezier(.34,1.56,.64,1),
+                 gradientFlow 6s ease infinite,
+                 annPulse 3s ease-in-out infinite;
     }
-    @keyframes annSlideIn {
-      from { opacity:0; transform:translateY(-10px); }
-      to   { opacity:1; transform:translateY(0); }
+    .ann-banner::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 45%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.18), transparent);
+      animation: annShimmer 2.8s ease-in-out infinite;
+      pointer-events: none;
     }
-    .ann-info    { background:rgba(37,99,235,.1);  border-color:#2563eb; }
-    .ann-feature { background:rgba(155,93,229,.1); border-color:#9b5de5; }
-    .ann-success { background:rgba(6,214,160,.1);  border-color:#06d6a0; }
-    .ann-warning { background:rgba(251,191,36,.1); border-color:#fbbf24; }
-    .ann-emoji   { font-size:22px; line-height:1; flex-shrink:0; }
-    .ann-body    { flex:1; min-width:0; }
-    .ann-label   { font-size:10px; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:3px; opacity:.7; }
-    .ann-info    .ann-label { color:#60a5fa; }
-    .ann-feature .ann-label { color:#c084fc; }
-    .ann-success .ann-label { color:#34d399; }
-    .ann-warning .ann-label { color:#fbbf24; }
-    .ann-message { font-size:13px; font-weight:500; line-height:1.5; }
-    .ann-close   { background:none; border:none; color:rgba(255,255,255,.35); cursor:pointer; font-size:16px; padding:0; flex-shrink:0; line-height:1; }
-    .ann-close:hover { color:rgba(255,255,255,.7); }
+    .ann-info    {
+      background: linear-gradient(-45deg,#1e3a8a,#2563eb,#0ea5e9,#1d4ed8);
+      --ann-glow: rgba(37,99,235,.45); --ann-glow2: rgba(14,165,233,.15);
+    }
+    .ann-feature {
+      background: linear-gradient(-45deg,#4c1d95,#7c3aed,#db2777,#9b5de5);
+      --ann-glow: rgba(124,58,237,.45); --ann-glow2: rgba(219,39,119,.15);
+    }
+    .ann-success {
+      background: linear-gradient(-45deg,#065f46,#059669,#06d6a0,#0d9488);
+      --ann-glow: rgba(5,150,105,.45); --ann-glow2: rgba(6,214,160,.15);
+    }
+    .ann-warning {
+      background: linear-gradient(-45deg,#92400e,#d97706,#f59e0b,#dc2626);
+      --ann-glow: rgba(217,119,6,.5); --ann-glow2: rgba(245,158,11,.2);
+    }
+    .ann-emoji   { font-size:26px; line-height:1; flex-shrink:0; filter:drop-shadow(0 2px 6px rgba(0,0,0,.3)); }
+    .ann-body    { flex:1; min-width:0; position:relative; z-index:1; }
+    .ann-label   { font-size:10px; font-weight:800; letter-spacing:1.8px; text-transform:uppercase; margin-bottom:4px; color:rgba(255,255,255,.8); }
+    .ann-message { font-size:13px; font-weight:600; line-height:1.5; color:#fff; text-shadow:0 1px 4px rgba(0,0,0,.25); }
+    .ann-close   { background:none; border:none; color:rgba(255,255,255,.5); cursor:pointer; font-size:16px; padding:0; flex-shrink:0; line-height:1; position:relative; z-index:1; transition:color .2s; }
+    .ann-close:hover { color:#fff; }
 
     /* ── Money Rain ── */
     @keyframes moneyFly {
