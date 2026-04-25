@@ -446,6 +446,22 @@
     .ann-close   { background:none; border:none; color:rgba(255,255,255,.5); cursor:pointer; font-size:16px; padding:0; flex-shrink:0; line-height:1; position:relative; z-index:1; transition:color .2s; }
     .ann-close:hover { color:#fff; }
 
+    /* ── Banner sticky ── */
+    #announcementBanners {
+      position: sticky;
+      top: 56px;
+      z-index: 80;
+      background: var(--bg);
+      padding: 10px 24px;
+      margin: 0;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    @media (max-width: 900px) {
+      #announcementBanners { top: 0; padding: 8px 14px; }
+    }
+
     /* ── Money Rain ── */
     @keyframes moneyFly {
       0%   { transform: translateY(0) rotate(0deg) scale(1);   opacity: 1; }
@@ -1261,7 +1277,7 @@
 <main class="main">
 
   <!-- ── Banners de anuncios ── -->
-  <div id="announcementBanners" style="display:none;flex-direction:column;gap:8px;margin-bottom:16px"></div>
+  <div id="announcementBanners" style="display:none;flex-direction:column;gap:8px"></div>
 
   <!-- ── SECTION: Dashboard ── -->
   <div class="section active" id="section-dashboard">
