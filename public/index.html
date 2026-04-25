@@ -5432,7 +5432,12 @@ setInterval(() => {
     const user = await r.json();
     S.user  = user;
     S.token = user.meta_token || '';
-    scheduleTokenRefresh(3600);
+    // Leer expiración real del JWT para no asumir 3600s
+    try {
+      const payload = JSON.parse(atob(S.jwt.split('.')[1]));
+      const secsLeft = payload.exp - Math.floor(Date.now() / 1000);
+      scheduleTokenRefresh(Math.max(secsLeft, 60));
+    } catch { scheduleTokenRefresh(3600); }
     await launchApp();
   } catch {
     localStorage.removeItem('jwt');
