@@ -2142,7 +2142,7 @@ function applyCustomDate() {
   loadOverview();
 }
 async function post(path, body) {
-  const token = localStorage.getItem('token');
+  const token = S.jwt || localStorage.getItem('jwt');
   const r = await fetch(path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
@@ -5097,7 +5097,7 @@ async function searchSaleAdmin() {
     const params = new URLSearchParams();
     if (txid)  params.set('txid',  txid);
     if (buyer) params.set('buyer', buyer);
-    const r = await fetch('/api/admin/find-sale?' + params, { headers: { Authorization: 'Bearer ' + localStorage.getItem('token') } });
+    const r = await fetch('/api/admin/find-sale?' + params, { headers: { Authorization: 'Bearer ' + (S.jwt || localStorage.getItem('jwt')) } });
     const d = await r.json();
     if (!d.found || !d.sales?.length) {
       out.innerHTML = '<span style="color:var(--muted)">No se encontraron ventas.</span>';
