@@ -1926,15 +1926,29 @@
   <!-- ── SECTION: Admin ── -->
   <div class="section" id="section-admin">
 
-    <!-- Registrar venta manual — al tope para acceso rápido -->
+    <!-- Herramientas de ventas — al tope para acceso rápido -->
     <div class="card" style="margin-bottom:16px;border:1px solid rgba(248,113,113,.5);background:rgba(248,113,113,.04)">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
         <span style="font-size:20px">🔧</span>
         <div>
-          <div style="font-size:15px;font-weight:700">Registrar venta manual</div>
-          <div style="font-size:12px;color:var(--muted)">Úsalo si llegó la notificación push pero la venta no aparece en el dashboard</div>
+          <div style="font-size:15px;font-weight:700">Herramientas de ventas</div>
+          <div style="font-size:12px;color:var(--muted)">Buscar o registrar ventas manualmente</div>
         </div>
       </div>
+
+      <!-- Buscador -->
+      <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+        <div style="font-size:12px;font-weight:600;margin-bottom:8px">🔍 Buscar venta en toda la base de datos</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input id="fsSearchTx" placeholder="Transaction ID (ej: HP1540743893)" style="flex:1;min-width:180px;padding:8px 10px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:13px">
+          <input id="fsSearchBuyer" placeholder="Nombre comprador (ej: Yoseph)" style="flex:1;min-width:180px;padding:8px 10px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:13px">
+          <button onclick="searchSaleAdmin()" style="padding:8px 16px;border-radius:8px;background:var(--blue);border:none;color:#fff;font-size:13px;font-weight:600;cursor:pointer">Buscar</button>
+        </div>
+        <div id="fsResults" style="margin-top:10px;font-size:12px"></div>
+      </div>
+
+      <!-- Registro manual -->
+      <div style="font-size:12px;font-weight:600;margin-bottom:8px">➕ Registrar venta manualmente</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
         <div>
           <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Transaction ID</div>
@@ -5065,6 +5079,34 @@ async function adminDeleteUser(userId) {
     body: JSON.stringify({ userId }),
   });
   loadAdminUsers();
+}
+
+async function searchSaleAdmin() {
+  const txid  = document.getElementById('fsSearchTx')?.value.trim();
+  const buyer = document.getElementById('fsSearchBuyer')?.value.trim();
+  const out   = document.getElementById('fsResults');
+  if (!txid && !buyer) { out.innerHTML = '<span style="color:var(--red)">Ingresa un Transaction ID o nombre del comprador</span>'; return; }
+
+  out.innerHTML = '<span style="color:var(--muted)">Buscando…</span>';
+  try {
+    const params = new URLSearchParams();
+    if (txid)  params.set('txid',  txid);
+    if (buyer) params.set('buyer', buyer);
+    const r = await fetch('/api/admin/find-sale?' + params, { headers: { Authorization: 'Bearer ' + localStorage.getItem('token') } });
+    const d = await r.json();
+    if (!d.found || !d.sales?.length) {
+      out.innerHTML = '<span style="color:var(--muted)">No se encontraron ventas.</span>';
+      return;
+    }
+    out.innerHTML = d.sales.map(s => `
+      <div style="background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:12px">
+        <div style="font-weight:700;color:var(--text);margin-bottom:4px">${s.id}</div>
+        <div style="color:var(--muted)">${s.buyer_name || '—'} &nbsp;·&nbsp; ${s.product_name || '—'} &nbsp;·&nbsp; <strong style="color:#06d6a0">$${(s.commission||s.amount||0).toFixed(2)}</strong> &nbsp;·&nbsp; ${s.status}</div>
+        <div style="color:var(--muted);margin-top:2px">user_id: ${s.user_id} &nbsp;·&nbsp; ${s.sale_date ? s.sale_date.slice(0,19).replace('T',' ') : '—'}</div>
+      </div>`).join('');
+  } catch(e) {
+    out.innerHTML = '<span style="color:var(--red)">Error: ' + e.message + '</span>';
+  }
 }
 
 async function submitManualSale() {
