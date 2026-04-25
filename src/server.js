@@ -805,7 +805,7 @@ const GET = {
       getTotalEarned(user.id),
     ]);
 
-    const approved  = sales.filter(s => s.status === 'approved');
+    const approved  = sales.filter(s => s.status === 'approved' || s.status === 'complete');
     // Solo refunded y chargeback son dinero real devuelto; canceled puede no haber sido cobrado nunca
     const refunded  = sales.filter(s => s.status === 'refunded' || s.status === 'chargeback');
     const canceled  = sales.filter(s => s.status === 'canceled');
