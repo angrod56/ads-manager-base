@@ -805,7 +805,7 @@ const GET = {
       getTotalEarned(user.id),
     ]);
 
-    const approved  = sales.filter(s => s.status === 'approved' || s.status === 'complete');
+    const approved  = sales.filter(s => s.status === 'approved');
     // Solo refunded y chargeback son dinero real devuelto; canceled puede no haber sido cobrado nunca
     const refunded  = sales.filter(s => s.status === 'refunded' || s.status === 'chargeback');
     const canceled  = sales.filter(s => s.status === 'canceled');
@@ -839,15 +839,15 @@ const GET = {
     json(res, await listUsers());
   },
 
-  // ── Admin: buscar venta por transaction ID ────────────────────────────────────
+  // ── Admin: buscar venta (todos los usuarios) por txid o buyer ────────────────
   '/api/admin/find-sale': async (res, q, user) => {
     if (!user || user.role !== 'admin') return err(res, 'No autorizado', 403);
-    const { data } = await supabaseAdmin
-      .from('sales')
-      .select('*')
-      .eq('id', q.txid)
-      .maybeSingle();
-    json(res, { found: !!data, sale: data || null });
+    let query = supabaseAdmin.from('sales').select('*');
+    if (q.txid)  query = query.eq('id', q.txid);
+    if (q.buyer) query = query.ilike('buyer_name', `%${q.buyer}%`);
+    if (!q.txid && !q.buyer) return err(res, 'txid o buyer requerido', 400);
+    const { data } = await query.order('sale_date', { ascending: false }).limit(20);
+    json(res, { found: !!(data?.length), sales: data || [] });
   },
 
   // ── Announcements: obtener activos ───────────────────────────────────────────
@@ -1180,9 +1180,14 @@ const POST = {
     if (!ownerId) return err(res, 'No hay usuario configurado', 500);
 
     const payload = await body(req);
-    console.log('[Hotmart] Evento recibido:', payload?.event, '| owner:', ownerId);
+    const txid = payload?.data?.purchase?.transaction || '?';
+    console.log('[Hotmart] Evento:', payload?.event, '| tx:', txid, '| owner:', ownerId);
     const result = await processHotmartEvent(payload, ownerId);
-    console.log('[Hotmart] Resultado:', JSON.stringify({ ok: result.ok, status: result.sale?.status, commission: result.commission, ignored: result.ignored }));
+    console.log('[Hotmart] Resultado:', JSON.stringify({
+      ok: result.ok, ignored: result.ignored,
+      txid, status: result.sale?.status, commission: result.commission,
+      user_id: ownerId,
+    }));
 
     // Notificación push según estado de la venta
     if (result.ok && result.sale) {

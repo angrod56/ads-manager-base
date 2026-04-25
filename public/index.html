@@ -4388,7 +4388,7 @@ function renderSalesChart(sales) {
     const day = s.sale_date ? localDateStr(new Date(s.sale_date)) : '';
     if (!day) continue;
     if (!byDay[day]) byDay[day] = { revenue: 0, canceled: 0, transactions: 0 };
-    if (s.status === 'approved' || s.status === 'complete') { byDay[day].revenue += s.commission || s.amount || 0; byDay[day].transactions++; }
+    if (s.status === 'approved') { byDay[day].revenue += s.commission || s.amount || 0; byDay[day].transactions++; }
     if (['canceled', 'refunded', 'chargeback'].includes(s.status)) byDay[day].canceled += s.commission || s.amount || 0;
   }
   const labels = Object.keys(byDay).sort();
@@ -5822,7 +5822,7 @@ async function loadReports() {
   const sales    = salesRes.status === 'fulfilled' ? (salesRes.value?.sales || []) : [];
   const totals   = overviewRes.status === 'fulfilled' && overviewRes.value ? (overviewRes.value.totals || {}) : {};
 
-  const approved   = sales.filter(s => s.status === 'approved' || s.status === 'complete');
+  const approved   = sales.filter(s => s.status === 'approved');
   const commission = approved.reduce((s, x) => s + (x.commission || 0), 0);
   const spend      = totals.spend || 0;
   const roas       = spend > 0 ? commission / spend : 0;
