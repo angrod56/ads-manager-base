@@ -446,6 +446,28 @@
     .ann-close   { background:none; border:none; color:rgba(255,255,255,.5); cursor:pointer; font-size:16px; padding:0; flex-shrink:0; line-height:1; position:relative; z-index:1; transition:color .2s; }
     .ann-close:hover { color:#fff; }
 
+    /* ── Module tabs ── */
+    #moduleTabs {
+      display: flex; gap: 2px; padding: 0 24px;
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      position: sticky; top: 56px; z-index: 79;
+      overflow-x: auto; scrollbar-width: none;
+    }
+    #moduleTabs::-webkit-scrollbar { display: none; }
+    .mod-tab {
+      padding: 10px 16px; font-size: 13px; font-weight: 500;
+      color: var(--muted); cursor: pointer; white-space: nowrap;
+      border-bottom: 2px solid transparent;
+      transition: color .15s, border-color .15s;
+      user-select: none;
+    }
+    .mod-tab:hover { color: var(--text); }
+    .mod-tab.active { color: var(--blue); border-bottom-color: var(--blue); font-weight: 600; }
+    @media (max-width: 900px) {
+      #moduleTabs { top: 0; padding: 0 12px; }
+      .mod-tab { padding: 9px 12px; font-size: 12px; }
+    }
+
     /* ── Banner sticky ── */
     #announcementBanners {
       position: sticky;
@@ -1216,51 +1238,19 @@
 
 <!-- Sidebar -->
 <nav class="sidebar">
-  <div class="sidebar-section-label">Análisis</div>
-  <div class="nav-item active" data-section="dashboard" onclick="showSection('dashboard')">
+  <div class="nav-item active" data-module="dashboard" onclick="showModule('dashboard')">
     <span class="nav-icon">📊</span> Dashboard
   </div>
-  <div class="nav-item" data-section="campaigns" onclick="showSection('campaigns')">
-    <span class="nav-icon">📋</span> Campañas
-  </div>
-  <div class="nav-item" data-section="topads" onclick="showSection('topads')">
-    <span class="nav-icon">🏆</span> Top Ads
-  </div>
-  <div class="nav-item" data-section="countries" onclick="showSection('countries')">
-    <span class="nav-icon">🌎</span> Por País
-  </div>
-  <div class="sidebar-divider"></div>
-  <div class="sidebar-section-label">Lanzamientos</div>
-  <div class="nav-item" data-section="launches" onclick="showSection('launches')">
+  <div class="nav-item" data-module="launches" onclick="showModule('launches')">
     <span class="nav-icon">🚀</span> Lanzamientos
   </div>
-  <div class="nav-item" data-section="projections" onclick="showSection('projections')">
-    <span class="nav-icon">📈</span> Proyecciones
-  </div>
-  <div class="sidebar-divider"></div>
-  <div class="sidebar-section-label">Optimización</div>
-  <div class="nav-item" data-section="recommendations" onclick="showSection('recommendations')">
-    <span class="nav-icon">🎯</span> Recomendaciones
-  </div>
-  <div class="nav-item" data-section="sales" onclick="showSection('sales')">
+  <div class="nav-item" data-module="ventas" onclick="showModule('ventas')">
     <span class="nav-icon">💰</span> Ventas
   </div>
-  <div class="nav-item" data-section="utm" onclick="showSection('utm')">
-    <span class="nav-icon">🔗</span> UTM Tracking
-  </div>
-  <div class="nav-item" data-section="reports" onclick="showSection('reports')">
-    <span class="nav-icon">📋</span> Informes
-  </div>
-  <div class="nav-item" data-section="tutorials" onclick="showSection('tutorials')">
-    <span class="nav-icon">🎬</span> Tutoriales
-  </div>
-  <div class="sidebar-divider"></div>
-  <div class="nav-item" data-section="config" onclick="showSection('config')">
+  <div class="nav-item" data-module="config" onclick="showModule('config')">
     <span class="nav-icon">⚙️</span> Configuración
   </div>
-  <div id="adminNavItem" class="nav-item" data-section="admin" onclick="showSection('admin')" style="display:none">
-    <span class="nav-icon">👥</span> Usuarios
-  </div>
+  <div id="adminNavItem" style="display:none"></div>
 
   <!-- Widget de progreso de hitos -->
   <div id="sidebarMilestone" onclick="showSection('sales')" style="display:none;margin:12px 8px 4px;padding:12px;background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.25);border-radius:12px;cursor:pointer;transition:background .2s" onmouseenter="this.style.background='rgba(37,99,235,.15)'" onmouseleave="this.style.background='rgba(37,99,235,.08)'">
@@ -1281,6 +1271,9 @@
 
 <!-- Main content -->
 <main class="main">
+
+  <!-- ── Pestañas del módulo activo ── -->
+  <div id="moduleTabs"></div>
 
   <!-- ── Banners de anuncios ── -->
   <div id="announcementBanners" style="display:none;flex-direction:column;gap:8px"></div>
@@ -3886,6 +3879,74 @@ function applyNavLocks() {
 // ═══════════════════════════════════════════════════════════════════
 //  NAVEGACIÓN POR SECCIONES
 // ═══════════════════════════════════════════════════════════════════
+// ── Módulos del sidebar (4) con sus pestañas ────────────────────────────────
+const MODULES = {
+  dashboard: {
+    icon: '📊', label: 'Dashboard',
+    tabs: [
+      { id: 'dashboard',       label: 'Dashboard' },
+      { id: 'campaigns',       label: 'Campañas' },
+      { id: 'topads',          label: 'Top Ads' },
+      { id: 'countries',       label: 'Por País' },
+    ],
+  },
+  launches: {
+    icon: '🚀', label: 'Lanzamientos',
+    tabs: [
+      { id: 'launches',        label: 'Lanzamientos' },
+      { id: 'projections',     label: 'Proyecciones' },
+      { id: 'recommendations', label: 'Recomendaciones' },
+    ],
+  },
+  ventas: {
+    icon: '💰', label: 'Ventas',
+    tabs: [
+      { id: 'sales',           label: 'Ventas' },
+      { id: 'utm',             label: 'UTM Tracking' },
+      { id: 'reports',         label: 'Informes' },
+      { id: 'tutorials',       label: 'Tutoriales' },
+    ],
+  },
+  config: {
+    icon: '⚙️', label: 'Configuración',
+    tabs: [
+      { id: 'config',          label: 'Configuración' },
+      { id: 'admin',           label: 'Admin', adminOnly: true },
+    ],
+  },
+};
+
+// Mapa inverso: sección → módulo
+const SECTION_MODULE = {};
+Object.entries(MODULES).forEach(([mod, def]) =>
+  def.tabs.forEach(t => { SECTION_MODULE[t.id] = mod; })
+);
+
+let _activeModule = 'dashboard';
+
+function showModule(moduleName) {
+  const mod = MODULES[moduleName];
+  if (!mod) return;
+  _activeModule = moduleName;
+
+  // Sidebar: marcar módulo activo
+  document.querySelectorAll('.nav-item[data-module]').forEach(n =>
+    n.classList.toggle('active', n.dataset.module === moduleName)
+  );
+
+  // Renderizar pestañas
+  const tabBar = document.getElementById('moduleTabs');
+  if (tabBar) {
+    const visibleTabs = mod.tabs.filter(t => !t.adminOnly || S.user?.role === 'admin');
+    tabBar.innerHTML = visibleTabs.map(t =>
+      `<div class="mod-tab" data-tab="${t.id}" onclick="showSection('${t.id}')">${t.label}</div>`
+    ).join('');
+  }
+
+  // Mostrar primera pestaña del módulo
+  showSection(mod.tabs[0].id);
+}
+
 function showSection(name) {
   // Verificar acceso por plan
   if (!canAccess(name)) { showUpgradeOverlay(name); return; }
@@ -3894,14 +3955,23 @@ function showSection(name) {
   const overlay = document.getElementById('planGateOverlay');
   if (overlay) overlay.className = 'section';
 
+  // Si la sección pertenece a otro módulo, cambiar módulo primero
+  const ownerModule = SECTION_MODULE[name];
+  if (ownerModule && ownerModule !== _activeModule) {
+    showModule(ownerModule);
+    // showModule ya llama a showSection con la primera pestaña — re-llamar con el nombre correcto
+    if (MODULES[ownerModule]?.tabs[0]?.id !== name) showSection(name);
+    return;
+  }
+
   // Toggle sections
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   const sec = document.getElementById(`section-${name}`);
   if (sec) sec.classList.add('active');
 
-  // Toggle nav items
-  document.querySelectorAll('.nav-item[data-section]').forEach(n =>
-    n.classList.toggle('active', n.dataset.section === name)
+  // Marcar pestaña activa
+  document.querySelectorAll('.mod-tab').forEach(t =>
+    t.classList.toggle('active', t.dataset.tab === name)
   );
 
   // Auto-load on first visit
@@ -5272,9 +5342,7 @@ async function launchApp() {
   // Mostrar nombre o email del usuario
   if (S.user) {
     document.getElementById('userBadge').textContent = S.user.name || S.user.email;
-    // Mostrar nav de admin si corresponde
-    if (S.user.role === 'admin')
-      document.getElementById('adminNavItem').style.display = 'flex';
+    // Si es admin, el tab de Admin aparece en el módulo Config automáticamente
   }
 
   loadAnnouncements();
@@ -5371,8 +5439,8 @@ async function init() {
     th.addEventListener('click', () => handleSort(th.dataset.sort))
   );
 
-  // Primera carga
-  loadOverview();
+  // Inicializar módulo activo (Dashboard por defecto)
+  showModule('dashboard');
 }
 
 // ── Refresco automático de token ──────────────────────────────────────────────
