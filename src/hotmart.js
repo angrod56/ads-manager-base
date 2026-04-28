@@ -54,11 +54,28 @@ export async function processHotmartEvent(payload, userId) {
     utm_medium:      trackingSource ? 'paid' : null,
   };
 
-  const { error } = await supabaseAdmin
-    .from('sales')
-    .upsert(sale, { onConflict: 'id' });
+  // Verificar si ya existe la venta (para no pisar la sale_date original)
+  const { data: existing } = await supabaseAdmin
+    .from('sales').select('id, sale_date').eq('id', sale.id).maybeSingle();
 
-  if (error) throw new Error(error.message);
+  if (existing) {
+    // Solo actualizar estado — preservar fecha original de aprobación
+    const { error } = await supabaseAdmin
+      .from('sales')
+      .update({ status: sale.status, hotmart_event: sale.hotmart_event, commission: sale.commission })
+      .eq('id', sale.id);
+    if (error) throw new Error(error.message);
+  } else {
+    // Venta nueva — si el evento es COMPLETE usar fecha actual (approved_date puede ser vieja)
+    if (event === 'PURCHASE_COMPLETE') {
+      sale.sale_date = new Date().toISOString();
+    }
+    const { error } = await supabaseAdmin
+      .from('sales')
+      .insert(sale);
+    if (error) throw new Error(error.message);
+  }
+
   return { ok: true, sale, commission };
 }
 
