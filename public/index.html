@@ -2189,7 +2189,9 @@ function applyCustomDate() {
   if (!from || !to) return;
   S.since = from;
   S.until = to;
+  invalidateDateCaches();
   loadOverview();
+  if (_activeModule === 'launches') loadLaunches();
 }
 async function post(path, body) {
   const token = S.jwt || localStorage.getItem('jwt');
@@ -3383,6 +3385,13 @@ function renderLaunchCard(l, idx) {
 }
 
 const launchState = { launches: [], open: null };
+
+function invalidateDateCaches() {
+  launchState.launches = [];
+  launchState.open = null;
+  projState.launches = [];
+  projState.selected = null;
+}
 
 async function toggleLaunch(idx) {
   const detail = document.getElementById(`ldetail-${idx}`);
@@ -5412,7 +5421,9 @@ async function init() {
     S.account  = e.target.value;
     S.currency = S.accounts.find(a => a.id === S.account)?.currency || 'USD';
     localStorage.setItem('meta_account', S.account);
+    invalidateDateCaches();
     loadOverview();
+    if (_activeModule === 'launches') loadLaunches();
   });
   document.getElementById('dateSelect').addEventListener('change', e => {
     S.date = e.target.value;
@@ -5427,10 +5438,16 @@ async function init() {
       wrap.style.display = 'none';
       S.since = null;
       S.until = null;
+      invalidateDateCaches();
       loadOverview();
+      if (_activeModule === 'launches') loadLaunches();
     }
   });
-  document.getElementById('refreshBtn').addEventListener('click', loadOverview);
+  document.getElementById('refreshBtn').addEventListener('click', () => {
+    invalidateDateCaches();
+    loadOverview();
+    if (_activeModule === 'launches') loadLaunches();
+  });
   document.getElementById('searchInput').addEventListener('input', e => { S.filter = e.target.value; renderTable(); });
   document.getElementById('topAdsFormat').addEventListener('change', loadTopAds);
   document.getElementById('statusFilter').addEventListener('change', e => { S.statusFilter = e.target.value; renderTable(); });
