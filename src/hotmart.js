@@ -44,9 +44,15 @@ export async function processHotmartEvent(payload, userId) {
     status,
     payment_type:    purchase.payment?.type || null,
     hotmart_event:   event,
-    sale_date:       purchase.approved_date
-      ? new Date(purchase.approved_date).toISOString()
-      : new Date().toISOString(),
+    sale_date:       (() => {
+      if (!purchase.approved_date) return new Date().toISOString();
+      const d = new Date(purchase.approved_date);
+      // Si approved_date tiene más de 48h de antigüedad (webhooks de prueba con fecha vieja)
+      // usar fecha actual para que aparezca en el filtro "Hoy"
+      return (Date.now() - d.getTime()) < 48 * 60 * 60 * 1000
+        ? d.toISOString()
+        : new Date().toISOString();
+    })(),
     tracking_source: trackingSource,
     utm_campaign:    trackingSource || null,
     utm_content:     trackingCode   || null,
