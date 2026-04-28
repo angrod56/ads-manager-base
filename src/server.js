@@ -1169,16 +1169,28 @@ const POST = {
     const incomingToken = req.headers['x-hotmart-hottok'] || req.headers['hottok'] || '';
     let ownerId = q?.user_id || null;
 
+    console.log(`[Hotmart] Webhook recibido | user_id=${ownerId || 'none'} | token_len=${incomingToken.length} | token_preview=${incomingToken.slice(0,8)}...`);
+
     if (ownerId) {
       // Verificar contra el token del usuario específico
       const { data: profile } = await supabaseAdmin
         .from('profiles').select('id, hotmart_token').eq('id', ownerId).single();
-      if (!profile) return err(res, 'Usuario no encontrado', 404);
+      if (!profile) {
+        console.log(`[Hotmart] ✗ user_id ${ownerId} no encontrado en profiles`);
+        return err(res, 'Usuario no encontrado', 404);
+      }
       const expectedToken = profile.hotmart_token || process.env.HOTMART_TOKEN;
-      if (incomingToken !== expectedToken) return err(res, 'Token inválido', 401);
+      console.log(`[Hotmart] token_match=${incomingToken === expectedToken} | has_own_token=${!!profile.hotmart_token}`);
+      if (incomingToken !== expectedToken) {
+        console.log(`[Hotmart] ✗ Token inválido para user ${ownerId}`);
+        return err(res, 'Token inválido', 401);
+      }
     } else {
       // Fallback al admin: verificar con token global
-      if (!verifyHotmartToken(req)) return err(res, 'Token inválido', 401);
+      if (!verifyHotmartToken(req)) {
+        console.log(`[Hotmart] ✗ Token inválido (fallback admin)`);
+        return err(res, 'Token inválido', 401);
+      }
       const { data: profiles } = await supabaseAdmin
         .from('profiles').select('id').eq('role', 'admin').limit(1);
       ownerId = profiles?.[0]?.id || null;
