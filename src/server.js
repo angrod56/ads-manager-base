@@ -1193,9 +1193,9 @@ const POST = {
   // ── Hotmart: guardar Hottok del usuario ─────────────────────────────────────
   '/api/hotmart/save-token': async (res, req, user) => {
     if (!user) return err(res, 'No autorizado', 401);
-    const { hottok } = await body(req);
+    const { hottok, hotmart_email } = await body(req);
     if (!hottok) return err(res, 'hottok requerido', 400);
-    await saveHotmartToken(user.id, hottok);
+    await saveHotmartToken(user.id, hottok, hotmart_email ?? null);
     json(res, { ok: true });
   },
 
@@ -1211,12 +1211,13 @@ const POST = {
     if (ownerId) {
       // Verificar contra el token del usuario específico
       const { data: profile } = await supabaseAdmin
-        .from('profiles').select('id, hotmart_token, email').eq('id', ownerId).single();
+        .from('profiles').select('id, hotmart_token, email, hotmart_email').eq('id', ownerId).single();
       if (!profile) {
         console.log(`[Hotmart] ✗ user_id ${ownerId} no encontrado en profiles`);
         return err(res, 'Usuario no encontrado', 404);
       }
-      userEmail = profile.email || null;
+      // Usar hotmart_email si está configurado, si no caer al email de la cuenta
+      userEmail = profile.hotmart_email || profile.email || null;
       const expectedToken = profile.hotmart_token || process.env.HOTMART_TOKEN;
       console.log(`[Hotmart] token_match=${incomingToken === expectedToken} | has_own_token=${!!profile.hotmart_token}`);
       if (incomingToken !== expectedToken) {

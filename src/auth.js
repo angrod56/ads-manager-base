@@ -32,7 +32,7 @@ export async function verifySession(req) {
   // Traer perfil con role y meta_token (service_role bypasa RLS)
   const { data: profile } = await supabaseAdmin
     .from('profiles')
-    .select('id, email, name, role, plan, status, meta_token, meta_account_id, hotmart_token, hotmart_role')
+    .select('id, email, name, role, plan, status, meta_token, meta_account_id, hotmart_token, hotmart_role, hotmart_email')
     .eq('id', data.user.id)
     .single();
 
@@ -99,10 +99,12 @@ export async function saveHotmartRole(userId, hotmartRole) {
   if (error) throw new Error(error.message);
 }
 
-export async function saveHotmartToken(userId, hotmartToken) {
+export async function saveHotmartToken(userId, hotmartToken, hotmartEmail = null) {
+  const updates = { hotmart_token: hotmartToken || null };
+  if (hotmartEmail !== null) updates.hotmart_email = hotmartEmail.trim().toLowerCase() || null;
   const { error } = await supabaseAdmin
     .from('profiles')
-    .update({ hotmart_token: hotmartToken || null })
+    .update(updates)
     .eq('id', userId);
   if (error) throw new Error(error.message);
 }
