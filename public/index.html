@@ -5294,7 +5294,7 @@ async function searchSaleAdmin() {
     try {
       const ur = await fetch('/api/admin/users', { headers: { Authorization: 'Bearer ' + (S.jwt || localStorage.getItem('jwt')) } });
       const ud = await ur.json();
-      (ud.users || []).forEach(u => { usersMap[u.id] = u.email || u.id; });
+      (Array.isArray(ud) ? ud : ud.users || []).forEach(u => { usersMap[u.id] = u.email || u.id; });
     } catch(_) {}
 
     out.innerHTML = d.sales.map(s => `
@@ -5355,7 +5355,7 @@ async function adminCopySale(saleId) {
   try {
     const r = await fetch('/api/admin/users', { headers: { Authorization: 'Bearer ' + (S.jwt || localStorage.getItem('jwt')) } });
     const d = await r.json();
-    userOptions += (d.users || []).map(u => `<option value="${u.id}">${u.email || u.id}</option>`).join('');
+    userOptions += (Array.isArray(d) ? d : d.users || []).map(u => `<option value="${u.id}">${u.email || u.id}</option>`).join('');
   } catch(_) {}
   area.innerHTML = `
     <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
