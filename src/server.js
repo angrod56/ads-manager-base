@@ -1171,14 +1171,17 @@ const POST = {
 
     console.log(`[Hotmart] Webhook recibido | user_id=${ownerId || 'none'} | token_len=${incomingToken.length} | token_preview=${incomingToken.slice(0,8)}...`);
 
+    let userEmail = null;
+
     if (ownerId) {
       // Verificar contra el token del usuario específico
       const { data: profile } = await supabaseAdmin
-        .from('profiles').select('id, hotmart_token').eq('id', ownerId).single();
+        .from('profiles').select('id, hotmart_token, email').eq('id', ownerId).single();
       if (!profile) {
         console.log(`[Hotmart] ✗ user_id ${ownerId} no encontrado en profiles`);
         return err(res, 'Usuario no encontrado', 404);
       }
+      userEmail = profile.email || null;
       const expectedToken = profile.hotmart_token || process.env.HOTMART_TOKEN;
       console.log(`[Hotmart] token_match=${incomingToken === expectedToken} | has_own_token=${!!profile.hotmart_token}`);
       if (incomingToken !== expectedToken) {
@@ -1192,16 +1195,17 @@ const POST = {
         return err(res, 'Token inválido', 401);
       }
       const { data: profiles } = await supabaseAdmin
-        .from('profiles').select('id').eq('role', 'admin').limit(1);
+        .from('profiles').select('id, email').eq('role', 'admin').limit(1);
       ownerId = profiles?.[0]?.id || null;
+      userEmail = profiles?.[0]?.email || null;
     }
 
     if (!ownerId) return err(res, 'No hay usuario configurado', 500);
 
     const payload = await body(req);
     const txid = payload?.data?.purchase?.transaction || '?';
-    console.log('[Hotmart] Evento:', payload?.event, '| tx:', txid, '| owner:', ownerId);
-    const result = await processHotmartEvent(payload, ownerId);
+    console.log('[Hotmart] Evento:', payload?.event, '| tx:', txid, '| owner:', ownerId, '| email:', userEmail);
+    const result = await processHotmartEvent(payload, ownerId, userEmail);
     console.log('[Hotmart] Resultado:', JSON.stringify({
       ok: result.ok, ignored: result.ignored,
       txid, status: result.sale?.status, commission: result.commission,

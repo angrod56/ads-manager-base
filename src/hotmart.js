@@ -9,7 +9,7 @@ export function verifyHotmartToken(req) {
 }
 
 // ── Procesar evento del webhook ───────────────────────────────────────────────
-export async function processHotmartEvent(payload, userId) {
+export async function processHotmartEvent(payload, userId, userEmail = null) {
   const event = payload.event;
   const data  = payload.data;
 
@@ -22,11 +22,32 @@ export async function processHotmartEvent(payload, userId) {
 
   const status = mapStatus(event);
 
-  // Excluir MARKETPLACE (tarifa de Hotmart) — solo sumar comisiones del usuario
-  const userCommissions = commissions.filter(c => c.source !== 'MARKETPLACE');
-  const commission = userCommissions.reduce((sum, c) => sum + (c.value || 0), 0)
-    || purchase.price?.value
-    || 0;
+  // Identificar la comisión que pertenece a este usuario
+  // Hotmart incluye user.email en cada entrada de commissions — usar para match exacto.
+  // Si no hay match (email desconocido) y hay una sola entrada no-MARKETPLACE, usarla.
+  // Fallback a suma solo si no hay otra opción (log para diagnóstico).
+  const nonMarket = commissions.filter(c => c.source !== 'MARKETPLACE');
+  let commission = null;
+
+  if (userEmail) {
+    const mine = nonMarket.find(c => c.user?.email === userEmail);
+    if (mine) {
+      commission = mine.value;
+    } else if (nonMarket.length === 1) {
+      commission = nonMarket[0].value;
+    }
+  } else if (nonMarket.length === 1) {
+    commission = nonMarket[0].value;
+  }
+
+  if (commission === null) {
+    // No se pudo identificar comisión individual — loggear y sumar todas
+    console.log('[Hotmart] comisiones sin match exacto, userEmail:', userEmail,
+      '| fuentes:', nonMarket.map(c => `${c.source}:${c.value}(${c.user?.email})`).join(', '));
+    commission = nonMarket.reduce((sum, c) => sum + (c.value || 0), 0);
+  }
+
+  commission = commission || purchase.price?.value || 0;
 
   const trackingSource = purchase.tracking_source || null;
   const trackingCode   = purchase.tracking_code   || purchase.xod || null;
@@ -60,16 +81,22 @@ export async function processHotmartEvent(payload, userId) {
     utm_medium:      trackingSource ? 'paid' : null,
   };
 
-  // Verificar si ya existe la venta (para no pisar la sale_date original)
+  // Verificar si ya existe la venta para ESTE usuario (user_id + id)
+  // Incluir user_id en el WHERE para que cada usuario tenga su propio registro
+  // aunque el transaction ID sea el mismo (productor + coproductor de la misma venta)
   const { data: existing } = await supabaseAdmin
-    .from('sales').select('id, sale_date').eq('id', sale.id).maybeSingle();
+    .from('sales').select('id, sale_date')
+    .eq('id', sale.id)
+    .eq('user_id', userId)
+    .maybeSingle();
 
   if (existing) {
-    // Solo actualizar estado — preservar fecha original de aprobación
+    // Solo actualizar estado y comisión — preservar fecha original de aprobación
     const { error } = await supabaseAdmin
       .from('sales')
       .update({ status: sale.status, hotmart_event: sale.hotmart_event, commission: sale.commission })
-      .eq('id', sale.id);
+      .eq('id', sale.id)
+      .eq('user_id', userId);
     if (error) throw new Error(error.message);
   } else {
     // Venta nueva — si el evento es COMPLETE usar fecha actual (approved_date puede ser vieja)
