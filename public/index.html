@@ -2192,9 +2192,7 @@ function applyCustomDate() {
   if (!from || !to) return;
   S.since = from;
   S.until = to;
-  invalidateDateCaches();
-  loadOverview();
-  if (_activeModule === 'launches') loadLaunches();
+  reloadActiveModule();
 }
 async function post(path, body) {
   const token = S.jwt || localStorage.getItem('jwt');
@@ -3935,11 +3933,38 @@ Object.entries(MODULES).forEach(([mod, def]) =>
 );
 
 let _activeModule = 'dashboard';
+let _activeSection = 'dashboard';
+let _salesRefreshTimer = null;
+
+// Recarga el módulo/sección activa según el contexto actual
+function reloadActiveModule() {
+  invalidateDateCaches();
+  // Siempre recargar dashboard (está en segundo plano como base)
+  loadOverview();
+  // Recargar según módulo activo
+  if (_activeModule === 'launches') loadLaunches();
+  if (_activeModule === 'ventas')   loadSales();
+}
+
+// Auto-refresh de ventas cada 60s cuando el usuario está en ese módulo
+function startSalesAutoRefresh() {
+  stopSalesAutoRefresh();
+  _salesRefreshTimer = setInterval(() => {
+    if (_activeModule === 'ventas') loadSales();
+  }, 60000);
+}
+function stopSalesAutoRefresh() {
+  if (_salesRefreshTimer) { clearInterval(_salesRefreshTimer); _salesRefreshTimer = null; }
+}
 
 function showModule(moduleName) {
   const mod = MODULES[moduleName];
   if (!mod) return;
   _activeModule = moduleName;
+
+  // Arrancar/detener auto-refresh según módulo
+  if (moduleName === 'ventas') startSalesAutoRefresh();
+  else stopSalesAutoRefresh();
 
   // Sidebar: marcar módulo activo
   document.querySelectorAll('.nav-item[data-module]').forEach(n =>
@@ -3985,6 +4010,8 @@ function showSection(name) {
   document.querySelectorAll('.mod-tab').forEach(t =>
     t.classList.toggle('active', t.dataset.tab === name)
   );
+
+  _activeSection = name;
 
   // Auto-load on first visit
   if (name === 'launches' && !launchState.launches.length) loadLaunches();
@@ -5531,9 +5558,7 @@ async function init() {
     S.account  = e.target.value;
     S.currency = S.accounts.find(a => a.id === S.account)?.currency || 'USD';
     localStorage.setItem('meta_account', S.account);
-    invalidateDateCaches();
-    loadOverview();
-    if (_activeModule === 'launches') loadLaunches();
+    reloadActiveModule();
   });
   document.getElementById('dateSelect').addEventListener('change', e => {
     S.date = e.target.value;
@@ -5548,16 +5573,10 @@ async function init() {
       wrap.style.display = 'none';
       S.since = null;
       S.until = null;
-      invalidateDateCaches();
-      loadOverview();
-      if (_activeModule === 'launches') loadLaunches();
+      reloadActiveModule();
     }
   });
-  document.getElementById('refreshBtn').addEventListener('click', () => {
-    invalidateDateCaches();
-    loadOverview();
-    if (_activeModule === 'launches') loadLaunches();
-  });
+  document.getElementById('refreshBtn').addEventListener('click', reloadActiveModule);
   document.getElementById('searchInput').addEventListener('input', e => { S.filter = e.target.value; renderTable(); });
   document.getElementById('topAdsFormat').addEventListener('change', loadTopAds);
   document.getElementById('statusFilter').addEventListener('change', e => { S.statusFilter = e.target.value; renderTable(); });
