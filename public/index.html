@@ -2128,6 +2128,21 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- Modal budgets por ad set -->
+<div class="modal-overlay" id="adsetBudgetModal" onclick="if(event.target===this)closeAdSetBudgetModal()">
+  <div class="modal-box" style="max-width:500px">
+    <div class="modal-top">
+      <span class="modal-title" id="adsetBudgetTitle">Budgets por Ad Set</span>
+      <button class="modal-close" onclick="closeAdSetBudgetModal()">✕ Cerrar</button>
+    </div>
+    <div class="modal-body" id="adsetBudgetBody"></div>
+    <div style="padding:0 16px 16px;display:flex;gap:8px;justify-content:flex-end">
+      <button class="action-btn" onclick="closeAdSetBudgetModal()">Cancelar</button>
+      <button class="action-btn activate" id="adsetBudgetSaveBtn" onclick="saveAdSetBudgets()">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════════════════════════════════
 //  STATE
@@ -2576,6 +2591,89 @@ async function saveAdSetBudget(id) {
   } catch(e) { showToast('Error: ' + e.message, true); renderTable(); }
 }
 
+// ─── Ad set budget modal ─────────────────────────────────────────────────────
+let _abmCampaignId = null;
+
+async function openAdSetBudgetModal(cid) {
+  _abmCampaignId = cid;
+  const cname = (S.campaigns || []).find(c => c.id === cid)?.name || cid;
+  document.getElementById('adsetBudgetTitle').textContent = `Budgets — ${cname.slice(0, 32)}`;
+  const body = document.getElementById('adsetBudgetBody');
+  body.innerHTML = '<div style="text-align:center;padding:24px"><span class="spin" style="font-size:20px">↻</span></div>';
+  document.getElementById('adsetBudgetModal').classList.add('open');
+
+  let adsets = S.adsetData?.[cid];
+  if (!adsets) {
+    try {
+      adsets = await api(`/api/adset-metrics?campaign=${cid}&${dateParams()}`);
+      if (!S.adsetData) S.adsetData = {};
+      S.adsetData[cid] = adsets;
+    } catch(e) {
+      body.innerHTML = `<div class="muted" style="padding:16px">Error: ${e.message}</div>`;
+      return;
+    }
+  }
+
+  if (!adsets?.length) {
+    body.innerHTML = '<div class="muted" style="padding:16px">Sin conjuntos en este período.</div>';
+    return;
+  }
+
+  body.innerHTML = `<div style="font-size:11px;color:var(--muted);padding:0 0 8px">Ingresa el nuevo presupuesto diario (USD) para cada conjunto:</div>` +
+    adsets.map(s => {
+      const current = s.daily_budget ? Math.round(budgetRaw(s.daily_budget)) : '';
+      const bud = s.daily_budget ? fmtBudget(s.daily_budget) : s.lifetime_budget ? `LT ${fmtBudget(s.lifetime_budget)}` : '—';
+      return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${s.name}">${fmt.short(s.name, 36)}</div>
+          <div style="font-size:11px;color:var(--muted)">Actual: ${bud} &nbsp;${statusBadge(s.status)}</div>
+        </div>
+        <input class="budget-input" type="number" id="abm-${s.id}" value="${current}" min="1" placeholder="$/día" style="width:90px;margin:0">
+      </div>`;
+    }).join('');
+}
+
+function closeAdSetBudgetModal() {
+  document.getElementById('adsetBudgetModal').classList.remove('open');
+  _abmCampaignId = null;
+}
+
+async function saveAdSetBudgets() {
+  if (!_abmCampaignId) return;
+  const adsets = S.adsetData?.[_abmCampaignId] || [];
+  const btn = document.getElementById('adsetBudgetSaveBtn');
+  btn.disabled = true;
+  btn.textContent = 'Guardando…';
+
+  let saved = 0, errors = 0;
+  for (const s of adsets) {
+    const input = document.getElementById(`abm-${s.id}`);
+    if (!input) continue;
+    const entered = parseInt(input.value);
+    const original = s.daily_budget ? Math.round(budgetRaw(s.daily_budget)) : 0;
+    if (!entered || entered === original) continue;
+    try {
+      await apiFetch('/api/budget', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: s.id, amount: entered * 100 }) });
+      saved++;
+    } catch(e) {
+      errors++;
+      showToast(`Error en "${fmt.short(s.name,20)}": ${e.message}`, true);
+    }
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Guardar cambios';
+
+  if (saved > 0) {
+    showToast(`✓ ${saved} conjunto${saved > 1 ? 's' : ''} actualizado${saved > 1 ? 's' : ''}`);
+    delete S.adsetData[_abmCampaignId];
+    closeAdSetBudgetModal();
+    loadOverview();
+  } else if (!errors) {
+    showToast('Sin cambios que guardar');
+  }
+}
+
 // ─── Export CSV ──────────────────────────────────────────────────────────────
 function exportCSV() {
   const list = filteredCampaigns();
@@ -2639,8 +2737,8 @@ function renderTable() {
             ? `<span class="budget-cell" onclick="startBudgetEdit('${c.id}','${c.daily_budget||''}')">
                 ${budget}<span class="budget-edit-icon">✏</span>
               </span>`
-            : `<span class="budget-cell muted" onclick="toggleExpand('${c.id}')" title="Presupuesto a nivel de conjuntos — clic para ver y editar">
-                — <span style="font-size:10px;opacity:0.55">sets↓</span>
+            : `<span class="budget-cell muted" onclick="openAdSetBudgetModal('${c.id}')" title="Presupuesto por conjunto — clic para editar">
+                — <span style="font-size:10px;opacity:0.55">✏sets</span>
               </span>`
           }
         </td>
