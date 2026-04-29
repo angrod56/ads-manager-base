@@ -93,6 +93,11 @@ export async function processHotmartEvent(payload, userId, userEmail = null) {
     .eq('user_id', userId)
     .maybeSingle();
 
+  // Solo estos eventos pueden crear un registro nuevo.
+  // COMPLETE/CANCELED/REFUNDED/CHARGEBACK solo actualizan — si no existe el registro
+  // es un webhook de prueba o un evento fuera de orden, se ignora silenciosamente.
+  const CAN_CREATE = ['PURCHASE_APPROVED', 'PURCHASE_BILLET_PRINTED'];
+
   if (existing) {
     // Solo actualizar estado y comisión — preservar fecha original de aprobación
     const { error } = await supabaseAdmin
@@ -101,11 +106,7 @@ export async function processHotmartEvent(payload, userId, userEmail = null) {
       .eq('id', existing.id)
       .eq('user_id', userId);
     if (error) throw new Error(error.message);
-  } else {
-    // Venta nueva — si el evento es COMPLETE usar fecha actual (approved_date puede ser vieja)
-    if (event === 'PURCHASE_COMPLETE') {
-      sale.sale_date = new Date().toISOString();
-    }
+  } else if (CAN_CREATE.includes(event)) {
     // Intentar insertar con el ID original; si hay conflicto (otro usuario ya lo tiene)
     // reintentar con el ID compuesto para garantizar unicidad en la tabla.
     const { error } = await supabaseAdmin.from('sales').insert(sale);
