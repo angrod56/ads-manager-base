@@ -850,11 +850,46 @@ const GET = {
   '/api/admin/find-sale': async (res, q, user) => {
     if (!user || user.role !== 'admin') return err(res, 'No autorizado', 403);
     let query = supabaseAdmin.from('sales').select('*');
-    if (q.txid)  query = query.eq('id', q.txid);
+    // ilike para que encuentre tanto el plain txid como los IDs compuestos (txid_userid)
+    if (q.txid)  query = query.ilike('id', `${q.txid}%`);
     if (q.buyer) query = query.ilike('buyer_name', `%${q.buyer}%`);
     if (!q.txid && !q.buyer) return err(res, 'txid o buyer requerido', 400);
     const { data } = await query.order('sale_date', { ascending: false }).limit(20);
     json(res, { found: !!(data?.length), sales: data || [] });
+  },
+
+  // ── Admin: editar comisión/estado de una venta ───────────────────────────────
+  '/api/admin/update-sale': async (res, req, user) => {
+    if (!user || user.role !== 'admin') return err(res, 'No autorizado', 403);
+    const { id, userId, commission, status } = await body(req);
+    if (!id || !userId) return err(res, 'id y userId requeridos', 400);
+    const updates = {};
+    if (commission !== undefined) updates.commission = parseFloat(commission);
+    if (status)     updates.status     = status;
+    if (!Object.keys(updates).length) return err(res, 'Nada que actualizar', 400);
+    const { error } = await supabaseAdmin.from('sales').update(updates).eq('id', id).eq('user_id', userId);
+    if (error) return err(res, error.message);
+    json(res, { ok: true });
+  },
+
+  // ── Admin: copiar venta a otro usuario ───────────────────────────────────────
+  '/api/admin/copy-sale': async (res, req, user) => {
+    if (!user || user.role !== 'admin') return err(res, 'No autorizado', 403);
+    const { originalId, targetUserId, commission } = await body(req);
+    if (!originalId || !targetUserId) return err(res, 'originalId y targetUserId requeridos', 400);
+    const { data: src } = await supabaseAdmin.from('sales').select('*').eq('id', originalId).maybeSingle();
+    if (!src) return err(res, 'Venta original no encontrada', 404);
+    // ID compuesto para evitar conflicto de unicidad en la tabla
+    const newId = `${src.id.split('_')[0]}_${targetUserId.slice(0, 8)}`;
+    const copy = {
+      ...src,
+      id:         newId,
+      user_id:    targetUserId,
+      commission: commission !== undefined ? parseFloat(commission) : src.commission,
+    };
+    const { error } = await supabaseAdmin.from('sales').upsert(copy, { onConflict: 'id' });
+    if (error) return err(res, error.message);
+    json(res, { ok: true, id: newId });
   },
 
   // ── Announcements: obtener activos ───────────────────────────────────────────

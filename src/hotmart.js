@@ -81,12 +81,15 @@ export async function processHotmartEvent(payload, userId, userEmail = null) {
     utm_medium:      trackingSource ? 'paid' : null,
   };
 
-  // Verificar si ya existe la venta para ESTE usuario (user_id + id)
-  // Incluir user_id en el WHERE para que cada usuario tenga su propio registro
-  // aunque el transaction ID sea el mismo (productor + coproductor de la misma venta)
+  // El ID compuesto garantiza unicidad por usuario aunque el transaction ID sea igual
+  // (ej: productor y coproductor reciben webhooks del mismo HP...).
+  // Si ya existe un registro con el plain txid de OTRO usuario, usamos sufijo.
+  const compositeId = `${sale.id}_${userId.slice(0, 8)}`;
+
+  // Buscar registro existente para ESTE usuario (plain o composite)
   const { data: existing } = await supabaseAdmin
     .from('sales').select('id, sale_date')
-    .eq('id', sale.id)
+    .or(`id.eq.${sale.id},id.eq.${compositeId}`)
     .eq('user_id', userId)
     .maybeSingle();
 
@@ -95,7 +98,7 @@ export async function processHotmartEvent(payload, userId, userEmail = null) {
     const { error } = await supabaseAdmin
       .from('sales')
       .update({ status: sale.status, hotmart_event: sale.hotmart_event, commission: sale.commission })
-      .eq('id', sale.id)
+      .eq('id', existing.id)
       .eq('user_id', userId);
     if (error) throw new Error(error.message);
   } else {
@@ -103,10 +106,16 @@ export async function processHotmartEvent(payload, userId, userEmail = null) {
     if (event === 'PURCHASE_COMPLETE') {
       sale.sale_date = new Date().toISOString();
     }
-    const { error } = await supabaseAdmin
-      .from('sales')
-      .insert(sale);
-    if (error) throw new Error(error.message);
+    // Intentar insertar con el ID original; si hay conflicto (otro usuario ya lo tiene)
+    // reintentar con el ID compuesto para garantizar unicidad en la tabla.
+    const { error } = await supabaseAdmin.from('sales').insert(sale);
+    if (error?.code === '23505') {
+      sale.id = compositeId;
+      const { error: error2 } = await supabaseAdmin.from('sales').insert(sale);
+      if (error2) throw new Error(error2.message);
+    } else if (error) {
+      throw new Error(error.message);
+    }
   }
 
   return { ok: true, sale, commission };
