@@ -5311,6 +5311,10 @@ async function searchSaleAdmin() {
             style="font-size:11px;padding:4px 10px;border-radius:6px;background:rgba(6,214,160,.1);border:1px solid #06d6a0;color:#06d6a0;cursor:pointer">
             📋 Copiar a usuario
           </button>
+          <button onclick="adminDeleteSale('${s.id}','${s.user_id}')"
+            style="font-size:11px;padding:4px 10px;border-radius:6px;background:rgba(248,113,113,.1);border:1px solid var(--red);color:var(--red);cursor:pointer">
+            🗑️ Eliminar
+          </button>
         </div>
         <div id="sra_${s.id.replace(/[^a-z0-9]/gi,'_')}" style="margin-top:8px"></div>
       </div>`).join('');
@@ -5385,6 +5389,18 @@ async function adminConfirmCopy(saleId, key) {
     msg.textContent = `✓ Copiada con ID ${r.id}`; msg.style.color = '#06d6a0';
   } catch(e) {
     msg.textContent = 'Error: ' + e.message; msg.style.color = 'var(--red)';
+  }
+}
+
+async function adminDeleteSale(saleId, userId) {
+  if (!confirm(`¿Eliminar venta ${saleId}? Esta acción no se puede deshacer.`)) return;
+  try {
+    await post('/api/admin/delete-sale', { id: saleId, userId });
+    const key = saleId.replace(/[^a-z0-9]/gi,'_');
+    document.getElementById(`sr_${key}`)?.remove();
+    toast('Venta eliminada', 'success');
+  } catch(e) {
+    toast('Error: ' + e.message, 'error');
   }
 }
 

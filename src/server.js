@@ -949,6 +949,16 @@ const POST = {
     json(res, { ok: true });
   },
 
+  // ── Admin: eliminar venta ──────────────────────────────────────────────────
+  '/api/admin/delete-sale': async (res, req, user) => {
+    if (!user || user.role !== 'admin') return err(res, 'No autorizado', 403);
+    const { id, userId } = await body(req);
+    if (!id || !userId) return err(res, 'id y userId requeridos', 400);
+    const { error } = await supabaseAdmin.from('sales').delete().eq('id', id).eq('user_id', userId);
+    if (error) return err(res, error.message);
+    json(res, { ok: true });
+  },
+
   // ── Admin: copiar venta a otro usuario ─────────────────────────────────────
   '/api/admin/copy-sale': async (res, req, user) => {
     if (!user || user.role !== 'admin') return err(res, 'No autorizado', 403);
