@@ -2529,7 +2529,6 @@ async function bulkAction(action) {
 // ─── Budget inline edit ──────────────────────────────────────────────────────
 function startBudgetEdit(id, current) {
   const cell = document.getElementById(`budget-${id}`);
-  // Mostrar el valor real en la moneda de la cuenta (sin /100 para COP)
   const val  = current ? Math.round(budgetRaw(current)) : '';
   cell.innerHTML = `<input class="budget-input" id="bi-${id}" type="number" value="${val}" min="1" onblur="saveBudget('${id}')" onkeydown="if(event.key==='Enter')saveBudget('${id}');if(event.key==='Escape')renderTable()">`;
   document.getElementById(`bi-${id}`)?.focus();
@@ -2537,13 +2536,42 @@ function startBudgetEdit(id, current) {
 async function saveBudget(id) {
   const input = document.getElementById(`bi-${id}`);
   if (!input) return;
-  // Meta espera el valor en unidades mínimas: centavos para USD, pesos para COP
   const entered = parseInt(input.value);
-  const amount  = entered * 100; // Meta espera centavos (USD)
+  const amount  = entered * 100;
   if (!amount || amount < 1) { renderTable(); return; }
   try {
     await apiFetch('/api/budget', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ id, amount }) });
     showToast('✓ Presupuesto actualizado');
+    loadOverview();
+  } catch(e) { showToast('Error: ' + e.message, true); renderTable(); }
+}
+
+// Ad set budget edit (element prefix: budget-s-)
+function startAdSetBudgetEdit(id, current) {
+  const cell = document.getElementById(`budget-s-${id}`);
+  if (!cell) return;
+  const val = current ? Math.round(budgetRaw(current)) : '';
+  cell.innerHTML = `<input class="budget-input" id="bis-${id}" type="number" value="${val}" min="1" onblur="saveAdSetBudget('${id}')" onkeydown="if(event.key==='Enter')saveAdSetBudget('${id}');if(event.key==='Escape')renderTable()">`;
+  document.getElementById(`bis-${id}`)?.focus();
+}
+async function saveAdSetBudget(id) {
+  const input = document.getElementById(`bis-${id}`);
+  if (!input) return;
+  const entered = parseInt(input.value);
+  const amount  = entered * 100;
+  if (!amount || amount < 1) { renderTable(); return; }
+  try {
+    await apiFetch('/api/budget', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ id, amount }) });
+    showToast('✓ Presupuesto del conjunto actualizado');
+    // Invalidar cache de adsets para que se recargue con el nuevo valor
+    if (S.adsetData) {
+      for (const cid of Object.keys(S.adsetData)) {
+        if ((S.adsetData[cid] || []).some(s => s.id === id)) {
+          delete S.adsetData[cid];
+          break;
+        }
+      }
+    }
     loadOverview();
   } catch(e) { showToast('Error: ' + e.message, true); renderTable(); }
 }
@@ -2607,9 +2635,14 @@ function renderTable() {
         <td>${statusBadge(c.effective_status || c.status)}</td>
         <td class="num">${fmt.usd(c.spend)}</td>
         <td class="num" id="budget-${c.id}">
-          <span class="budget-cell" onclick="startBudgetEdit('${c.id}','${c.daily_budget||''}')">
-            ${budget}<span class="budget-edit-icon">✏</span>
-          </span>
+          ${(c.daily_budget || c.lifetime_budget)
+            ? `<span class="budget-cell" onclick="startBudgetEdit('${c.id}','${c.daily_budget||''}')">
+                ${budget}<span class="budget-edit-icon">✏</span>
+              </span>`
+            : `<span class="budget-cell muted" onclick="toggleExpand('${c.id}')" title="Presupuesto a nivel de conjuntos — clic para ver y editar">
+                — <span style="font-size:10px;opacity:0.55">sets↓</span>
+              </span>`
+          }
         </td>
         <td class="num ${c.revenue > 0 ? 'green' : 'muted'}">${fmt.usd(c.revenue || 0)}</td>
         <td class="num ${roasClass(c.roas)}">${fmt.roas(c.roas)}</td>
@@ -2667,7 +2700,7 @@ function renderTable() {
             <td class="num ${fc}">${(s.frequency||0).toFixed(1)}</td>
             <td class="num muted">${fmt.num(s.reach)}</td>
             <td class="num" id="budget-s-${s.id}">
-              <span class="budget-cell" onclick="startBudgetEdit('${s.id}','${s.daily_budget||''}')">
+              <span class="budget-cell" onclick="startAdSetBudgetEdit('${s.id}','${s.daily_budget||''}')">
                 ${bud}<span class="budget-edit-icon">✏</span>
               </span>
             </td>
