@@ -18,18 +18,18 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:       #060818;
-      --surface:  #0e1228;
-      --surface2: #151d35;
+      --bg:       var(--ka-void);
+      --surface:  var(--ka-dusk);
+      --surface2: #1a1833;
       --border:   rgba(255,255,255,.08);
-      --text:     #f0f4ff;
-      --muted:    #8892b0;
-      --blue:     #4f8ef7;
-      --green:    #06d6a0;
+      --text:     var(--ka-text);
+      --muted:    var(--ka-muted);
+      --blue:     var(--ka-violet);
+      --green:    var(--ka-teal);
       --red:      #f85149;
-      --yellow:   #ffd166;
-      --purple:   #9b5de5;
-      --radius:   8px;
+      --yellow:   var(--ka-amber);
+      --purple:   var(--ka-violet);
+      --radius:   var(--ka-radius-sm);
     }
 
     body {
@@ -1403,8 +1403,12 @@
       </div>
       <div id="countriesWrapper">
         <div class="countries-grid" id="countriesGrid" style="display:none">
-          <div>
+          <div style="display:flex;flex-direction:column;gap:16px">
             <div class="chart-wrap" style="height:280px"><canvas id="countriesChart"></canvas></div>
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em">Distribución de compras</div>
+              <div class="chart-wrap" style="height:260px"><canvas id="countriesPieChart"></canvas></div>
+            </div>
           </div>
           <div class="table-wrap" id="countriesTable"></div>
         </div>
@@ -2304,7 +2308,7 @@ function statusBadge(s) {
 // ═══════════════════════════════════════════════════════════════════
 //  CHARTS
 // ═══════════════════════════════════════════════════════════════════
-let spendChart = null, perfChart = null, countriesChart = null;
+let spendChart = null, perfChart = null, countriesChart = null, countriesPieChart = null;
 
 Chart.defaults.color = '#8892b0';
 Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif';
@@ -3398,6 +3402,40 @@ function renderCountries(data) {
         x:  { grid: { display: false }, ticks: { color: '#8892b0' } },
         y:  { ...chartBase.scales.y, position: 'left',  title: { display: true, text: 'Compras', color: '#8892b0' } },
         y2: { ...chartBase.scales.y, position: 'right', grid: { display: false }, ticks: { callback: v => '$' + v.toFixed(0) }, title: { display: true, text: 'CPA', color: '#8892b0' } },
+      },
+    },
+  });
+
+  // Gráfico de torta — distribución de compras
+  const PIE_COLORS = [
+    '#7B61FF','#3DD9C9','#FFB86B','#f85149','#4cc9f0',
+    '#06d6a0','#ffd60a','#ff6b9d','#c77dff','#48cae4',
+  ];
+  const pieTop = top.filter(c => c.purchases > 0).slice(0, 9);
+  const pieOtros = top.filter(c => c.purchases > 0).slice(9).reduce((s, c) => s + c.purchases, 0);
+  const pieLabels = pieTop.map(c => c.country);
+  const pieValues = pieTop.map(c => c.purchases);
+  if (pieOtros > 0) { pieLabels.push('Otros'); pieValues.push(pieOtros); }
+  const pieColors = pieLabels.map((_, i) => PIE_COLORS[i % PIE_COLORS.length]);
+
+  if (countriesPieChart) countriesPieChart.destroy();
+  countriesPieChart = new Chart(document.getElementById('countriesPieChart'), {
+    type: 'doughnut',
+    data: { labels: pieLabels, datasets: [{ data: pieValues, backgroundColor: pieColors, borderColor: 'rgba(0,0,0,.3)', borderWidth: 2, hoverOffset: 8 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: '60%',
+      plugins: {
+        legend: { position: 'right', labels: { color: '#8892b0', boxWidth: 12, padding: 10, font: { size: 12 } } },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+              const pct = ((ctx.parsed / total) * 100).toFixed(1);
+              return ` ${ctx.label}: ${ctx.parsed} compras (${pct}%)`;
+            },
+          },
+        },
       },
     },
   });
