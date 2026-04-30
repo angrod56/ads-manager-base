@@ -4386,11 +4386,10 @@ async function upgradePlan(plan) {
   msg.textContent = 'Redirigiendo al pago…';
   msg.style.display = 'block';
   try {
-    const r = await apiFetch('/api/billing/checkout', {
+    const data = await apiFetch('/api/billing/checkout', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ plan }),
     });
-    const data = await r.json();
     if (data.error) throw new Error(data.error);
     if (data.url) window.location.href = data.url;
   } catch(e) {
