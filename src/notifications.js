@@ -55,11 +55,11 @@ async function sendNoonNotifications() {
       let title, body;
 
       if (total === 0) {
-        title = '☀️ Mediodía — ¡A vender!';
-        body  = 'Aún no hay ventas registradas hoy. El día tiene mucho por delante, ¡impulsa tu oferta!';
+        title = '☀️ Mediodía — ¡A darle!';
+        body  = 'Todavía no hay ventas registradas hoy, pana. El día tiene mucho por delante, ¡tú puedes!';
       } else {
         title = '☀️ Reporte del mediodía';
-        body  = `Ya hoy llevas ${fmt(total)} USD 💰\n¡Excelente ritmo, la tarde es tuya!`;
+        body  = `Ya hoy llevas ${fmt(total)} USD 💰\n¡Chévere el ritmo! La tarde es tuya, dale que vamo.`;
       }
 
       await sendPushToUser(userId, {
@@ -86,12 +86,12 @@ async function sendEveningNotifications() {
 
       if (total === 0) {
         title = '🌙 Cierre del día';
-        body  = 'Hoy no hubo ventas registradas, pero mañana es una nueva oportunidad. ¡Vamos con todo!';
+        body  = 'Hoy no entraron ventas, pero mañana es otro día, pana. ¡Arriba ese ánimo y vamos con todo!';
       } else {
         const next      = nextMilestone(total);
         const remaining = next - total;
-        title = '🌙 ¡Vamos a seguir facturando!';
-        body  = `Hoy cerrás con ${fmt(total)} USD 🔥\nTe faltan solo ${fmt(remaining)} para llegar a la meta de ${fmt(next)}. ¡Ya casi!`;
+        title = '🌙 ¡Seguimos facturando!';
+        body  = `Hoy cierras con ${fmt(total)} USD 🔥\nTe faltan solo ${fmt(remaining)} para llegar a ${fmt(next)}. ¡Tú puedes, ya falta nada!`;
       }
 
       await sendPushToUser(userId, {
