@@ -4676,13 +4676,7 @@ async function loadSales() {
 
     _allSales = data.sales;
 
-    // Limpiar filtros al recargar
-    const nameEl   = document.getElementById('salesFilterName');
-    const statusEl = document.getElementById('salesFilterStatus');
-    if (nameEl)   nameEl.value   = '';
-    if (statusEl) statusEl.value = '';
-
-    renderSalesTable(_allSales);
+    filterSalesTable();
   } catch(e) {
     document.getElementById('salesTbody').innerHTML =
       `<tr><td colspan="6" style="color:var(--red);padding:16px">${e.message}</td></tr>`;
