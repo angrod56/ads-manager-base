@@ -1099,7 +1099,7 @@
 <div id="authScreen" style="position:fixed;inset:0;background:var(--bg);z-index:9999;align-items:center;justify-content:center;display:none">
   <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:40px;max-width:420px;width:90%;display:flex;flex-direction:column;gap:20px">
     <div style="display:flex;align-items:center;gap:12px">
-      <img src="/brand/ka2ia-wordmark-dark.svg" alt="ka2ia" style="height:28px;width:auto;display:block;">
+      <span style="font-family:Manrope,sans-serif;font-weight:800;font-size:22px;letter-spacing:-0.025em;line-height:1"><span style="color:#E8E5F5">ka</span><span style="color:#7B61FF">2</span><span style="color:#E8E5F5">ia</span></span>
     </div>
 
     <!-- Tabs login/registro -->
@@ -1201,7 +1201,7 @@
 <!-- ── Header ─────────────────────────────────────────────────────────────── -->
 <header class="header">
   <div class="logo">
-    <img src="/brand/ka2ia-wordmark-dark.svg" alt="ka2ia" style="height:30px;width:auto;display:block;">
+    <span style="font-family:Manrope,sans-serif;font-weight:800;font-size:24px;letter-spacing:-0.025em;line-height:1"><span style="color:#E8E5F5">ka</span><span style="color:#7B61FF">2</span><span style="color:#E8E5F5">ia</span></span>
   </div>
   <div class="header-controls">
     <select id="accountSelect"><option>Cargando cuentas…</option></select>
@@ -2200,13 +2200,13 @@ async function api(path) {
 // Equivalente JS del <Logo variant height /> documentado en BRAND.md
 // variant: 'dark' (default) | 'light' | 'mono' | 'icon'
 function Logo(variant = 'dark', height = 28) {
-  const src = {
-    dark:  '/brand/ka2ia-wordmark-dark.svg',
-    light: '/brand/ka2ia-wordmark-light.svg',
-    mono:  '/brand/ka2ia-wordmark-mono.svg',
-    icon:  '/brand/ka2ia-icon.svg',
-  }[variant] || '/brand/ka2ia-wordmark-dark.svg';
-  return `<img src="${src}" alt="ka2ia" height="${height}" style="width:auto;display:block;flex-shrink:0">`;
+  if (variant === 'icon') {
+    return `<img src="/brand/ka2ia-icon.svg" alt="ka2ia" height="${height}" style="width:auto;display:block;flex-shrink:0">`;
+  }
+  const textColor  = variant === 'light' ? '#0B0A1F' : (variant === 'mono' ? 'currentColor' : '#E8E5F5');
+  const accentColor = variant === 'mono' ? 'currentColor' : '#7B61FF';
+  const fs = Math.round(height * 0.8);
+  return `<span style="font-family:Manrope,sans-serif;font-weight:800;font-size:${fs}px;letter-spacing:-0.025em;line-height:1;flex-shrink:0"><span style="color:${textColor}">ka</span><span style="color:${accentColor}">2</span><span style="color:${textColor}">ia</span></span>`;
 }
 
 // Genera el query string de fecha según el modo activo
