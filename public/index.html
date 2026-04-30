@@ -2207,6 +2207,7 @@ function applyCustomDate() {
   if (!from || !to) return;
   S.since = from;
   S.until = to;
+  saveNavState();
   reloadActiveModule();
 }
 async function post(path, body) {
@@ -4067,6 +4068,54 @@ let _activeModule = 'dashboard';
 let _activeSection = 'dashboard';
 let _salesRefreshTimer = null;
 
+// ── Persistencia de estado de navegación ─────────────────────────────────────
+function saveNavState() {
+  try {
+    localStorage.setItem('navState', JSON.stringify({
+      module:   _activeModule,
+      section:  _activeSection,
+      date:     S.date,
+      since:    S.since  || '',
+      until:    S.until  || '',
+      dateFrom: document.getElementById('dateFrom')?.value || '',
+      dateTo:   document.getElementById('dateTo')?.value   || '',
+    }));
+  } catch {}
+}
+
+function restoreNavState() {
+  try {
+    const raw = localStorage.getItem('navState');
+    if (!raw) return false;
+    const st = JSON.parse(raw);
+
+    // Restaurar fecha
+    if (st.date) {
+      S.date = st.date;
+      const sel = document.getElementById('dateSelect');
+      if (sel) sel.value = st.date;
+
+      if (st.date === 'custom' && st.since && st.until) {
+        S.since = st.since;
+        S.until = st.until;
+        const wrap = document.getElementById('customDateWrap');
+        if (wrap) wrap.style.display = 'flex';
+        const fromEl = document.getElementById('dateFrom');
+        const toEl   = document.getElementById('dateTo');
+        if (fromEl && st.dateFrom) fromEl.value = st.dateFrom;
+        if (toEl   && st.dateTo)   toEl.value   = st.dateTo;
+      }
+    }
+
+    // Restaurar módulo y sección
+    const mod = st.module  || 'dashboard';
+    const sec = st.section || mod;
+    showModule(mod);
+    if (sec !== _activeSection) showSection(sec);
+    return true;
+  } catch { return false; }
+}
+
 // Recarga el módulo/sección activa según el contexto actual
 function reloadActiveModule() {
   invalidateDateCaches();
@@ -4157,6 +4206,7 @@ function showSection(name) {
   if (name === 'utm') { loadUtmStats(); if (!_utmRowCount) { if (!restoreUtmState()) addUtmRow(); } }
   if (name === 'reports') loadReports();
   if (name === 'admin') { loadAdminUsers(); loadAdminAnnouncements(); loadTutorials(); }
+  saveNavState();
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -5698,6 +5748,7 @@ async function init() {
       wrap.style.display = 'none';
       S.since = null;
       S.until = null;
+      saveNavState();
       reloadActiveModule();
     }
   });
@@ -5710,8 +5761,8 @@ async function init() {
     th.addEventListener('click', () => handleSort(th.dataset.sort))
   );
 
-  // Inicializar módulo activo (Dashboard por defecto)
-  showModule('dashboard');
+  // Restaurar módulo/sección/fechas previos; si no hay estado guardado, ir a Dashboard
+  if (!restoreNavState()) showModule('dashboard');
 }
 
 // ── Refresco automático de token ──────────────────────────────────────────────
