@@ -1,4 +1,4 @@
-const VERSION = 8;
+const VERSION = 9;
 
 self.addEventListener('install', e => { self.skipWaiting(); });
 
@@ -24,8 +24,8 @@ self.addEventListener('push', e => {
       const isIOS = /iphone|ipad|ipod/i.test(self.navigator?.userAgent || '');
       return self.registration.showNotification(data.title || '💰 Nueva venta', {
         body:    data.body || 'Tienes una nueva comisión',
-        icon:    '/icon-192.svg',
-        badge:   '/icon-192.svg',
+        icon:    '/brand/ka2ia-icon.svg',
+        badge:   '/brand/ka2ia-icon.svg',
         tag:     isCancel ? 'cancel-notification' : 'sale-notification',
         renotify: true,
         data:    { ...data, pendingSound: true },
