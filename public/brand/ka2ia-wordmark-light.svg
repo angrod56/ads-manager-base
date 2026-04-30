@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 30" fill="none">
+  <defs>
+    <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7B61FF"/>
+      <stop offset="100%" stop-color="#3DD9C9"/>
+    </linearGradient>
+  </defs>
+  <text y="23"
+    font-family="Manrope, sans-serif" font-weight="800" font-size="24"
+    letter-spacing="-0.6">
+    <tspan fill="#0B0A1F">ka</tspan><tspan fill="url(#g2)">2</tspan><tspan fill="#0B0A1F">ia</tspan>
+  </text>
+</svg>

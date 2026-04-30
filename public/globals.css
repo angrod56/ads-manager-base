@@ -1,0 +1,36 @@
+/* ── Google Fonts ───────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+/* ── ka2ia Design Tokens ────────────────────────────────────────────────── */
+:root {
+  /* Surface */
+  --ka-void:   #0B0A1F;
+  --ka-dusk:   #16142E;
+  --ka-mist:   #F4F2FA;
+
+  /* Text */
+  --ka-text:   #E8E5F5;
+  --ka-muted:  #8884A8;
+
+  /* Accents */
+  --ka-violet: #7B61FF;
+  --ka-teal:   #3DD9C9;
+  --ka-amber:  #FFB86B;
+
+  /* Brand gradient — solo en hero, CTAs primarios, el "2" del wordmark */
+  --ka-gradient: linear-gradient(135deg, var(--ka-violet), var(--ka-teal));
+
+  /* Typography */
+  --ka-font-display: "Manrope", "Clash Display", sans-serif;
+  --ka-font-body:    "Inter", "General Sans", sans-serif;
+  --ka-font-mono:    "JetBrains Mono", ui-monospace, monospace;
+
+  /* Geometry */
+  --ka-radius-sm: 8px;
+  --ka-radius:    14px;
+  --ka-radius-lg: 22px;
+
+  /* Effects */
+  --ka-shadow-glow: 0 8px 32px rgba(123, 97, 255, 0.33);
+  --ka-shadow-card: 0 4px 12px rgba(0, 0, 0, 0.25);
+}

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 30" fill="none">
+  <!-- fill="currentColor" — hereda el color del contexto. Para print 1-color. -->
+  <text y="23"
+    font-family="Manrope, sans-serif" font-weight="800" font-size="24"
+    letter-spacing="-0.6" fill="currentColor">ka2ia</text>
+</svg>
