@@ -17,6 +17,7 @@ import {
 } from './auth.js';
 import { verifyHotmartToken, processHotmartEvent, getSales, getTotalEarned } from './hotmart.js';
 import { saveSubscription, sendPushToUser } from './push.js';
+import { startDailyNotifications, sendDailyNoon, sendDailyEvening } from './notifications.js';
 import { getCheckoutUrl, handleBillingWebhook } from './billing.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -1200,6 +1201,15 @@ const POST = {
     json(res, { ok: true });
   },
 
+  // ── Push: disparar manualmente el resumen diario (solo admin) ───────────────
+  '/api/push/daily-test': async (res, req, user) => {
+    if (user?.role !== 'admin') return err(res, 'No autorizado', 401);
+    const { period = 'noon' } = await body(req);
+    if (period === 'evening') await sendDailyEvening();
+    else                      await sendDailyNoon();
+    json(res, { ok: true, period });
+  },
+
   // ── Hotmart: guardar Hottok del usuario ─────────────────────────────────────
   '/api/hotmart/save-token': async (res, req, user) => {
     if (!user) return err(res, 'No autorizado', 401);
@@ -1371,4 +1381,5 @@ http.createServer(async (req, res) => {
   console.log(`  🎯  Meta Ads Dashboard`);
   console.log(`  →   http://localhost:${PORT}`);
   console.log(`${'─'.repeat(48)}\n`);
+  startDailyNotifications();
 });
