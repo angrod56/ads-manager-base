@@ -4066,7 +4066,6 @@ Object.entries(MODULES).forEach(([mod, def]) =>
 
 let _activeModule = 'dashboard';
 let _activeSection = 'dashboard';
-let _salesRefreshTimer = null;
 
 // ── Persistencia de estado de navegación ─────────────────────────────────────
 function saveNavState() {
@@ -4126,25 +4125,10 @@ function reloadActiveModule() {
   if (_activeModule === 'ventas')   loadSales();
 }
 
-// Auto-refresh de ventas cada 60s cuando el usuario está en ese módulo
-function startSalesAutoRefresh() {
-  stopSalesAutoRefresh();
-  _salesRefreshTimer = setInterval(() => {
-    if (_activeModule === 'ventas') loadSales();
-  }, 60000);
-}
-function stopSalesAutoRefresh() {
-  if (_salesRefreshTimer) { clearInterval(_salesRefreshTimer); _salesRefreshTimer = null; }
-}
-
 function showModule(moduleName) {
   const mod = MODULES[moduleName];
   if (!mod) return;
   _activeModule = moduleName;
-
-  // Arrancar/detener auto-refresh según módulo
-  if (moduleName === 'ventas') startSalesAutoRefresh();
-  else stopSalesAutoRefresh();
 
   // Sidebar: marcar módulo activo
   document.querySelectorAll('.nav-item[data-module]').forEach(n =>
