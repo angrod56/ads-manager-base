@@ -1345,10 +1345,11 @@ http.createServer(async (req, res) => {
   if (path2 === '/app' || path2 === '/index.html')
     return serveFile(res, path.join(PUBLIC, 'index.html'), 'text/html', ae);
 
-  // Archivos estáticos públicos
+  // Archivos estáticos públicos (enumerados)
   const staticFiles = {
     '/sw.js':               ['text/javascript',  'sw.js'],
     '/manifest.json':       ['application/json', 'manifest.json'],
+    '/globals.css':         ['text/css',         'globals.css'],
     '/logo.svg':            ['image/svg+xml',    'logo.svg'],
     '/icon-192.svg':        ['image/svg+xml',    'icon-192.svg'],
     '/icon-512.svg':        ['image/svg+xml',    'icon-512.svg'],
@@ -1358,6 +1359,14 @@ http.createServer(async (req, res) => {
   if (staticFiles[path2]) {
     const [mime, file] = staticFiles[path2];
     return serveFile(res, path.join(PUBLIC, file), mime, ae);
+  }
+
+  // Archivos estáticos del directorio /brand/ (íconos, SVGs, fuentes)
+  const STATIC_EXT = { png:'image/png', svg:'image/svg+xml', webp:'image/webp', ico:'image/x-icon', css:'text/css', woff:'font/woff', woff2:'font/woff2', ttf:'font/ttf' };
+  const staticMatch = path2.match(/^\/(brand|fonts)\/[\w.-]+\.(png|svg|webp|ico|css|woff2?|ttf)$/);
+  if (staticMatch) {
+    const ext = path2.split('.').pop();
+    return serveFile(res, path.join(PUBLIC, path2), STATIC_EXT[ext] || 'application/octet-stream', ae);
   }
 
   // Rutas públicas (no requieren sesión)
