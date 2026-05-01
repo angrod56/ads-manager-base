@@ -40,6 +40,14 @@ export async function verifySession(req) {
   // Bloquear acceso si la cuenta está suspendida (pago cancelado)
   if (profile.status === 'suspended' && profile.role !== 'admin') return null;
 
+  // Segunda capa: aunque la DB diga admin, verificar contra whitelist de emails
+  if (profile.role === 'admin') {
+    const whitelist = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+    if (whitelist.length > 0 && !whitelist.includes(profile.email.toLowerCase())) {
+      profile.role = 'user'; // silenciosamente degradado — no permite explotar roles en DB
+    }
+  }
+
   return profile;
 }
 

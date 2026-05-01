@@ -51,6 +51,15 @@ const PLAN_LIMITS = {
   agency: { metaAccounts: Infinity, label: 'Agencia' },
 };
 
+// ── Seguridad ─────────────────────────────────────────────────────────────────
+const CORS_ORIGIN = process.env.APP_URL || 'https://app.ka2ia.com';
+const SEC_HEADERS = {
+  'X-Frame-Options':           'DENY',
+  'X-Content-Type-Options':    'nosniff',
+  'Referrer-Policy':           'strict-origin-when-cross-origin',
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+};
+
 // ── Helpers HTTP ──────────────────────────────────────────────────────────────
 
 function qs(url) {
@@ -59,7 +68,7 @@ function qs(url) {
 }
 
 function json(res, data, status = 200) {
-  res.writeHead(status, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+  res.writeHead(status, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': CORS_ORIGIN, ...SEC_HEADERS });
   res.end(JSON.stringify(data));
 }
 
@@ -69,7 +78,7 @@ function serveFile(res, file, type, acceptEncoding = '') {
   try {
     const isHtml = type === 'text/html';
     const isNoCache = isHtml || file.endsWith('sw.js') || file.endsWith('manifest.json');
-    const headers = { 'Content-Type': type + '; charset=utf-8', 'Vary': 'Accept-Encoding' };
+    const headers = { 'Content-Type': type + '; charset=utf-8', 'Vary': 'Accept-Encoding', ...(isHtml ? SEC_HEADERS : {}) };
     if (isNoCache) {
       headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
       headers['Pragma']  = 'no-cache';
@@ -151,14 +160,13 @@ const GET = {
   },
 
   '/api/version': async (res) => {
-    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache, no-store', 'Access-Control-Allow-Origin': '*' });
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache, no-store', 'Access-Control-Allow-Origin': CORS_ORIGIN });
     res.end(JSON.stringify({ v: SERVER_START }));
   },
 
   '/api/config': async (res) => {
     json(res, {
       defaultAccount: process.env.META_AD_ACCOUNT_ID || null,
-      defaultToken:   process.env.META_ACCESS_TOKEN   || null,
       vapidPublicKey: process.env.VAPID_PUBLIC_KEY    || null,
     });
   },
@@ -1336,7 +1344,7 @@ http.createServer(async (req, res) => {
   const ae   = req.headers['accept-encoding'] || '';
 
   if (req.method === 'OPTIONS') {
-    res.writeHead(204, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,POST', 'Access-Control-Allow-Headers': 'Content-Type' });
+    res.writeHead(204, { 'Access-Control-Allow-Origin': CORS_ORIGIN, 'Access-Control-Allow-Methods': 'GET,POST', 'Access-Control-Allow-Headers': 'Content-Type,Authorization' });
     return res.end();
   }
 
