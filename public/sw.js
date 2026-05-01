@@ -1,4 +1,4 @@
-const VERSION = 10;
+const VERSION = 11;
 
 self.addEventListener('install', e => { self.skipWaiting(); });
 
@@ -12,20 +12,24 @@ self.addEventListener('activate', e => {
   );
 });
 
+// Requerido por Chrome en Android para mostrar el prompt de instalación PWA
+self.addEventListener('fetch', e => {
+  e.respondWith(fetch(e.request));
+});
+
 self.addEventListener('push', e => {
   const data = e.data?.json() || {};
 
   e.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
       const isCancel = data.type === 'cancel';
-      // Notificar clientes abiertos para reproducir sonido inmediatamente
       clientList.forEach(c => c.postMessage({ type: isCancel ? 'CANCEL_SOUND' : 'SALE_SOUND' }));
 
       const isIOS = /iphone|ipad|ipod/i.test(self.navigator?.userAgent || '');
       return self.registration.showNotification(data.title || '💰 Nueva venta', {
         body:    data.body || 'Tienes una nueva comisión',
-        icon:    '/brand/ka2ia-icon.svg',
-        badge:   '/brand/ka2ia-icon.svg',
+        icon:    '/brand/icon-192.png',
+        badge:   '/brand/icon-192.png',
         tag:     isCancel ? 'cancel-notification' : 'sale-notification',
         renotify: true,
         data:    { ...data, pendingSound: true },
@@ -42,7 +46,6 @@ self.addEventListener('notificationclick', e => {
   e.notification.close();
   e.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
-      // Si la app ya está abierta, enfocarla y tocar sonido
       for (const client of clientList) {
         if (client.url.includes('/app')) {
           client.focus();
@@ -50,7 +53,6 @@ self.addEventListener('notificationclick', e => {
           return;
         }
       }
-      // Si no está abierta, abrir /app con flag de sonido pendiente
       return self.clients.openWindow('/app?sale=1');
     })
   );
