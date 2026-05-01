@@ -186,6 +186,13 @@
     }
     .rpt-range:hover { border-color: var(--blue); color: var(--blue); }
     .rpt-range.active { background: rgba(79,142,247,.15); border-color: var(--blue); color: var(--blue); }
+    .rpt-type {
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+      padding: 6px 14px; color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer;
+      transition: all .2s;
+    }
+    .rpt-type:hover { border-color: var(--green); color: var(--green); }
+    .rpt-type.active { background: rgba(6,214,160,.12); border-color: var(--green); color: var(--green); }
 
     /* ── Campaigns table ── */
     .table-controls {
@@ -1720,6 +1727,13 @@
       </div>
     </div>
 
+    <!-- Toggle tipo de campaña -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px">
+      <span style="font-size:12px;color:var(--muted);font-weight:600">VER COMO:</span>
+      <button id="rptTypeVentas" class="rpt-type active" onclick="setReportType('ventas')">💰 Ventas</button>
+      <button id="rptTypeLanzamiento" class="rpt-type" onclick="setReportType('lanzamiento')">🚀 Lanzamiento / Registros</button>
+    </div>
+
     <!-- KPIs -->
     <div class="kpi-grid" style="margin-bottom:20px">
       <div class="kpi-card"><div class="kpi-label">Revenue</div><div class="kpi-value" id="rpt-revenue">—</div></div>
@@ -1752,6 +1766,26 @@
         <div class="card-header"><span class="card-title">Revenue por anuncio</span></div>
         <div style="position:relative;height:240px"><canvas id="rptCampaignChart"></canvas></div>
       </div>
+    </div>
+
+    <!-- Demografía: edad -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header">
+        <span class="card-title" id="rptAgeTitle">Ventas por rango de edad</span>
+        <span style="font-size:11px;color:var(--muted)" id="rptAgeSub">datos de Meta Ads</span>
+      </div>
+      <div id="rptAgeWrap" class="chart-wrap" style="height:280px"><canvas id="rptAgeChart"></canvas></div>
+      <div id="rptAgeEmpty" style="display:none;padding:32px;text-align:center;color:var(--muted);font-size:13px">Sin datos de edad en este período</div>
+    </div>
+
+    <!-- Demografía: sexo -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header">
+        <span class="card-title" id="rptGenderTitle">Ventas por sexo</span>
+        <span style="font-size:11px;color:var(--muted)">datos de Meta Ads</span>
+      </div>
+      <div id="rptGenderWrap" class="chart-wrap" style="height:240px"><canvas id="rptGenderChart"></canvas></div>
+      <div id="rptGenderEmpty" style="display:none;padding:32px;text-align:center;color:var(--muted);font-size:13px">Sin datos de sexo en este período</div>
     </div>
 
     <!-- Tabla detalle por anuncio -->
@@ -6302,6 +6336,100 @@ function urlBase64ToUint8Array(base64String) {
 // ── Módulo Informes ──────────────────────────────────────────────────────────
 let _rptDays = 7;
 let _rptLineChart = null, _rptRoasChart = null, _rptBarChart = null, _rptCampaignChart = null;
+let _rptAgeChart = null, _rptGenderChart = null;
+let _rptType = 'ventas'; // 'ventas' | 'lanzamiento'
+let _rptDemoData = null;
+
+function setReportType(type) {
+  _rptType = type;
+  document.getElementById('rptTypeVentas').classList.toggle('active', type === 'ventas');
+  document.getElementById('rptTypeLanzamiento').classList.toggle('active', type === 'lanzamiento');
+  const label = type === 'ventas' ? 'Ventas' : 'Registros';
+  document.getElementById('rptAgeTitle').textContent    = `${label} por rango de edad`;
+  document.getElementById('rptGenderTitle').textContent = `${label} por sexo`;
+  if (_rptDemoData) renderDemographics(_rptDemoData);
+}
+
+async function loadDemographics(since, until) {
+  if (!S.account) return;
+  try {
+    const data = await api(`/api/demographics?account=${S.account}&since=${since}&until=${until}`);
+    _rptDemoData = data;
+    renderDemographics(data);
+  } catch(e) {
+    console.warn('[Demographics]', e.message);
+  }
+}
+
+function renderDemographics(data) {
+  const field  = _rptType === 'ventas' ? 'purchases' : 'registrations';
+  const AGE_COLORS = { '18-24':'#4f8ef7','25-34':'#7B61FF','35-44':'#06d6a0','45-54':'#ffd166','55-64':'#f85149','65+':'#9b5de5' };
+  const GEN_COLORS = { male:'#4f8ef7', female:'#f72585', unknown:'#8892b0' };
+
+  // Eje X: fechas únicas
+  const dates = [...new Set([...data.age, ...data.gender].map(r => r.date))].sort();
+  const xLabels = dates.map(d => d.slice(5));
+
+  // ── Gráfico edad ──
+  const ageGroups = [...new Set(data.age.map(r => r.age_group))].sort();
+  const ageHasData = data.age.some(r => r[field] > 0);
+  document.getElementById('rptAgeWrap').style.display  = ageHasData ? '' : 'none';
+  document.getElementById('rptAgeEmpty').style.display = ageHasData ? 'none' : '';
+  if (ageHasData) {
+    _rptAgeChart = _destroyRptChart(_rptAgeChart);
+    _rptAgeChart = new Chart(document.getElementById('rptAgeChart'), {
+      type: 'line',
+      data: {
+        labels: xLabels,
+        datasets: ageGroups.map(ag => ({
+          label: ag,
+          data: dates.map(d => {
+            const r = data.age.find(x => x.date === d && x.age_group === ag);
+            return r ? r[field] : 0;
+          }),
+          borderColor: AGE_COLORS[ag] || '#8892b0',
+          backgroundColor: 'transparent',
+          tension: 0.4, pointRadius: 3, borderWidth: 2,
+        })),
+      },
+      options: {
+        ...chartBase,
+        interaction: { mode: 'index', intersect: false },
+        plugins: { ...chartBase.plugins, legend: { display: true, labels: { color: '#8892b0', boxWidth: 12, padding: 12 } } },
+      },
+    });
+  }
+
+  // ── Gráfico sexo ──
+  const genders = [...new Set(data.gender.map(r => r.gender))];
+  const genHasData = data.gender.some(r => r[field] > 0);
+  document.getElementById('rptGenderWrap').style.display  = genHasData ? '' : 'none';
+  document.getElementById('rptGenderEmpty').style.display = genHasData ? 'none' : '';
+  if (genHasData) {
+    _rptGenderChart = _destroyRptChart(_rptGenderChart);
+    _rptGenderChart = new Chart(document.getElementById('rptGenderChart'), {
+      type: 'line',
+      data: {
+        labels: xLabels,
+        datasets: genders.map(g => ({
+          label: g === 'male' ? 'Hombre' : g === 'female' ? 'Mujer' : 'No especificado',
+          data: dates.map(d => {
+            const r = data.gender.find(x => x.date === d && x.gender === g);
+            return r ? r[field] : 0;
+          }),
+          borderColor: GEN_COLORS[g] || '#8892b0',
+          backgroundColor: 'transparent',
+          tension: 0.4, pointRadius: 4, borderWidth: 2,
+        })),
+      },
+      options: {
+        ...chartBase,
+        interaction: { mode: 'index', intersect: false },
+        plugins: { ...chartBase.plugins, legend: { display: true, labels: { color: '#8892b0', boxWidth: 12, padding: 12 } } },
+      },
+    });
+  }
+}
 
 function setReportRange(days) {
   _rptDays = days;
@@ -6338,6 +6466,10 @@ function _rptFmt(n) { return new Intl.NumberFormat('en-US', { style:'currency', 
 
 async function loadReports() {
   const { since, until } = _rptDateRange();
+
+  // Cargar demografía async (no bloquea el resto)
+  _rptDemoData = null;
+  loadDemographics(since, until);
 
   // Cargar sales (siempre) y overview Meta (solo si hay cuenta)
   const tz = TZ_OFFSET_H;

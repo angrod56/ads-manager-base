@@ -742,6 +742,33 @@ const GET = {
   },
 
   // Análisis por país para una cuenta
+  '/api/demographics': async (res, q) => {
+    if (!q.account) return err(res, 'account requerido', 400);
+    const opts = { since: q.since, until: q.until, level: 'account', timeIncrement: 1 };
+    const [ageData, genderData] = await Promise.all([
+      getInsights(q.account, { ...opts, breakdowns: 'age' },    q.token),
+      getInsights(q.account, { ...opts, breakdowns: 'gender' }, q.token),
+    ]);
+    function actionVal(actions, type) {
+      return parseFloat(actions?.find(a => a.action_type === type)?.value || 0);
+    }
+    const age = ageData.map(r => ({
+      date:         r.date_start,
+      age_group:    r.age,
+      purchases:    actionVal(r.actions, 'purchase'),
+      registrations: actionVal(r.actions, 'complete_registration') || actionVal(r.actions, 'lead'),
+      spend:        parseFloat(r.spend || 0),
+    }));
+    const gender = genderData.map(r => ({
+      date:         r.date_start,
+      gender:       r.gender,
+      purchases:    actionVal(r.actions, 'purchase'),
+      registrations: actionVal(r.actions, 'complete_registration') || actionVal(r.actions, 'lead'),
+      spend:        parseFloat(r.spend || 0),
+    }));
+    json(res, { age, gender });
+  },
+
   '/api/countries': async (res, q) => {
     if (!q.account) return err(res, 'account requerido', 400);
     const cKey = `countries:${q.account}:${q.date||''}:${q.since||''}:${q.until||''}`;
