@@ -5874,12 +5874,30 @@ async function refreshToken() {
       return;
     }
     const data = await r.json();
+    const prevPlan = S.user?.plan;
     S.jwt   = data.session.access_token;
     S.user  = data.user;
     S.token = data.user.meta_token || S.token;
     localStorage.setItem('jwt', S.jwt);
     localStorage.setItem('refreshToken', data.session.refresh_token);
     scheduleTokenRefresh(data.session.expires_in);
+    // Si el plan fue actualizado, recargar la lista de cuentas disponibles
+    if (prevPlan && data.user.plan !== prevPlan) {
+      const accounts = await api('/api/accounts').catch(() => null);
+      if (accounts?.length) {
+        S.accounts = accounts;
+        const sel = document.getElementById('accountSelect');
+        if (sel) {
+          const current = S.account;
+          sel.innerHTML = accounts.map(a =>
+            `<option value="${a.id}"${a.id === current ? ' selected' : ''}>${a.name} — ${a.currency} (${a.id})</option>`
+          ).join('');
+          // Limpiar aviso de límite de plan anterior si existe
+          const prev = sel.nextElementSibling;
+          if (prev?.style?.color === 'var(--yellow)') prev.remove();
+        }
+      }
+    }
   } catch {
     // Error de red — reintentar en 60s sin cerrar sesión
     _refreshTimer = setTimeout(refreshToken, 60000);
@@ -5906,7 +5924,29 @@ document.addEventListener('visibilitychange', () => {
   checkAppVersion();
   // Refresh token si está por expirar
   const expiresAt = parseInt(localStorage.getItem('tokenExpiresAt') || '0', 10);
-  if ((expiresAt - Date.now()) / 1000 < 300) { clearTimeout(_refreshTimer); refreshToken(); }
+  if ((expiresAt - Date.now()) / 1000 < 300) { clearTimeout(_refreshTimer); refreshToken(); return; }
+  // Verificar si el plan cambió (upgrade/downgrade por admin) sin esperar al refresh
+  if (S.jwt && S.user) {
+    fetch('/api/auth/me', { headers: { 'Authorization': `Bearer ${S.jwt}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(async profile => {
+        if (!profile || profile.plan === S.user.plan) return;
+        S.user.plan = profile.plan;
+        const accounts = await api('/api/accounts').catch(() => null);
+        if (accounts?.length) {
+          S.accounts = accounts;
+          const sel = document.getElementById('accountSelect');
+          if (sel) {
+            const current = S.account;
+            sel.innerHTML = accounts.map(a =>
+              `<option value="${a.id}"${a.id === current ? ' selected' : ''}>${a.name} — ${a.currency} (${a.id})</option>`
+            ).join('');
+            const prev = sel.nextElementSibling;
+            if (prev?.style?.color === 'var(--yellow)') prev.remove();
+          }
+        }
+      }).catch(() => {});
+  }
 });
 
 // Failsafe: verificar cada 3 minutos aunque el timer se haya congelado
