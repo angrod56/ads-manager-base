@@ -1364,7 +1364,7 @@
             </tr>
           </thead>
           <tbody id="campaignsTbody">
-            <tr><td colspan="18" class="empty"><div class="empty-icon">⚙️</div><div>Configura tu token Meta en <strong>Configuración</strong> para ver tus campañas.</div></td></tr>
+            <tr><td colspan="18" class="empty"><div class="empty-icon">⏳</div><div>Cargando campañas…</div></td></tr>
           </tbody>
         </table>
       </div>
@@ -3069,6 +3069,8 @@ async function loadOverview() {
       'Actualizado: ' + new Date().toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
   } catch (e) {
     toast(e.message, 'error');
+    const tbody = document.getElementById('campaignsTbody');
+    if (tbody) tbody.innerHTML = `<tr><td colspan="18" class="empty"><div class="empty-icon">⚠️</div><div>${e.message}</div></td></tr>`;
   }
 
   btn.innerHTML = '↺ Actualizar';
@@ -5831,7 +5833,7 @@ async function init() {
   }
 
   // Si no hay token configurado, quedan 0 cuentas — mostrar banner y detener init
-  if (!accountsResult.length && !S.token) {
+  if (!accountsResult.length && !S.token && S.user?.role !== 'admin') {
     showSetupBanner();
     document.getElementById('accountSelect').innerHTML = '<option>— Configura tu token Meta →</option>';
     return;
@@ -5908,6 +5910,9 @@ async function init() {
 
   // Restaurar módulo/sección/fechas previos; si no hay estado guardado, ir a Dashboard
   if (!restoreNavState()) showModule('dashboard');
+
+  // Cargar datos automáticamente al iniciar
+  if (S.account) reloadActiveModule();
 }
 
 // ── Refresco automático de token ──────────────────────────────────────────────
