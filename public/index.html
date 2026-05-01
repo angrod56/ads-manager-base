@@ -149,7 +149,7 @@
     /* ── KPI grid ── */
     .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(6, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 12px;
     }
     .kpi-card {
@@ -160,9 +160,17 @@
       display: flex;
       flex-direction: column;
       gap: 6px;
-      transition: border-color .2s;
+      transition: border-color .2s, box-shadow .2s;
     }
-    .kpi-card:hover { border-color: var(--muted); }
+    .kpi-card:hover { border-color: rgba(79,142,247,.45); box-shadow: 0 2px 12px rgba(79,142,247,.08); }
+    .kpi-card.accent-blue   { border-top: 3px solid rgba(79,142,247,.85); }
+    .kpi-card.accent-green  { border-top: 3px solid rgba(6,214,160,.85); }
+    .kpi-card.accent-purple { border-top: 3px solid rgba(155,93,229,.85); }
+    .kpi-card.accent-yellow { border-top: 3px solid rgba(210,153,34,.85); }
+    .kpi-card.accent-red    { border-top: 3px solid rgba(248,81,73,.85); }
+    .kpi-card.accent-cyan   { border-top: 3px solid rgba(56,189,248,.85); }
+    .kpi-head { display: flex; align-items: center; justify-content: space-between; }
+    .kpi-icon { font-size: 16px; opacity: .4; }
     .kpi-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); }
     .kpi-value { font-size: 26px; font-weight: 700; color: var(--text); line-height: 1; }
     .kpi-value.green  { color: var(--green); }
@@ -176,7 +184,24 @@
       grid-template-columns: 1fr 1fr;
       gap: 16px;
     }
-    .chart-wrap { position: relative; height: 240px; }
+    .chart-wrap { position: relative; height: 280px; }
+
+    /* ── Cross Meta × Hotmart ── */
+    .cross-grid { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 0 20px; align-items: start; }
+    .cross-section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 10px; }
+    .cross-stat { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+    .cross-stat:last-child { border-bottom: none; }
+    .cross-stat-key { font-size: 12px; color: var(--muted); }
+    .cross-stat-val { font-size: 15px; font-weight: 700; color: var(--text); }
+    .cross-arrow { font-size: 22px; color: var(--border); align-self: center; text-align: center; padding-top: 28px; }
+    .cross-badge { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+    .cross-badge.green  { background: rgba(6,214,160,.15); color: var(--green); }
+    .cross-badge.yellow { background: rgba(210,153,34,.15); color: var(--yellow); }
+    .cross-badge.red    { background: rgba(248,81,73,.15);  color: var(--red); }
+    @media (max-width: 700px) {
+      .cross-grid { grid-template-columns: 1fr; }
+      .cross-arrow { display: none; }
+    }
 
     /* ── Reports range buttons ── */
     .rpt-range {
@@ -989,7 +1014,7 @@
 
     /* Tablet 1100px */
     @media (max-width: 1100px) {
-      .kpi-grid       { grid-template-columns: repeat(3, 1fr); }
+      .kpi-grid       { grid-template-columns: repeat(2, 1fr); }
       .charts-grid    { grid-template-columns: 1fr; }
       .analysis-grid  { grid-template-columns: 1fr; }
       .countries-grid { grid-template-columns: 1fr; }
@@ -1042,7 +1067,7 @@
 
       /* Charts */
       .charts-grid { grid-template-columns: 1fr; gap: 12px; }
-      .chart-wrap  { height: 200px; }
+      .chart-wrap  { height: 220px; }
 
       /* Cards */
       .card { padding: 14px; }
@@ -1292,12 +1317,32 @@
 
     <!-- KPIs -->
     <div class="kpi-grid" id="kpiGrid">
-      <div class="kpi-card"><div class="kpi-label">Gasto total</div><div class="kpi-value"><span class="skeleton" style="width:100px;height:32px"></span></div></div>
-      <div class="kpi-card"><div class="kpi-label">Revenue</div><div class="kpi-value"><span class="skeleton" style="width:100px;height:32px"></span></div></div>
-      <div class="kpi-card"><div class="kpi-label">ROAS</div><div class="kpi-value"><span class="skeleton" style="width:70px;height:32px"></span></div></div>
-      <div class="kpi-card"><div class="kpi-label">Compras</div><div class="kpi-value"><span class="skeleton" style="width:50px;height:32px"></span></div></div>
-      <div class="kpi-card"><div class="kpi-label">CPA Promedio</div><div class="kpi-value"><span class="skeleton" style="width:90px;height:32px"></span></div></div>
-      <div class="kpi-card"><div class="kpi-label">CTR</div><div class="kpi-value"><span class="skeleton" style="width:70px;height:32px"></span></div></div>
+      <div class="kpi-card accent-blue"><div class="kpi-head"><span class="kpi-label">Gasto total</span><span class="kpi-icon">💸</span></div><div class="kpi-value"><span class="skeleton" style="width:100px;height:28px"></span></div></div>
+      <div class="kpi-card accent-green"><div class="kpi-head"><span class="kpi-label">Revenue</span><span class="kpi-icon">💰</span></div><div class="kpi-value"><span class="skeleton" style="width:100px;height:28px"></span></div></div>
+      <div class="kpi-card accent-purple"><div class="kpi-head"><span class="kpi-label">ROAS</span><span class="kpi-icon">📈</span></div><div class="kpi-value"><span class="skeleton" style="width:70px;height:28px"></span></div></div>
+      <div class="kpi-card accent-green"><div class="kpi-head"><span class="kpi-label">Profit neto</span><span class="kpi-icon">🏆</span></div><div class="kpi-value"><span class="skeleton" style="width:100px;height:28px"></span></div></div>
+      <div class="kpi-card accent-blue"><div class="kpi-head"><span class="kpi-label">Compras</span><span class="kpi-icon">🛒</span></div><div class="kpi-value"><span class="skeleton" style="width:50px;height:28px"></span></div></div>
+      <div class="kpi-card accent-yellow"><div class="kpi-head"><span class="kpi-label">CPA promedio</span><span class="kpi-icon">🎯</span></div><div class="kpi-value"><span class="skeleton" style="width:90px;height:28px"></span></div></div>
+      <div class="kpi-card accent-red"><div class="kpi-head"><span class="kpi-label">CTR promedio</span><span class="kpi-icon">🖱️</span></div><div class="kpi-value"><span class="skeleton" style="width:70px;height:28px"></span></div></div>
+      <div class="kpi-card accent-cyan"><div class="kpi-head"><span class="kpi-label">Registros</span><span class="kpi-icon">📋</span></div><div class="kpi-value"><span class="skeleton" style="width:50px;height:28px"></span></div></div>
+    </div>
+
+    <!-- Trend chart -->
+    <div class="card" id="trendCard" style="display:none">
+      <div class="card-header">
+        <span class="card-title">Tendencia diaria</span>
+        <div id="trendLegend" style="display:flex;gap:16px;align-items:center;font-size:12px;color:var(--muted)"></div>
+      </div>
+      <div class="chart-wrap" style="height:220px"><canvas id="trendChart"></canvas></div>
+    </div>
+
+    <!-- Cross Meta × Hotmart -->
+    <div class="card" id="crossCard" style="display:none">
+      <div class="card-header">
+        <span class="card-title">🔗 Cruce Meta × Hotmart</span>
+        <span style="font-size:12px;color:var(--muted)">ROAS y profit con ventas reales</span>
+      </div>
+      <div class="cross-grid" id="crossContent"></div>
     </div>
 
     <!-- Charts -->
@@ -1309,6 +1354,14 @@
       <div class="card">
         <div class="card-header"><span class="card-title" id="perfChartTitle">ROAS por campaña</span></div>
         <div class="chart-wrap"><canvas id="perfChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Distribución de presupuesto</span></div>
+        <div class="chart-wrap"><canvas id="spendPieChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Embudo de conversión</span></div>
+        <div class="chart-wrap"><canvas id="funnelChart"></canvas></div>
       </div>
     </div>
 
@@ -2349,7 +2402,7 @@ function statusBadge(s) {
 // ═══════════════════════════════════════════════════════════════════
 //  CHARTS
 // ═══════════════════════════════════════════════════════════════════
-let spendChart = null, perfChart = null, countriesChart = null, countriesPieChart = null;
+let spendChart = null, perfChart = null, spendPieChart = null, funnelChart = null, trendChart = null, countriesChart = null, countriesPieChart = null;
 
 Chart.defaults.color = '#8892b0';
 Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif';
@@ -2374,6 +2427,149 @@ const chartBase = {
     y: { grid: { color: '#151d35' }, ticks: { color: '#8892b0' } },
   },
 };
+
+function renderCrossData(hm, meta) {
+  const card = document.getElementById('crossCard');
+  const el   = document.getElementById('crossContent');
+  // Mostrar solo si hay ventas reales de Hotmart y hay gasto en Meta
+  if (!hm || hm.netRevenue <= 0 || !meta || !meta.spend) {
+    if (card) card.style.display = 'none';
+    return;
+  }
+  card.style.display = '';
+
+  const spend        = meta.spend || 0;
+  const pixelRev     = meta.revenue || 0;
+  const realRev      = hm.netRevenue || 0;
+  const roasPixel    = spend > 0 && pixelRev > 0 ? pixelRev / spend : null;
+  const roasReal     = spend > 0 && realRev  > 0 ? realRev  / spend : null;
+  const profitPixel  = pixelRev - spend;
+  const profitReal   = realRev  - spend;
+  const marginReal   = realRev  > 0 ? (profitReal / realRev * 100) : null;
+  const discAbs      = realRev - pixelRev;
+  const discPct      = pixelRev > 0 ? (discAbs / pixelRev * 100) : null;
+
+  const roasCls = r => !r ? '' : r >= 3 ? 'green' : r >= 1 ? 'yellow' : 'red';
+  const profCls = p => p > 0 ? 'green' : p < 0 ? 'red' : '';
+
+  // Discrepancia: si Hotmart > pixel → pixel conservador (verde)
+  //               si Hotmart < pixel → pixel inflado (rojo/amarillo)
+  const discCls  = discAbs >= 0 ? 'green' : Math.abs(discAbs) / Math.max(pixelRev, 1) < 0.20 ? 'yellow' : 'red';
+  const discLabel = discAbs >= 0
+    ? `Pixel conservador ${discPct !== null ? Math.abs(discPct).toFixed(0) + '% abajo' : ''}`
+    : `Pixel inflado ${discPct !== null ? Math.abs(discPct).toFixed(0) + '% arriba' : ''}`;
+
+  el.innerHTML = `
+    <div>
+      <div class="cross-section-label">Pixel de Meta</div>
+      <div class="cross-stat"><span class="cross-stat-key">Revenue</span><span class="cross-stat-val">${fmt.usd(pixelRev)}</span></div>
+      <div class="cross-stat"><span class="cross-stat-key">ROAS</span><span class="cross-stat-val ${roasCls(roasPixel)}">${roasPixel ? roasPixel.toFixed(2) + 'x' : '—'}</span></div>
+      <div class="cross-stat"><span class="cross-stat-key">Profit</span><span class="cross-stat-val ${profCls(profitPixel)}">${fmt.usd(profitPixel)}</span></div>
+      <div class="cross-stat"><span class="cross-stat-key">Gasto Meta</span><span class="cross-stat-val">${fmt.usd(spend)}</span></div>
+    </div>
+    <div class="cross-arrow">→</div>
+    <div>
+      <div class="cross-section-label">Hotmart Real</div>
+      <div class="cross-stat"><span class="cross-stat-key">Revenue neto</span><span class="cross-stat-val ${realRev > 0 ? 'green' : ''}">${fmt.usd(realRev)}</span></div>
+      <div class="cross-stat"><span class="cross-stat-key">ROAS real</span><span class="cross-stat-val ${roasCls(roasReal)}">${roasReal ? roasReal.toFixed(2) + 'x' : '—'}</span></div>
+      <div class="cross-stat"><span class="cross-stat-key">Profit real</span><span class="cross-stat-val ${profCls(profitReal)}">${fmt.usd(profitReal)}</span></div>
+      <div class="cross-stat"><span class="cross-stat-key">Ventas aprobadas</span><span class="cross-stat-val">${hm.total || 0}</span></div>
+    </div>
+    <div class="cross-arrow">≈</div>
+    <div>
+      <div class="cross-section-label">Análisis</div>
+      <div class="cross-stat"><span class="cross-stat-key">Discrepancia</span><span class="cross-stat-val ${discCls}">${discAbs >= 0 ? '+' : ''}${fmt.usd(discAbs)}</span></div>
+      <div class="cross-stat" style="border:none"><span class="cross-badge ${discCls}">${discLabel}</span></div>
+      <div class="cross-stat"><span class="cross-stat-key">Margen real</span><span class="cross-stat-val ${marginReal >= 30 ? 'green' : marginReal >= 0 ? 'yellow' : 'red'}">${marginReal !== null ? marginReal.toFixed(1) + '%' : '—'}</span></div>
+      <div class="cross-stat"><span class="cross-stat-key">Ticket promedio</span><span class="cross-stat-val">${fmt.usd(hm.avgTicket || 0)}</span></div>
+    </div>
+  `;
+}
+
+function updateTrendChart(daily) {
+  if (trendChart) { trendChart.destroy(); trendChart = null; }
+
+  const card = document.getElementById('trendCard');
+  if (!daily || !daily.length) { if (card) card.style.display = 'none'; return; }
+  if (card) card.style.display = '';
+
+  const labels  = daily.map(d => {
+    const [, m, day] = d.date.split('-');
+    return `${day}/${m}`;
+  });
+  const spends   = daily.map(d => d.spend);
+  const revenues = daily.map(d => d.revenue);
+
+  // Legend
+  const legend = document.getElementById('trendLegend');
+  if (legend) legend.innerHTML = `
+    <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:50%;background:#4f8ef7;display:inline-block"></span>Gasto</span>
+    <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:50%;background:#06d6a0;display:inline-block"></span>Revenue</span>
+  `;
+
+  trendChart = new Chart(document.getElementById('trendChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Revenue',
+          data: revenues,
+          borderColor: '#06d6a0',
+          backgroundColor: 'rgba(6,214,160,.12)',
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: '#06d6a0',
+          pointRadius: 3,
+          pointHoverRadius: 6,
+          borderWidth: 2,
+          order: 1,
+        },
+        {
+          label: 'Gasto',
+          data: spends,
+          borderColor: '#4f8ef7',
+          backgroundColor: 'rgba(79,142,247,.10)',
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: '#4f8ef7',
+          pointRadius: 3,
+          pointHoverRadius: 6,
+          borderWidth: 2,
+          order: 2,
+        },
+      ],
+    },
+    options: {
+      ...chartBase,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        ...chartBase.plugins,
+        legend: { display: false },
+        tooltip: {
+          ...chartBase.plugins.tooltip,
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: ${fmt.usd(ctx.raw)}`,
+            afterBody: items => {
+              const i = items[0].dataIndex;
+              const rev = revenues[i], sp = spends[i];
+              if (rev > 0 && sp > 0) {
+                const roas = (rev / sp).toFixed(2);
+                const profit = fmt.usd(rev - sp);
+                return [``, ` ROAS: ${roas}x  ·  Profit: ${profit}`];
+              }
+              return [];
+            },
+          },
+        },
+      },
+      scales: {
+        x: { ...chartBase.scales.x, grid: { display: false } },
+        y: { ...chartBase.scales.y, ticks: { callback: v => '$' + v.toFixed(0), color: '#8892b0' } },
+      },
+    },
+  });
+}
 
 function updateCharts(campaigns) {
   const top = campaigns.filter(c => c.spend > 0).slice(0, 8);
@@ -2502,6 +2698,105 @@ function updateCharts(campaigns) {
       },
     });
   }
+
+  // ── Chart 3: Donut — Distribución de presupuesto por campaña ──
+  const top6 = campaigns.filter(c => c.spend > 0).slice(0, 6);
+  if (spendPieChart) spendPieChart.destroy();
+  if (top6.length > 0) {
+    const pieColors = [
+      'rgba(79,142,247,.75)', 'rgba(155,93,229,.75)', 'rgba(6,214,160,.75)',
+      'rgba(248,81,73,.75)',  'rgba(210,153,34,.75)', 'rgba(56,189,248,.75)',
+    ];
+    spendPieChart = new Chart(document.getElementById('spendPieChart'), {
+      type: 'doughnut',
+      data: {
+        labels: top6.map(c => fmt.short(c.name, 24)),
+        datasets: [{
+          data: top6.map(c => c.spend),
+          backgroundColor: pieColors,
+          borderColor: 'rgba(255,255,255,.06)',
+          borderWidth: 2,
+          hoverOffset: 10,
+        }],
+      },
+      options: {
+        ...chartBase,
+        cutout: '60%',
+        plugins: {
+          ...chartBase.plugins,
+          legend: {
+            display: true,
+            position: 'right',
+            labels: { color: '#8892b0', boxWidth: 10, padding: 10, font: { size: 10 } },
+          },
+          tooltip: {
+            ...chartBase.plugins.tooltip,
+            callbacks: {
+              label: ctx => {
+                const total = ctx.dataset.data.reduce((a, v) => a + v, 0);
+                const pct = (ctx.raw / total * 100).toFixed(1);
+                return ` ${fmt.usd(ctx.raw)}  (${pct}%)`;
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  // ── Chart 4: Embudo de conversión (barras horizontales, escala log) ──
+  if (funnelChart) funnelChart.destroy();
+  const fTotals = campaigns.reduce(
+    (a, c) => ({
+      impressions:   a.impressions + c.impressions,
+      clicks:        a.clicks + c.clicks,
+      registrations: a.registrations + (c.registrations || 0),
+      purchases:     a.purchases + c.purchases,
+    }),
+    { impressions: 0, clicks: 0, registrations: 0, purchases: 0 }
+  );
+  if (fTotals.impressions > 0) {
+    const fLabels = ['Impresiones', 'Clics', 'Registros', 'Compras'];
+    const fVals   = [fTotals.impressions, fTotals.clicks, fTotals.registrations, fTotals.purchases];
+    const fBg     = ['rgba(79,142,247,.65)', 'rgba(155,93,229,.65)', 'rgba(6,214,160,.65)', 'rgba(63,185,80,.65)'];
+    const fBorder = ['#4f8ef7', '#9b5de5', '#06d6a0', '#3fb950'];
+    funnelChart = new Chart(document.getElementById('funnelChart'), {
+      type: 'bar',
+      data: {
+        labels: fLabels,
+        datasets: [{
+          data: fVals,
+          backgroundColor: fBg,
+          borderColor: fBorder,
+          borderWidth: 2,
+          borderRadius: 4,
+          borderSkipped: false,
+        }],
+      },
+      options: {
+        ...chartBase,
+        indexAxis: 'y',
+        plugins: {
+          ...chartBase.plugins,
+          legend: { display: false },
+          tooltip: {
+            ...chartBase.plugins.tooltip,
+            callbacks: {
+              label: ctx => {
+                const prev = ctx.dataIndex > 0 ? fVals[ctx.dataIndex - 1] : null;
+                const pct  = prev && prev > 0 ? ` · ${(ctx.raw / prev * 100).toFixed(1)}% del paso anterior` : '';
+                return ` ${fmt.num(ctx.raw)}${pct}`;
+              },
+            },
+          },
+        },
+        scales: {
+          x: { ...chartBase.scales.x, type: 'logarithmic', ticks: { color: '#8892b0', callback: v => fmt.num(v) } },
+          y: { grid: { display: false }, ticks: { color: '#8892b0' } },
+        },
+      },
+    });
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -2511,7 +2806,11 @@ function renderKPIs(t, prev) {
   const p = prev || {};
   const roasCls = !t.roas ? '' : t.roas >= 3 ? 'green' : t.roas >= 1 ? 'yellow' : 'red';
   const cpaCls  = !t.cpa  ? '' : t.cpa  < 20  ? 'green' : t.cpa < 50  ? 'yellow' : 'red';
-  // Para CPA: bajar es bueno, subir es malo → invertir dirección
+  const profit  = (t.revenue || 0) - (t.spend || 0);
+  const margin  = t.revenue > 0 ? (profit / t.revenue * 100) : null;
+  const profitCls = profit > 0 ? 'green' : profit < 0 ? 'red' : '';
+  const marginStr = margin !== null ? margin.toFixed(1) + '% margen' : 'revenue − gasto';
+
   function deltaCPA(curr, prev) {
     if (!prev || !curr) return '';
     const pct = ((curr - prev) / prev) * 100;
@@ -2519,41 +2818,47 @@ function renderKPIs(t, prev) {
     const arrow = pct < 0 ? '↓' : '↑';
     return `<span class="delta ${cls}">${arrow}${Math.abs(pct).toFixed(0)}%</span>`;
   }
+
   document.getElementById('kpiGrid').innerHTML = `
-    <div class="kpi-card">
-      <div class="kpi-label">Gasto total</div>
+    <div class="kpi-card accent-blue">
+      <div class="kpi-head"><span class="kpi-label">Gasto total</span><span class="kpi-icon">💸</span></div>
       <div class="kpi-value">${fmt.usd(t.spend)} ${delta(t.spend, p.spend)}</div>
-      <div class="kpi-sub">CPM: ${fmt.usd(t.cpm)} · Impr: ${fmt.num(t.impressions)}</div>
+      <div class="kpi-sub">CPM: ${fmt.usd(t.cpm)} · ${fmt.num(t.impressions)} impr.</div>
     </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Revenue</div>
+    <div class="kpi-card accent-green">
+      <div class="kpi-head"><span class="kpi-label">Revenue</span><span class="kpi-icon">💰</span></div>
       <div class="kpi-value ${t.revenue > 0 ? 'green' : ''}">${fmt.usd(t.revenue)} ${delta(t.revenue, p.revenue)}</div>
-      <div class="kpi-sub">valor de conversión</div>
+      <div class="kpi-sub">valor de conversión Meta pixel</div>
     </div>
-    <div class="kpi-card">
-      <div class="kpi-label">ROAS</div>
+    <div class="kpi-card accent-purple">
+      <div class="kpi-head"><span class="kpi-label">ROAS</span><span class="kpi-icon">📈</span></div>
       <div class="kpi-value ${roasCls}">${t.roas ? t.roas.toFixed(2) + 'x' : '—'} ${delta(t.roas, p.roas)}</div>
-      <div class="kpi-sub">${t.roas ? (t.roas >= 3 ? 'rentable' : t.roas >= 1 ? 'cerca del break-even' : 'por debajo del break-even') : 'sin datos de revenue'}</div>
+      <div class="kpi-sub">${t.roas ? (t.roas >= 3 ? '✓ rentable' : t.roas >= 1 ? '≈ break-even' : '✗ bajo umbral') : 'sin datos de revenue'}</div>
     </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Compras</div>
+    <div class="kpi-card ${profit >= 0 ? 'accent-green' : 'accent-red'}">
+      <div class="kpi-head"><span class="kpi-label">Profit neto</span><span class="kpi-icon">🏆</span></div>
+      <div class="kpi-value ${profitCls}">${fmt.usd(profit)}</div>
+      <div class="kpi-sub">${marginStr}</div>
+    </div>
+    <div class="kpi-card accent-blue">
+      <div class="kpi-head"><span class="kpi-label">Compras</span><span class="kpi-icon">🛒</span></div>
       <div class="kpi-value ${t.purchases > 0 ? 'green' : 'red'}">${fmt.num(t.purchases)} ${delta(t.purchases, p.purchases)}</div>
       <div class="kpi-sub">Clics: ${fmt.num(t.clicks)}</div>
     </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Registros Completados</div>
-      <div class="kpi-value ${(t.registrations||0) > 0 ? 'green' : 'muted'}">${fmt.num(t.registrations||0)} ${delta(t.registrations, p.registrations)}</div>
-      <div class="kpi-sub">complete_registration (pixel)</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">CPA promedio</div>
+    <div class="kpi-card ${cpaCls === 'green' ? 'accent-green' : cpaCls === 'red' ? 'accent-red' : 'accent-yellow'}">
+      <div class="kpi-head"><span class="kpi-label">CPA promedio</span><span class="kpi-icon">🎯</span></div>
       <div class="kpi-value ${cpaCls}">${fmt.usd(t.cpa)} ${deltaCPA(t.cpa, p.cpa)}</div>
       <div class="kpi-sub">costo por compra</div>
     </div>
-    <div class="kpi-card">
-      <div class="kpi-label">CTR promedio</div>
+    <div class="kpi-card ${t.ctr >= 2 ? 'accent-green' : t.ctr >= 1 ? 'accent-yellow' : 'accent-red'}">
+      <div class="kpi-head"><span class="kpi-label">CTR promedio</span><span class="kpi-icon">🖱️</span></div>
       <div class="kpi-value ${t.ctr >= 2 ? 'green' : t.ctr >= 1 ? 'yellow' : 'red'}">${fmt.pct(t.ctr)} ${delta(t.ctr, p.ctr)}</div>
       <div class="kpi-sub">vs período anterior</div>
+    </div>
+    <div class="kpi-card accent-cyan">
+      <div class="kpi-head"><span class="kpi-label">Registros</span><span class="kpi-icon">📋</span></div>
+      <div class="kpi-value ${(t.registrations||0) > 0 ? 'green' : 'muted'}">${fmt.num(t.registrations||0)} ${delta(t.registrations, p.registrations)}</div>
+      <div class="kpi-sub">complete_registration (pixel)</div>
     </div>
   `;
 }
@@ -3055,11 +3360,18 @@ async function loadOverview() {
   btn.disabled = true;
 
   try {
-    const data = await api(`/api/overview?account=${S.account}&${dateParams()}&compare=1`);
+    const tz = (new Date().getTimezoneOffset() / -60).toString();
+    const [data, daily, hotmart] = await Promise.all([
+      api(`/api/overview?account=${S.account}&${dateParams()}&compare=1`),
+      api(`/api/daily-trend?account=${S.account}&${dateParams()}`).catch(() => []),
+      api(`/api/sales?${dateParams()}&tz=${tz}`).catch(() => null),
+    ]);
     S.campaigns = data.campaigns;
     S.totals    = data.totals;
     S.adsetData = {};
     renderKPIs(data.totals, data.prevTotals);
+    updateTrendChart(daily);
+    renderCrossData(hotmart?.summary, data.totals);
     updateCharts(data.campaigns);
     renderTable();
     renderAnalysis();

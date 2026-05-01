@@ -375,6 +375,23 @@ const GET = {
     json(res, { campaigns: enriched, totals, prevTotals });
   },
 
+  // Tendencia diaria: spend + revenue por día
+  '/api/daily-trend': async (res, q) => {
+    if (!q.account) return err(res, 'account requerido', 400);
+    const cKey = `daily-trend:${q.account}:${q.date||''}:${q.since||''}:${q.until||''}`;
+    const rows = await cachedMeta(cKey, () =>
+      getInsights(q.account, { ...dateOpts(q, 'last_7d'), level: 'account', timeIncrement: '1' }, q.token)
+    );
+    const daily = rows
+      .map(r => ({
+        date:    r.date_start,
+        spend:   parseFloat(r.spend || 0),
+        revenue: getRevenue(r.action_values || []),
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+    json(res, daily);
+  },
+
   // Ad Sets con métricas para una campaña
   '/api/adset-metrics': async (res, q) => {
     if (!q.campaign) return err(res, 'campaign requerido', 400);
