@@ -1105,8 +1105,10 @@ const POST = {
   '/api/billing/checkout': async (res, req, user) => {
     if (!user) return err(res, 'No autorizado', 401);
     const { plan } = await body(req);
-    const url = getCheckoutUrl(plan);
-    if (!url) return err(res, 'Link de pago no configurado para este plan', 503);
+    const baseUrl = getCheckoutUrl(plan);
+    if (!baseUrl) return err(res, 'Link de pago no configurado para este plan', 503);
+    const appUrl = process.env.APP_URL || 'https://app.ka2ia.com';
+    const url = `${baseUrl}&redirectUrl=${encodeURIComponent(`${appUrl}/app?upgraded=1`)}`;
     json(res, { url });
   },
 
