@@ -1768,24 +1768,31 @@
       </div>
     </div>
 
-    <!-- Demografía: edad -->
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-header">
-        <span class="card-title" id="rptAgeTitle">Ventas por rango de edad</span>
-        <span style="font-size:11px;color:var(--muted)" id="rptAgeSub">datos de Meta Ads</span>
-      </div>
-      <div id="rptAgeWrap" class="chart-wrap" style="height:280px"><canvas id="rptAgeChart"></canvas></div>
-      <div id="rptAgeEmpty" style="display:none;padding:32px;text-align:center;color:var(--muted);font-size:13px">Sin datos de edad en este período</div>
-    </div>
+    <!-- Demografía: edad + sexo -->
+    <div class="charts-grid" style="margin-bottom:16px">
 
-    <!-- Demografía: sexo -->
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-header">
-        <span class="card-title" id="rptGenderTitle">Ventas por sexo</span>
-        <span style="font-size:11px;color:var(--muted)">datos de Meta Ads</span>
+      <!-- Edad -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title" id="rptAgeTitle">Ventas por rango de edad</span>
+          <span style="font-size:11px;color:var(--muted)">Meta Ads</span>
+        </div>
+        <div id="rptAgeWrap" style="height:260px;position:relative"><canvas id="rptAgeChart"></canvas></div>
+        <div id="rptAgeEmpty" style="display:none;padding:32px;text-align:center;color:var(--muted);font-size:13px">Sin datos de edad en este período</div>
+        <div id="rptAgeSummary" style="padding:8px 16px 4px;font-size:12px;color:var(--muted)"></div>
       </div>
-      <div id="rptGenderWrap" class="chart-wrap" style="height:240px"><canvas id="rptGenderChart"></canvas></div>
-      <div id="rptGenderEmpty" style="display:none;padding:32px;text-align:center;color:var(--muted);font-size:13px">Sin datos de sexo en este período</div>
+
+      <!-- Sexo -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title" id="rptGenderTitle">Ventas por sexo</span>
+          <span style="font-size:11px;color:var(--muted)">Meta Ads</span>
+        </div>
+        <div id="rptGenderWrap" style="height:260px;position:relative"><canvas id="rptGenderChart"></canvas></div>
+        <div id="rptGenderEmpty" style="display:none;padding:32px;text-align:center;color:var(--muted);font-size:13px">Sin datos de sexo en este período</div>
+        <div id="rptGenderSummary" style="padding:8px 16px 4px;font-size:12px;color:var(--muted)"></div>
+      </div>
+
     </div>
 
     <!-- Tabla detalle por anuncio -->
@@ -6362,71 +6369,119 @@ async function loadDemographics(since, until) {
 }
 
 function renderDemographics(data) {
-  const field  = _rptType === 'ventas' ? 'purchases' : 'registrations';
-  const AGE_COLORS = { '18-24':'#4f8ef7','25-34':'#7B61FF','35-44':'#06d6a0','45-54':'#ffd166','55-64':'#f85149','65+':'#9b5de5' };
-  const GEN_COLORS = { male:'#4f8ef7', female:'#f72585', unknown:'#8892b0' };
+  const field = _rptType === 'ventas' ? 'purchases' : 'registrations';
+  const label = _rptType === 'ventas' ? 'Ventas' : 'Registros';
 
-  // Eje X: fechas únicas
-  const dates = [...new Set([...data.age, ...data.gender].map(r => r.date))].sort();
-  const xLabels = dates.map(d => d.slice(5));
-
-  // ── Gráfico edad ──
+  // ── Gráfico edad — barras horizontales totales del período ──
   const ageGroups = [...new Set(data.age.map(r => r.age_group))].sort();
-  const ageHasData = data.age.some(r => r[field] > 0);
+  const ageTotals = ageGroups.map(ag =>
+    data.age.filter(r => r.age_group === ag).reduce((s, r) => s + r[field], 0)
+  );
+  const ageTotal  = ageTotals.reduce((a, b) => a + b, 0);
+  const ageHasData = ageTotal > 0;
+
   document.getElementById('rptAgeWrap').style.display  = ageHasData ? '' : 'none';
   document.getElementById('rptAgeEmpty').style.display = ageHasData ? 'none' : '';
+
   if (ageHasData) {
+    // Paleta de colores en gradiente violeta → teal
+    const AGE_PALETTE = ['#7B61FF','#6B77FF','#4f8ef7','#3ab5e0','#3DD9C9','#52e8d0'];
+    const topGroup = ageGroups[ageTotals.indexOf(Math.max(...ageTotals))];
+    document.getElementById('rptAgeSummary').textContent =
+      `🏆 Mayor concentración: ${topGroup} años — ${Math.round(ageTotals[ageTotals.indexOf(Math.max(...ageTotals))] / ageTotal * 100)}% de las ${label.toLowerCase()}`;
+
     _rptAgeChart = _destroyRptChart(_rptAgeChart);
     _rptAgeChart = new Chart(document.getElementById('rptAgeChart'), {
-      type: 'line',
+      type: 'bar',
       data: {
-        labels: xLabels,
-        datasets: ageGroups.map(ag => ({
-          label: ag,
-          data: dates.map(d => {
-            const r = data.age.find(x => x.date === d && x.age_group === ag);
-            return r ? r[field] : 0;
-          }),
-          borderColor: AGE_COLORS[ag] || '#8892b0',
-          backgroundColor: 'transparent',
-          tension: 0.4, pointRadius: 3, borderWidth: 2,
-        })),
+        labels: ageGroups.map(ag => ag + ' años'),
+        datasets: [{
+          label,
+          data: ageTotals,
+          backgroundColor: AGE_PALETTE,
+          borderRadius: 6,
+          borderSkipped: false,
+        }],
       },
       options: {
         ...chartBase,
-        interaction: { mode: 'index', intersect: false },
-        plugins: { ...chartBase.plugins, legend: { display: true, labels: { color: '#8892b0', boxWidth: 12, padding: 12 } } },
+        indexAxis: 'y',
+        plugins: {
+          ...chartBase.plugins,
+          legend: { display: false },
+          tooltip: { callbacks: {
+            label: ctx => {
+              const pct = ageTotal > 0 ? ((ctx.raw / ageTotal) * 100).toFixed(1) : 0;
+              return ` ${ctx.raw} ${label.toLowerCase()} — ${pct}% del total`;
+            },
+          }},
+        },
+        scales: {
+          x: { ...chartBase.scales.y, grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#8892b0', precision: 0 } },
+          y: { grid: { display: false }, ticks: { color: '#e0e0e0', font: { size: 12, weight: '600' } } },
+        },
       },
     });
   }
 
-  // ── Gráfico sexo ──
-  const genders = [...new Set(data.gender.map(r => r.gender))];
-  const genHasData = data.gender.some(r => r[field] > 0);
+  // ── Gráfico sexo — donut con total en el centro ──
+  const GEN_MAP  = { male: 'Hombre', female: 'Mujer', unknown: 'No especificado' };
+  const GEN_COLORS = { male: '#4f8ef7', female: '#f72585', unknown: '#8892b0' };
+  const genders  = [...new Set(data.gender.map(r => r.gender))].filter(g => g !== 'unknown' || data.gender.filter(r => r.gender === 'unknown').reduce((s, r) => s + r[field], 0) > 0);
+  const genTotals = genders.map(g => data.gender.filter(r => r.gender === g).reduce((s, r) => s + r[field], 0));
+  const genTotal  = genTotals.reduce((a, b) => a + b, 0);
+  const genHasData = genTotal > 0;
+
   document.getElementById('rptGenderWrap').style.display  = genHasData ? '' : 'none';
   document.getElementById('rptGenderEmpty').style.display = genHasData ? 'none' : '';
+
   if (genHasData) {
+    const topGender = genders[genTotals.indexOf(Math.max(...genTotals))];
+    document.getElementById('rptGenderSummary').textContent =
+      `🏆 Predomina: ${GEN_MAP[topGender] || topGender} — ${Math.round(Math.max(...genTotals) / genTotal * 100)}% de las ${label.toLowerCase()}`;
+
     _rptGenderChart = _destroyRptChart(_rptGenderChart);
     _rptGenderChart = new Chart(document.getElementById('rptGenderChart'), {
-      type: 'line',
+      type: 'doughnut',
       data: {
-        labels: xLabels,
-        datasets: genders.map(g => ({
-          label: g === 'male' ? 'Hombre' : g === 'female' ? 'Mujer' : 'No especificado',
-          data: dates.map(d => {
-            const r = data.gender.find(x => x.date === d && x.gender === g);
-            return r ? r[field] : 0;
-          }),
-          borderColor: GEN_COLORS[g] || '#8892b0',
-          backgroundColor: 'transparent',
-          tension: 0.4, pointRadius: 4, borderWidth: 2,
-        })),
+        labels: genders.map(g => GEN_MAP[g] || g),
+        datasets: [{
+          data: genTotals,
+          backgroundColor: genders.map(g => GEN_COLORS[g] || '#8892b0'),
+          borderColor: 'rgba(0,0,0,.2)',
+          borderWidth: 2,
+          hoverOffset: 10,
+        }],
       },
       options: {
-        ...chartBase,
-        interaction: { mode: 'index', intersect: false },
-        plugins: { ...chartBase.plugins, legend: { display: true, labels: { color: '#8892b0', boxWidth: 12, padding: 12 } } },
+        responsive: true, maintainAspectRatio: false,
+        cutout: '65%',
+        plugins: {
+          legend: { position: 'bottom', labels: { color: '#e0e0e0', boxWidth: 14, padding: 16, font: { size: 13 } } },
+          tooltip: { callbacks: {
+            label: ctx => {
+              const pct = genTotal > 0 ? ((ctx.raw / genTotal) * 100).toFixed(1) : 0;
+              return ` ${ctx.label}: ${ctx.raw} ${label.toLowerCase()} (${pct}%)`;
+            },
+          }},
+        },
       },
+      plugins: [{
+        id: 'centerLabel',
+        afterDraw(chart) {
+          const { ctx, chartArea: { width, height, top } } = chart;
+          ctx.save();
+          ctx.font = 'bold 22px Inter, sans-serif';
+          ctx.fillStyle = '#E8E5F5';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(genTotal, width / 2, top + height / 2 - 10);
+          ctx.font = '12px Inter, sans-serif';
+          ctx.fillStyle = '#8892b0';
+          ctx.fillText(label.toLowerCase(), width / 2, top + height / 2 + 14);
+          ctx.restore();
+        },
+      }],
     });
   }
 }
