@@ -5014,7 +5014,15 @@ async function saveConfigMetaToken() {
     if (!S.account) await init();
   } catch(e) {
     S.token = S.user?.meta_token || '';
-    errEl.textContent = e.message;
+    let msg = e.message;
+    if (msg.includes('code: 200') || msg.includes('access blocked')) {
+      msg = '[Meta API] Acceso bloqueado (code: 200) — El token no tiene permiso para leer cuentas publicitarias. Causas posibles: (1) La app de Meta está en modo desarrollo y tu cuenta no está añadida como tester. (2) El token fue generado sin el permiso ads_read. Contacta al administrador.';
+    } else if (msg.includes('code: 190') || msg.includes('Invalid OAuth')) {
+      msg = 'Token inválido o expirado. Genera un nuevo token en Meta for Developers → Graph API Explorer.';
+    } else if (msg.includes('code: 100') || msg.includes('Invalid parameter')) {
+      msg = 'Token incorrecto. Verifica que copiaste el token completo sin espacios.';
+    }
+    errEl.textContent = msg;
     errEl.style.display = 'block';
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = 'Guardar token de Meta'; }
