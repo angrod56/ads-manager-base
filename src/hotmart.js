@@ -142,9 +142,9 @@ export async function getSales(userId, since, until) {
 export async function getTotalEarned(userId) {
   const { data, error } = await supabaseAdmin
     .from('sales')
-    .select('commission, amount')
+    .select('commission, amount, status')
     .eq('user_id', userId)
-    .eq('status', 'approved');
+    .in('status', ['approved', 'complete']);
   if (error) throw new Error(error.message);
   return (data || []).reduce((sum, s) => sum + (s.commission || s.amount || 0), 0);
 }
