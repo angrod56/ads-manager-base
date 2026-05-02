@@ -124,18 +124,37 @@ export async function processHotmartEvent(payload, userId, userEmail = null) {
 
 // ── Obtener ventas de un usuario ──────────────────────────────────────────────
 export async function getSales(userId, since, until) {
-  let query = supabaseAdmin
+  let rangeQuery = supabaseAdmin
+    .from('sales')
+    .select('*')
+    .eq('user_id', userId);
+
+  if (since) rangeQuery = rangeQuery.gte('sale_date', since);
+  if (until) {
+    const untilStr = until.includes('T') ? until : until + 'T23:59:59Z';
+    rangeQuery = rangeQuery.lte('sale_date', untilStr);
+  }
+
+  // Fetch records with NULL sale_date separately (webhook timing race)
+  const nullQuery = supabaseAdmin
     .from('sales')
     .select('*')
     .eq('user_id', userId)
-    .order('sale_date', { ascending: false });
+    .is('sale_date', null);
 
-  if (since) query = query.gte('sale_date', since);
-  if (until) query = query.lte('sale_date', until.includes('T') ? until : until + 'T23:59:59Z');
+  const [{ data: rangeData, error: e1 }, { data: nullData, error: e2 }] = await Promise.all([rangeQuery, nullQuery]);
+  if (e1) throw new Error(e1.message);
+  if (e2) throw new Error(e2.message);
 
-  const { data, error } = await query;
-  if (error) throw new Error(error.message);
-  return data || [];
+  const seen = new Set();
+  return [...(nullData || []), ...(rangeData || [])]
+    .filter(s => { if (seen.has(s.id)) return false; seen.add(s.id); return true; })
+    .sort((a, b) => {
+      if (!a.sale_date && !b.sale_date) return 0;
+      if (!a.sale_date) return -1;
+      if (!b.sale_date) return 1;
+      return b.sale_date.localeCompare(a.sale_date);
+    });
 }
 
 // ── Total histórico de comisiones aprobadas (para gamificación) ───────────────
