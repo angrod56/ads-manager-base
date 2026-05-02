@@ -144,9 +144,12 @@ export async function getTotalEarned(userId) {
     .from('sales')
     .select('commission, amount, status')
     .eq('user_id', userId)
-    .in('status', ['approved', 'complete']);
+    .in('status', ['approved', 'complete', 'refunded', 'chargeback']);
   if (error) throw new Error(error.message);
-  return (data || []).reduce((sum, s) => sum + (s.commission || s.amount || 0), 0);
+  return (data || []).reduce((sum, s) => {
+    const val = s.commission || s.amount || 0;
+    return (s.status === 'refunded' || s.status === 'chargeback') ? sum - val : sum + val;
+  }, 0);
 }
 
 function mapStatus(event) {
