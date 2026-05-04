@@ -1103,9 +1103,11 @@
         padding: 10px 16px; justify-content: center; flex-wrap: wrap;
         gap: 8px; z-index: 98; box-shadow: 0 4px 12px rgba(0,0,0,.3); }
       .app-layout { flex-direction: column; padding-top: 56px; min-height: calc(100vh - 56px); }
+      body.date-panel-open .app-layout { padding-top: 110px; }
+      body.date-panel-open .sidebar    { top: 110px !important; }
       .sidebar {
         width: 100%; height: auto;
-        position: sticky; top: 0; z-index: 90;
+        position: sticky; top: 56px; z-index: 90;
         display: flex; flex-direction: row;
         overflow-x: auto; -webkit-overflow-scrolling: touch;
         padding: 0; border-right: none; border-bottom: 1px solid var(--border);
@@ -1135,9 +1137,10 @@
       #accountSelect { min-width: 0; flex: 1; font-size: 12px; max-width: 130px; }
       #dateSelect    { font-size: 12px; flex-shrink: 0; max-width: 110px; }
       #refreshBtn    { font-size: 12px; padding: 5px 8px; flex-shrink: 0; }
-      #userBadge     { display: none; }
-      .hdr-wa        { display: none; }
-      .last-update   { display: none; }
+      #userBadge     { display: none !important; }
+      .hdr-wa        { display: none !important; }
+      #logoutBtn     { display: none !important; }
+      .last-update   { display: none !important; }
 
       /* Section */
       .section.active { padding: 12px; gap: 12px; }
@@ -2480,6 +2483,8 @@ function applyCustomDate() {
   if (!from || !to) return;
   S.since = from;
   S.until = to;
+  document.getElementById('customDateWrap').style.display = 'none';
+  document.body.classList.remove('date-panel-open');
   saveNavState();
   reloadActiveModule();
 }
@@ -4971,7 +4976,7 @@ function restoreNavState() {
         S.since = st.since;
         S.until = st.until;
         const wrap = document.getElementById('customDateWrap');
-        if (wrap) wrap.style.display = 'flex';
+        if (wrap) { wrap.style.display = 'flex'; document.body.classList.add('date-panel-open'); }
         const fromEl = document.getElementById('dateFrom');
         const toEl   = document.getElementById('dateTo');
         if (fromEl && st.dateFrom) fromEl.value = st.dateFrom;
@@ -6720,12 +6725,14 @@ async function init() {
     const wrap = document.getElementById('customDateWrap');
     if (S.date === 'custom') {
       wrap.style.display = 'flex';
+      document.body.classList.add('date-panel-open');
       const today = localDateStr(new Date());
       const week  = localDateStr(new Date(Date.now() - 7 * 86400000));
       document.getElementById('dateFrom').value = document.getElementById('dateFrom').value || week;
       document.getElementById('dateTo').value   = document.getElementById('dateTo').value   || today;
     } else {
       wrap.style.display = 'none';
+      document.body.classList.remove('date-panel-open');
       S.since = null;
       S.until = null;
       saveNavState();
