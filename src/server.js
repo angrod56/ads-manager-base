@@ -13,9 +13,10 @@ import {
 } from './campaigns.js';
 import {
   verifySession, listUsers, saveUserToken, touchLastLogin, setUserRole, deleteUser,
-  saveHotmartToken, saveUserName, setUserPlan, supabase, supabaseAdmin,
+  saveHotmartToken, saveStripeToken, saveUserName, setUserPlan, supabase, supabaseAdmin,
 } from './auth.js';
 import { verifyHotmartToken, processHotmartEvent, getSales, getTotalEarned } from './hotmart.js';
+import { verifyStripeSignature, processStripeEvent } from './stripe.js';
 import { saveSubscription, sendPushToUser } from './push.js';
 import { startDailyNotifications, sendDailyNoon, sendDailyEvening } from './notifications.js';
 import { getCheckoutUrl, handleBillingWebhook } from './billing.js';
@@ -1264,6 +1265,18 @@ const POST = {
     json(res, { ok: true, period });
   },
 
+  // ── Stripe: guardar Webhook Secret del usuario ──────────────────────────────
+  '/api/stripe/save-token': async (res, req, user) => {
+    if (!user) return err(res, 'No autorizado', 401);
+    const isAdmin = user.role === 'admin';
+    const allowed = isAdmin || user.plan === 'pro' || user.plan === 'agency';
+    if (!allowed) return err(res, 'Disponible solo en Plan Pro o Agencia', 403);
+    const { stripeWebhookSecret } = await body(req);
+    if (!stripeWebhookSecret) return err(res, 'stripeWebhookSecret requerido', 400);
+    await saveStripeToken(user.id, stripeWebhookSecret);
+    json(res, { ok: true });
+  },
+
   // ── Hotmart: guardar Hottok del usuario ─────────────────────────────────────
   '/api/hotmart/save-token': async (res, req, user) => {
     if (!user) return err(res, 'No autorizado', 401);
@@ -1271,6 +1284,75 @@ const POST = {
     if (!hottok) return err(res, 'hottok requerido', 400);
     await saveHotmartToken(user.id, hottok, hotmart_email ?? null);
     json(res, { ok: true });
+  },
+
+  // ── Webhook Stripe ───────────────────────────────────────────────────────────
+  '/webhook/stripe': async (res, req, user, q) => {
+    const ownerId   = q?.user_id || null;
+    const sigHeader = req.headers['stripe-signature'] || '';
+
+    if (!ownerId) return err(res, 'user_id requerido en la URL', 400);
+
+    // Buscar perfil del usuario para obtener su webhook secret
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('id, role, plan, stripe_webhook_secret')
+      .eq('id', ownerId)
+      .single();
+
+    if (!profile) return err(res, 'Usuario no encontrado', 404);
+
+    // Solo admin, pro y agency pueden recibir webhooks de Stripe
+    const isAdmin = profile.role === 'admin';
+    if (!isAdmin && profile.plan !== 'pro' && profile.plan !== 'agency')
+      return err(res, 'Plan no compatible con Stripe', 403);
+
+    // Usar secret del usuario o del admin como fallback
+    const secret = profile.stripe_webhook_secret || (isAdmin ? process.env.STRIPE_WEBHOOK_SECRET : null);
+    if (!secret) return err(res, 'Stripe no configurado para este usuario', 503);
+
+    const rawBuf = await rawBody(req);
+    const rawStr = rawBuf.toString('utf8');
+
+    if (!verifyStripeSignature(rawStr, sigHeader, secret)) {
+      console.log(`[Stripe] ✗ Firma inválida para user ${ownerId}`);
+      return err(res, 'Firma inválida', 401);
+    }
+
+    let event;
+    try { event = JSON.parse(rawStr); } catch { return err(res, 'JSON inválido', 400); }
+
+    console.log(`[Stripe] Evento: ${event.type} | user: ${ownerId}`);
+    const result = await processStripeEvent(event, ownerId);
+    console.log(`[Stripe] Resultado:`, JSON.stringify({ ok: result.ok, ignored: result.ignored, status: result.sale?.status }));
+
+    if (result.ok && result.sale) {
+      const sale  = result.sale;
+      const fmt   = new Intl.NumberFormat('en-US', { style: 'currency', currency: sale.currency || 'USD' });
+      const buyer = sale.buyer_name || sale.buyer_email || 'Cliente';
+      const comm  = fmt.format(sale.commission || sale.amount || 0);
+
+      if (sale.status === 'approved') {
+        sendPushToUser(ownerId, {
+          type:  'sale',
+          title: '💳 Pago recibido en Stripe',
+          body:  `🛍 ${sale.product_name}\n👤 ${buyer}\n💵 ${comm}`,
+          icon:  '/icon-192.svg',
+          data:  { type: 'sale', product: sale.product_name, buyer, commission: comm },
+        }).catch(e => console.error('[Push Stripe]', e.message));
+      } else if (sale.status === 'refunded' || sale.status === 'chargeback') {
+        const label = sale.status === 'chargeback' ? 'Disputa Stripe' : 'Reembolso Stripe';
+        sendPushToUser(ownerId, {
+          type:  'cancel',
+          title: `⚠️ ${label}`,
+          body:  `🛍 ${sale.product_name}\n👤 ${buyer}\n💸 ${comm}`,
+          icon:  '/icon-192.svg',
+          data:  { type: 'cancel', product: sale.product_name, buyer, amount: comm },
+        }).catch(e => console.error('[Push Stripe]', e.message));
+      }
+    }
+
+    json(res, result);
   },
 
   // ── Webhook Hotmart ──────────────────────────────────────────────────────────
@@ -1400,7 +1482,7 @@ http.createServer(async (req, res) => {
   const PUBLIC_ROUTES = [
     '/api/auth/login', '/api/auth/register', '/api/auth/refresh',
     '/api/auth/forgot-password', '/api/auth/set-password',
-    '/api/config', '/api/announcements', '/webhook/hotmart', '/webhook/hotmart-billing', '/r',
+    '/api/config', '/api/announcements', '/webhook/hotmart', '/webhook/hotmart-billing', '/webhook/stripe', '/r',
   ];
 
   // Webhook Hotmart billing (compras de planes)

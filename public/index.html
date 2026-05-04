@@ -2099,6 +2099,70 @@
       </div>
     </div>
 
+    <!-- Stripe -->
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+        <span style="font-size:22px">💳</span>
+        <div>
+          <div style="font-size:16px;font-weight:700">Stripe</div>
+          <div style="font-size:12px;color:var(--muted)">Recibe notificaciones de pagos Stripe en tu dashboard</div>
+        </div>
+      </div>
+
+      <!-- Plan Basic → mostrar lock -->
+      <div id="cfgStripeLocked" style="display:none">
+        <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:16px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:26px;filter:grayscale(1);opacity:.4">💳</span>
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,.35)">🔒 Webhooks de Stripe</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px">Conecta Stripe para ver pagos en tu panel — disponible en Plan Pro y Agencia</div>
+            </div>
+            <button onclick="upgradePlan('pro')" style="background:linear-gradient(135deg,#4f8ef7,#9b5de5);border:none;border-radius:8px;padding:8px 14px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">
+              Subir a Pro →
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pro / Agency / Admin → formulario activo -->
+      <div id="cfgStripeActive" style="display:none">
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="min-width:24px;height:24px;border-radius:50%;background:#635bff;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">1</div>
+            <div style="font-size:13px;color:var(--muted);line-height:1.5">Ve a <strong style="color:var(--text)">Stripe Dashboard → Developers → Webhooks</strong> y haz click en <strong style="color:var(--text)">+ Add endpoint</strong></div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="min-width:24px;height:24px;border-radius:50%;background:#635bff;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">2</div>
+            <div style="font-size:13px;color:var(--muted);line-height:1.5">En <strong style="color:var(--text)">Endpoint URL</strong> pega tu URL:</div>
+          </div>
+          <div style="margin-left:36px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <code id="stripeWebhookUrl" style="background:var(--bg);border:1px solid var(--border);padding:8px 12px;border-radius:6px;font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</code>
+            <button onclick="copyStripeWebhookUrl()" style="font-size:12px;padding:8px 14px;white-space:nowrap">📋 Copiar</button>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="min-width:24px;height:24px;border-radius:50%;background:#635bff;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">3</div>
+            <div style="font-size:13px;color:var(--muted);line-height:1.5">En <strong style="color:var(--text)">Listen to events</strong> selecciona: <code style="color:#e2d9f3;font-size:11px">checkout.session.completed</code>, <code style="color:#e2d9f3;font-size:11px">payment_intent.succeeded</code>, <code style="color:#e2d9f3;font-size:11px">charge.refunded</code>, <code style="color:#e2d9f3;font-size:11px">charge.dispute.created</code></div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="min-width:24px;height:24px;border-radius:50%;background:#635bff;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">4</div>
+            <div style="font-size:13px;color:var(--muted);line-height:1.5">Haz click en <strong style="color:var(--text)">Add endpoint</strong> y luego copia el <strong style="color:var(--text)">Signing secret</strong> (empieza con <code style="color:#e2d9f3">whsec_</code>) y pégalo abajo</div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <label style="font-size:12px;color:var(--muted);font-weight:600">STRIPE SIGNING SECRET</label>
+          <input id="stripeSecretInput" type="text" placeholder="whsec_..."
+            style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 12px;color:var(--text);font-size:13px;font-family:monospace">
+          <button onclick="saveStripeConfig()"
+            style="background:#635bff;border:none;border-radius:8px;padding:10px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px">
+            Guardar configuración Stripe
+          </button>
+          <div id="cfgStripeOk" style="display:none;color:#4caf50;font-size:13px;text-align:center">✓ Configuración guardada correctamente</div>
+        </div>
+      </div>
+    </div>
+
     <!-- Notificaciones Push -->
     <div class="card">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
@@ -4896,6 +4960,14 @@ function loadConfig() {
     _el('hotmartEmailInput').value = S.user.hotmart_email;
   if (S.user.hotmart_token && _el('hottokInput'))
     _el('hottokInput').value = S.user.hotmart_token;
+  // Stripe
+  if (_el('stripeWebhookUrl'))
+    _el('stripeWebhookUrl').textContent = `${location.origin}/webhook/stripe?user_id=${S.user.id}`;
+  const stripeAllowed = S.user.role === 'admin' || S.user.plan === 'pro' || S.user.plan === 'agency';
+  if (_el('cfgStripeLocked')) _el('cfgStripeLocked').style.display = stripeAllowed ? 'none' : 'block';
+  if (_el('cfgStripeActive')) _el('cfgStripeActive').style.display = stripeAllowed ? 'block' : 'none';
+  if (S.user.stripe_webhook_secret && _el('stripeSecretInput'))
+    _el('stripeSecretInput').value = '••••••••••••••••••••••••';
   // Plan badge
   const planMap = {
     basic:  { label: 'Básico',  color: 'rgba(255,255,255,.08)', text: '#f0f4ff', desc: 'Hasta 5 cuentas de Meta Ads' },
@@ -5026,6 +5098,33 @@ async function saveConfigMetaToken() {
     errEl.style.display = 'block';
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = 'Guardar token de Meta'; }
+  }
+}
+
+function copyStripeWebhookUrl() {
+  const url = document.getElementById('stripeWebhookUrl').textContent;
+  navigator.clipboard.writeText(url).then(() => alert('URL de Stripe copiada al portapapeles'));
+}
+
+async function saveStripeConfig() {
+  const secret = document.getElementById('stripeSecretInput').value.trim();
+  const okEl   = document.getElementById('cfgStripeOk');
+  okEl.style.display = 'none';
+  if (!secret) return alert('Ingresa tu Stripe Signing Secret (whsec_...)');
+  if (secret.startsWith('•')) return alert('El secreto ya está guardado. Borra el campo para cambiarlo.');
+  try {
+    const r = await fetch('/api/stripe/save-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${S.jwt}` },
+      body: JSON.stringify({ stripeWebhookSecret: secret }),
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    S.user.stripe_webhook_secret = secret;
+    document.getElementById('stripeSecretInput').value = '••••••••••••••••••••••••';
+    okEl.style.display = 'block';
+  } catch(e) {
+    alert('Error al guardar: ' + e.message);
   }
 }
 
@@ -5878,6 +5977,7 @@ async function loadAdminUsers() {
           <th style="padding:10px 8px">Plan</th>
           <th style="padding:10px 8px">Meta</th>
           <th style="padding:10px 8px">Webhook Hotmart</th>
+          <th style="padding:10px 8px">Webhook Stripe</th>
           <th style="padding:10px 8px">Registro</th>
           <th style="padding:10px 8px">Último ingreso</th>
           <th style="padding:10px 8px">Acciones</th>
@@ -5912,6 +6012,12 @@ async function loadAdminUsers() {
               <td style="padding:10px 8px;font-size:11px">
                 <span style="font-family:monospace;font-size:10px;color:var(--muted);word-break:break-all">${location.origin}/webhook/hotmart?user_id=${u.id}</span>
                 <button onclick="navigator.clipboard.writeText('${location.origin}/webhook/hotmart?user_id=${u.id}').then(()=>this.textContent='✓').catch(()=>{})" style="font-size:10px;padding:2px 6px;margin-left:4px;display:block;margin-top:4px">Copiar</button>
+              </td>
+              <td style="padding:10px 8px;font-size:11px">
+                ${(plan === 'pro' || plan === 'agency' || u.role === 'admin') ? `
+                <span style="font-family:monospace;font-size:10px;color:var(--muted);word-break:break-all">${location.origin}/webhook/stripe?user_id=${u.id}</span>
+                <button onclick="navigator.clipboard.writeText('${location.origin}/webhook/stripe?user_id=${u.id}').then(()=>this.textContent='✓').catch(()=>{})" style="font-size:10px;padding:2px 6px;margin-left:4px;display:block;margin-top:4px">Copiar</button>
+                ` : '<span style="color:var(--muted);font-size:10px">Plan Básico</span>'}
               </td>
               <td style="padding:10px 8px;font-size:12px">${fmtDt(u.created_at)}</td>
               <td style="padding:10px 8px;font-size:12px">${fmtDt(u.last_login)}</td>

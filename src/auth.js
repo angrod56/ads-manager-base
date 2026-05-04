@@ -32,7 +32,7 @@ export async function verifySession(req) {
   // Traer perfil con role y meta_token (service_role bypasa RLS)
   const { data: profile } = await supabaseAdmin
     .from('profiles')
-    .select('id, email, name, role, plan, status, meta_token, meta_account_id, hotmart_token, hotmart_role, hotmart_email')
+    .select('id, email, name, role, plan, status, meta_token, meta_account_id, hotmart_token, hotmart_role, hotmart_email, stripe_webhook_secret')
     .eq('id', data.user.id)
     .single();
 
@@ -103,6 +103,14 @@ export async function saveHotmartRole(userId, hotmartRole) {
   const { error } = await supabaseAdmin
     .from('profiles')
     .update({ hotmart_role: hotmartRole || 'PRODUCER' })
+    .eq('id', userId);
+  if (error) throw new Error(error.message);
+}
+
+export async function saveStripeToken(userId, webhookSecret) {
+  const { error } = await supabaseAdmin
+    .from('profiles')
+    .update({ stripe_webhook_secret: webhookSecret || null })
     .eq('id', userId);
   if (error) throw new Error(error.message);
 }
