@@ -1,4 +1,4 @@
-const VERSION = 11;
+const VERSION = 12;
 
 self.addEventListener('install', e => { self.skipWaiting(); });
 
@@ -13,8 +13,9 @@ self.addEventListener('activate', e => {
 });
 
 // Requerido por Chrome en Android para mostrar el prompt de instalación PWA
+// Usa Response.error() como fallback para que Safari no genere FetchEvent errors
 self.addEventListener('fetch', e => {
-  e.respondWith(fetch(e.request));
+  e.respondWith(fetch(e.request).catch(() => Response.error()));
 });
 
 self.addEventListener('push', e => {
