@@ -5323,14 +5323,20 @@ function renderSalesTable(sales) {
     return;
   }
   const statusLabel = { approved: '🟢 Aprobada', complete: '✅ Completada', canceled: '🔴 Cancelada', refunded: '🟡 Reembolso', chargeback: '🔴 Chargeback', pending: '⏳ Pendiente' };
+  const sourceBadge = s => {
+    const isStripe = s.hotmart_event?.startsWith('stripe:');
+    return isStripe
+      ? '<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(99,91,255,.15);color:#a5a0ff;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700">💳 Stripe</span>'
+      : '<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,76,0,.12);color:#ff8c5a;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700">🔥 Hotmart</span>';
+  };
   tbody.innerHTML = sales.map(s => `
     <tr style="border-top:1px solid var(--border)">
       <td style="padding:8px 6px;color:var(--muted);font-size:12px">${s.sale_date ? new Date(s.sale_date).toLocaleDateString('es') : '—'}</td>
-      <td style="padding:8px 6px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${s.product_name}">${s.product_name}</td>
+      <td style="padding:8px 6px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${s.product_name}">${s.product_name}</td>
       <td style="padding:8px 6px;color:var(--muted);font-size:12px">${s.buyer_name || s.buyer_email || '—'}</td>
       <td style="padding:8px 6px;text-align:right;font-weight:600">${fmt.usd(s.commission || s.amount)}</td>
       <td style="padding:8px 6px;font-size:12px">${statusLabel[s.status] || s.status}</td>
-      <td style="padding:8px 6px;color:var(--muted);font-size:12px">${s.payment_type || '—'}</td>
+      <td style="padding:8px 6px">${sourceBadge(s)}</td>
     </tr>`).join('');
   if (countEl) countEl.textContent = `${sales.length} resultado${sales.length !== 1 ? 's' : ''}`;
 }

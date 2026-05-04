@@ -1335,7 +1335,7 @@ const POST = {
       if (sale.status === 'approved') {
         sendPushToUser(ownerId, {
           type:  'sale',
-          title: '💳 Pago recibido en Stripe',
+          title: '💳 Venta realizada en Stripe',
           body:  `🛍 ${sale.product_name}\n👤 ${buyer}\n💵 ${comm}`,
           icon:  '/icon-192.svg',
           data:  { type: 'sale', product: sale.product_name, buyer, commission: comm },
