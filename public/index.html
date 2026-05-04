@@ -321,7 +321,38 @@
     .ctr-bad  { color: var(--red); }
 
     /* ── Row striping ── */
-    tbody tr:nth-child(4n+1):not(:hover):not(.expanded):not(.ads-row) { background: rgba(255,255,255,.016); }
+    tbody tr:nth-child(4n+1):not(:hover):not(.expanded):not(.ads-row):not(.group-header-row) { background: rgba(255,255,255,.016); }
+
+    /* ── Campaign Groups ── */
+    .group-header-row td { border-bottom: 1px solid var(--border); cursor: pointer; user-select: none; padding: 6px 12px; }
+    .group-header-row:hover td { filter: brightness(1.18); }
+    .group-collapse-arrow { display: inline-block; transition: transform .2s; font-size: 9px; margin-right: 5px; opacity: .7; }
+    .group-header-row.group-collapsed .group-collapse-arrow { transform: rotate(-90deg); }
+    .group-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; vertical-align: middle; flex-shrink: 0; }
+    .group-assign-popup { position: fixed; z-index: 999; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 6px; min-width: 190px; box-shadow: 0 8px 28px rgba(0,0,0,.5); }
+    .gap-opt { padding: 6px 10px; border-radius: 5px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 12px; }
+    .gap-opt:hover { background: rgba(255,255,255,.09); }
+    .group-row-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; cursor: pointer; vertical-align: middle; flex-shrink: 0; transition: transform .15s; }
+    .group-row-dot:hover { transform: scale(1.5); }
+
+    /* ── Metric cards in expand panel ── */
+    .mc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; margin-bottom: 14px; }
+    .mc { background: rgba(255,255,255,.045); border: 1px solid var(--border); border-radius: 8px; padding: 10px 8px; text-align: center; }
+    .mc-lbl { font-size: 9px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 4px; }
+    .mc-val { font-size: 15px; font-weight: 700; }
+    .mc-val.c-green  { color: var(--green); }
+    .mc-val.c-yellow { color: var(--yellow); }
+    .mc-val.c-red    { color: var(--red); }
+    .mc-val.c-blue   { color: var(--blue); }
+    .mc-val.c-muted  { color: var(--muted); }
+
+    /* ── Mini funnel in expand panel ── */
+    .mf-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+    .mf-label { font-size: 11px; color: var(--muted); min-width: 88px; text-align: right; }
+    .mf-track { flex: 1; height: 18px; background: rgba(255,255,255,.06); border-radius: 3px; overflow: hidden; }
+    .mf-fill { height: 100%; border-radius: 3px; transition: width .4s; }
+    .mf-val { font-size: 11px; font-weight: 600; min-width: 52px; text-align: right; }
+    .mf-rate { font-size: 10px; color: var(--muted); min-width: 38px; }
 
     .name-cell { max-width: 240px; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
     .name-cell:hover { color: var(--blue); }
@@ -1424,6 +1455,7 @@
             <option value="PAUSED">Pausadas</option>
           </select>
           <input type="text" id="searchInput" placeholder="Buscar campaña…">
+          <button onclick="openGroupsModal()" title="Organizar campañas en grupos" style="font-size:12px;padding:5px 12px;background:rgba(79,142,247,.12);border:1px solid rgba(79,142,247,.3);border-radius:6px;color:#4f8ef7;cursor:pointer;font-weight:600">⊞ Grupos</button>
           <button class="export-btn" onclick="exportCSV()" title="Exportar CSV">⬇ CSV</button>
         </div>
       </div>
@@ -2342,6 +2374,17 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- Modal de grupos de campañas -->
+<div class="modal-overlay" id="groupsModal" onclick="if(event.target===this)closeGroupsModal()">
+  <div class="modal-box" style="max-width:540px">
+    <div class="modal-top">
+      <span class="modal-title">⊞ Organizar grupos de campañas</span>
+      <button class="modal-close" onclick="closeGroupsModal()">✕ Cerrar</button>
+    </div>
+    <div class="modal-body" id="groupsModalBody" style="padding:16px"></div>
+  </div>
+</div>
+
 <!-- Modal budgets por ad set -->
 <div class="modal-overlay" id="adsetBudgetModal" onclick="if(event.target===this)closeAdSetBudgetModal()">
   <div class="modal-box" style="max-width:500px">
@@ -2997,6 +3040,302 @@ function filteredCampaigns() {
   return list;
 }
 
+// ═══════════════════════════════════════════════════════════════════
+//  GRUPOS DE CAMPAÑAS
+// ═══════════════════════════════════════════════════════════════════
+
+const GROUP_COLORS = [
+  { bg: 'rgba(79,142,247,.12)',  text: '#4f8ef7', dot: '#4f8ef7'  },
+  { bg: 'rgba(6,214,160,.10)',   text: '#06d6a0', dot: '#06d6a0'  },
+  { bg: 'rgba(255,209,102,.12)', text: '#e6b800', dot: '#ffd166'  },
+  { bg: 'rgba(155,93,229,.12)',  text: '#a78bfa', dot: '#9b5de5'  },
+  { bg: 'rgba(248,81,73,.10)',   text: '#f85149', dot: '#f85149'  },
+  { bg: 'rgba(251,133,0,.10)',   text: '#fb8500', dot: '#fb8500'  },
+];
+
+function loadGroupsFromStorage() {
+  const key  = `cmGroups_${S.account}`;
+  const mKey = `cmGroupMap_${S.account}`;
+  try {
+    S.groups   = JSON.parse(localStorage.getItem(key)  || 'null') || {};
+    S.groupMap = JSON.parse(localStorage.getItem(mKey) || 'null') || {};
+  } catch { S.groups = {}; S.groupMap = {}; }
+}
+
+function saveGroupsToStorage() {
+  localStorage.setItem(`cmGroups_${S.account}`,    JSON.stringify(S.groups   || {}));
+  localStorage.setItem(`cmGroupMap_${S.account}`,  JSON.stringify(S.groupMap || {}));
+}
+
+function toggleGroupCollapse(gid) {
+  if (!S.groups[gid]) return;
+  S.groups[gid].collapsed = !S.groups[gid].collapsed;
+  saveGroupsToStorage();
+  renderTable();
+}
+
+function assignCampaignToGroup(campaignId, gid) {
+  if (!S.groupMap) S.groupMap = {};
+  if (gid === '__none__') delete S.groupMap[campaignId];
+  else S.groupMap[campaignId] = gid;
+  saveGroupsToStorage();
+  closeGroupAssignPopup();
+  renderTable();
+}
+
+let _groupPopupOpen = false;
+function openGroupAssignPopup(evt, campaignId) {
+  closeGroupAssignPopup();
+  const popup = document.createElement('div');
+  popup.id = 'groupAssignPopup';
+  popup.className = 'group-assign-popup';
+  const rect = evt.target.getBoundingClientRect();
+  popup.style.top  = (rect.bottom + 6) + 'px';
+  popup.style.left = Math.min(rect.left, window.innerWidth - 210) + 'px';
+
+  const currentGid = S.groupMap?.[campaignId];
+  let html = `<div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;padding:4px 10px 8px">Asignar grupo</div>`;
+  for (const [gid, g] of Object.entries(S.groups || {})) {
+    const col  = GROUP_COLORS[g.colorIdx ?? 0];
+    const tick = currentGid === gid ? ' ✓' : '';
+    html += `<div class="gap-opt" onclick="assignCampaignToGroup('${campaignId}','${gid}')">
+      <span style="width:9px;height:9px;border-radius:50%;background:${col.dot};display:inline-block;flex-shrink:0"></span>
+      <span>${escHtml(g.name)}${tick}</span>
+    </div>`;
+  }
+  if (!Object.keys(S.groups || {}).length)
+    html += `<div style="padding:8px 10px;font-size:12px;color:var(--muted)">Sin grupos — crea uno en ⊞ Grupos</div>`;
+  else
+    html += `<div class="gap-opt" style="color:var(--muted);border-top:1px solid var(--border);margin-top:4px" onclick="assignCampaignToGroup('${campaignId}','__none__')">✕ Sin grupo</div>`;
+
+  popup.innerHTML = html;
+  document.body.appendChild(popup);
+  _groupPopupOpen = true;
+  setTimeout(() => document.addEventListener('click', closeGroupAssignPopup, { once: true }), 10);
+}
+
+function closeGroupAssignPopup() {
+  document.getElementById('groupAssignPopup')?.remove();
+  _groupPopupOpen = false;
+}
+
+function openGroupsModal(focusGid) {
+  if (!S.groups) loadGroupsFromStorage();
+  renderGroupsModalBody(focusGid);
+  document.getElementById('groupsModal').classList.add('open');
+}
+
+function closeGroupsModal() {
+  document.getElementById('groupsModal').classList.remove('open');
+}
+
+function renderGroupsModalBody(focusGid) {
+  const groups = S.groups || {};
+  const campaigns = S.campaigns || [];
+  let html = '';
+
+  // Lista de grupos
+  for (const [gid, g] of Object.entries(groups)) {
+    const col = GROUP_COLORS[g.colorIdx ?? 0];
+    const count = Object.values(S.groupMap || {}).filter(v => v === gid).length;
+    const isFocus = gid === focusGid;
+    html += `<div style="background:${isFocus ? col.bg : 'rgba(255,255,255,.04)'};border:1px solid ${isFocus ? col.dot : 'var(--border)'};border-radius:8px;padding:12px 14px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <span style="display:inline-flex;gap:4px">
+          ${GROUP_COLORS.map((c,i) => `<span onclick="setGroupColor('${gid}',${i})" style="width:14px;height:14px;border-radius:50%;background:${c.dot};cursor:pointer;border:2px solid ${(g.colorIdx??0)===i?'#fff':'transparent'};flex-shrink:0"></span>`).join('')}
+        </span>
+        <input value="${escHtml(g.name)}" onchange="renameGroup('${gid}',this.value)"
+          style="flex:1;background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);font-size:14px;font-weight:600;outline:none;padding:2px 0">
+        <span style="font-size:11px;color:var(--muted)">${count} campaña${count!==1?'s':''}</span>
+        <button onclick="deleteGroup('${gid}')" title="Eliminar grupo" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0 4px">🗑</button>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600;text-transform:uppercase">Campañas en este grupo</div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px">
+        ${campaigns.filter(c => S.groupMap?.[c.id] === gid).map(c =>
+          `<span style="background:rgba(255,255,255,.08);border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:11px;display:flex;align-items:center;gap:5px">
+            ${fmt.short(c.name,28)}
+            <span onclick="assignCampaignToGroup('${c.id}','__none__');renderGroupsModalBody('${gid}')" style="cursor:pointer;color:var(--muted);font-size:10px">✕</span>
+          </span>`
+        ).join('') || `<span style="font-size:11px;color:var(--muted)">Sin campañas asignadas</span>`}
+      </div>
+    </div>`;
+  }
+
+  // Campañas sin grupo
+  const ungrouped = campaigns.filter(c => !S.groupMap?.[c.id]);
+  if (ungrouped.length) {
+    html += `<div style="margin-top:12px;padding:12px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:8px">
+      <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:8px">Sin grupo</div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px">
+        ${ungrouped.map(c => {
+          const gOpts = Object.entries(groups).map(([gid,g]) => {
+            const col = GROUP_COLORS[g.colorIdx??0];
+            return `<option value="${gid}" style="background:var(--surface)">${g.name}</option>`;
+          }).join('');
+          return `<span style="display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:11px">
+            ${fmt.short(c.name,22)}
+            ${Object.keys(groups).length ? `<select onchange="assignCampaignToGroup('${c.id}',this.value);renderGroupsModalBody()"
+              style="font-size:10px;background:transparent;border:none;color:var(--muted);cursor:pointer;max-width:90px">
+              <option value="__none__">Mover a…</option>${gOpts}
+            </select>` : ''}
+          </span>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+
+  html += `<button onclick="addGroup()"
+    style="width:100%;margin-top:12px;background:rgba(79,142,247,.12);border:1px dashed rgba(79,142,247,.4);border-radius:8px;padding:10px;color:#4f8ef7;font-size:13px;font-weight:600;cursor:pointer">
+    + Nuevo grupo
+  </button>`;
+
+  document.getElementById('groupsModalBody').innerHTML = html;
+}
+
+function addGroup() {
+  if (!S.groups) S.groups = {};
+  const gid = 'g' + Date.now();
+  const usedColors = Object.values(S.groups).map(g => g.colorIdx ?? 0);
+  const colorIdx = GROUP_COLORS.findIndex((_, i) => !usedColors.includes(i));
+  S.groups[gid] = { name: 'Nuevo grupo', colorIdx: colorIdx === -1 ? 0 : colorIdx, collapsed: false };
+  saveGroupsToStorage();
+  renderGroupsModalBody(gid);
+  renderTable();
+}
+
+function deleteGroup(gid) {
+  if (!confirm('¿Eliminar este grupo? Las campañas quedarán sin grupo.')) return;
+  delete S.groups[gid];
+  for (const cid of Object.keys(S.groupMap || {})) {
+    if (S.groupMap[cid] === gid) delete S.groupMap[cid];
+  }
+  saveGroupsToStorage();
+  renderGroupsModalBody();
+  renderTable();
+}
+
+function renameGroup(gid, name) {
+  if (!S.groups[gid]) return;
+  S.groups[gid].name = name.trim() || 'Sin nombre';
+  saveGroupsToStorage();
+  renderTable();
+}
+
+function setGroupColor(gid, colorIdx) {
+  if (!S.groups[gid]) return;
+  S.groups[gid].colorIdx = colorIdx;
+  saveGroupsToStorage();
+  renderGroupsModalBody(gid);
+  renderTable();
+}
+
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  MÉTRICAS EXPANDIDAS POR CAMPAÑA
+// ═══════════════════════════════════════════════════════════════════
+
+function renderMetricsTab(c) {
+  const isLeads  = (c.registrations || 0) > 0;
+  const isDirect = (c.purchases || 0) > 0 || (c.revenue || 0) > 0;
+  const typeLabel = isLeads && isDirect ? 'Mixta (Leads + Ventas)'
+    : isLeads  ? 'Captación de Leads'
+    : isDirect ? 'Venta Directa'
+    : 'Sin conversiones registradas';
+  const typeIcon  = isLeads && !isDirect ? '🎯' : isDirect && !isLeads ? '🛒' : '🔀';
+  const typeColor = isLeads && !isDirect ? '#4f8ef7' : isDirect && !isLeads ? '#06d6a0' : '#ffd166';
+
+  let html = `<div style="padding:16px 18px">`;
+
+  // Badge de tipo
+  html += `<div style="margin-bottom:14px">
+    <span style="background:${typeColor}22;color:${typeColor};border-radius:20px;padding:4px 14px;font-size:11px;font-weight:700">
+      ${typeIcon} ${typeLabel}
+    </span>
+  </div>`;
+
+  // KPI cards
+  html += `<div class="mc-grid">`;
+
+  if (isDirect) {
+    html += mcCard('Revenue', fmt.usd(c.revenue || 0), (c.revenue||0)>0?'c-green':'c-muted');
+    html += mcCard('ROAS',    c.roas ? c.roas.toFixed(2)+'x' : '—', roasColorMC(c.roas));
+    html += mcCard('Compras', c.purchases || 0, (c.purchases||0)>0?'':'c-muted');
+    html += mcCard('CPA',     fmt.usd(c.cpa), cpaColorMC(c.cpa, S.totals?.cpa));
+    html += mcCard('$/Checkout', fmt.usd(c.costPerCheckout), 'c-muted');
+  }
+  if (isLeads) {
+    html += mcCard('Leads',    c.registrations || 0, (c.registrations||0)>0?'c-green':'c-muted');
+    html += mcCard('CPL',      fmt.usd(c.cpl), cplColorMC(c.cpl));
+    html += mcCard('Conv. LP', fmtRegConv(c.registrations, c.lpViews), '');
+    html += mcCard('Visitas LP', fmt.num(c.lpViews || 0), 'c-muted');
+  }
+  html += mcCard('Gasto',  fmt.usd(c.spend), '');
+  html += mcCard('CTR',    fmt.pct(c.ctr), ctrColorMC(c.ctr));
+  html += mcCard('CPM',    fmt.usd(c.cpm), 'c-muted');
+  html += mcCard('Frec.',  (c.frequency||0).toFixed(1), (c.frequency||0)>3?'c-red':(c.frequency||0)>2.5?'c-yellow':'c-muted');
+  html += mcCard('Alcance', fmt.num(c.reach||0), 'c-muted');
+
+  html += `</div>`;
+
+  // Embudo visual
+  html += renderMiniFunnel(c);
+
+  html += `</div>`;
+  return html;
+}
+
+function mcCard(label, value, cls = '') {
+  return `<div class="mc"><div class="mc-lbl">${label}</div><div class="mc-val ${cls}">${value}</div></div>`;
+}
+
+function renderMiniFunnel(c) {
+  const steps = [];
+  if ((c.impressions||0) > 0)   steps.push({ label:'Impresiones', v: c.impressions,   fmt: v => fmt.num(v) });
+  if ((c.clicks||0) > 0)        steps.push({ label:'Clics',       v: c.clicks,         fmt: v => fmt.num(v) });
+  if ((c.lpViews||0) > 0)       steps.push({ label:'Visitas LP',  v: c.lpViews,        fmt: v => fmt.num(v) });
+  if ((c.registrations||0) > 0) steps.push({ label:'Leads / Reg', v: c.registrations,  fmt: v => v });
+  if ((c.initiateCheckout||0)>0) steps.push({ label:'Checkouts',  v: c.initiateCheckout,fmt: v => v });
+  if ((c.purchases||0) > 0)     steps.push({ label:'Compras',     v: c.purchases,      fmt: v => v });
+  if (steps.length < 2) return '';
+
+  const FCOLS = ['#4f8ef7','#9b5de5','#06d6a0','#ffd166','#fb8500','#f85149'];
+  const max = steps[0].v;
+  let html = `<div style="margin-top:6px">
+    <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Embudo de conversión</div>`;
+  steps.forEach((s, i) => {
+    const pct  = Math.max(3, Math.round(s.v / max * 100));
+    const rate = i > 0 ? (s.v / steps[i-1].v * 100).toFixed(1) + '%' : '';
+    html += `<div class="mf-row">
+      <div class="mf-label">${s.label}</div>
+      <div class="mf-track"><div class="mf-fill" style="width:${pct}%;background:${FCOLS[i%FCOLS.length]}"></div></div>
+      <div class="mf-val">${s.fmt(s.v)}</div>
+      <div class="mf-rate">${rate}</div>
+    </div>`;
+  });
+  html += `</div>`;
+  return html;
+}
+
+function roasColorMC(roas) {
+  if (!roas) return 'c-muted';
+  return roas >= 1.5 ? 'c-green' : roas >= 1.2 ? 'c-yellow' : 'c-red';
+}
+function cpaColorMC(cpa, avg) {
+  if (!cpa || !avg) return '';
+  return cpa <= avg * 0.8 ? 'c-green' : cpa >= avg * 1.5 ? 'c-red' : 'c-yellow';
+}
+function cplColorMC(cpl) {
+  if (!cpl) return 'c-muted';
+  return cpl <= 2 ? 'c-green' : cpl <= 4 ? 'c-yellow' : 'c-red';
+}
+function ctrColorMC(ctr) {
+  if (!ctr) return 'c-muted';
+  return ctr >= 2 ? 'c-green' : ctr >= 1 ? 'c-yellow' : 'c-red';
+}
+
 // ─── Selection state ────────────────────────────────────────────────────────
 const selectedIds = new Set();
 function updateBulkBar() {
@@ -3217,9 +3556,50 @@ function renderTable() {
   }
 
   const maxSpend = Math.max(...list.map(c => c.spend), 1);
+  if (!S.groups)   loadGroupsFromStorage();
+
+  // Organizar campañas por grupo
+  const grouped = {};
+  for (const c of list) {
+    const gid = (S.groupMap && S.groupMap[c.id]) || '__none__';
+    if (!grouped[gid]) grouped[gid] = [];
+    grouped[gid].push(c);
+  }
+
+  // Orden: grupos definidos primero, luego "Sin grupo"
+  const groupOrder = Object.keys(S.groups || {}).concat(['__none__']);
 
   let html = '';
-  for (const c of list) {
+  for (const gid of groupOrder) {
+    const bucket = grouped[gid];
+    if (!bucket?.length) continue;
+
+    if (gid !== '__none__') {
+      const g   = S.groups[gid];
+      const col = GROUP_COLORS[g.colorIdx ?? 0];
+      const tots = bucket.reduce((a, c) => ({
+        spend: a.spend + c.spend, revenue: a.revenue + c.revenue,
+        purchases: a.purchases + c.purchases, registrations: a.registrations + (c.registrations || 0),
+      }), { spend: 0, revenue: 0, purchases: 0, registrations: 0 });
+      const isCollapsed = !!g.collapsed;
+      html += `<tr class="group-header-row${isCollapsed ? ' group-collapsed' : ''}" onclick="toggleGroupCollapse('${gid}')">
+        <td colspan="18" style="background:${col.bg}">
+          <span class="group-collapse-arrow" style="color:${col.text}">▾</span>
+          <span class="group-dot" style="background:${col.dot};margin-right:7px"></span>
+          <strong style="color:${col.text};font-size:12px">${escHtml(g.name)}</strong>
+          <span style="color:var(--muted);font-size:11px;margin-left:10px">${bucket.length} campaña${bucket.length!==1?'s':''}</span>
+          <span style="margin-left:14px;font-size:11px;color:var(--muted)">Gasto: <strong style="color:var(--text)">${fmt.usd(tots.spend)}</strong></span>
+          ${tots.revenue>0?`<span style="margin-left:10px;font-size:11px;color:var(--muted)">Revenue: <strong style="color:var(--green)">${fmt.usd(tots.revenue)}</strong></span>`:''}
+          ${tots.purchases>0?`<span style="margin-left:10px;font-size:11px;color:var(--muted)">Compras: <strong style="color:var(--text)">${tots.purchases}</strong></span>`:''}
+          ${tots.registrations>0?`<span style="margin-left:10px;font-size:11px;color:var(--muted)">Leads: <strong style="color:var(--green)">${tots.registrations}</strong></span>`:''}
+          <button onclick="event.stopPropagation();openGroupsModal('${gid}')" title="Editar grupo"
+            style="float:right;font-size:10px;padding:2px 8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:4px;cursor:pointer;color:var(--muted)">✏</button>
+        </td>
+      </tr>`;
+      if (isCollapsed) continue;
+    }
+
+    for (const c of bucket) {
     const isActive   = c.effective_status === 'ACTIVE' || c.status === 'ACTIVE';
     const expanded   = S.expanded.has(c.id);
     const cpaCls     = cpaClass(c.cpa, avg);
@@ -3230,11 +3610,17 @@ function renderTable() {
       ? `<button class="action-btn pause" onclick="toggleStatus('${c.id}','ACTIVE')">⏸ Pausar</button>`
       : `<button class="action-btn activate" onclick="toggleStatus('${c.id}','PAUSED')">▶ Activar</button>`;
 
+    const cGroup = S.groupMap?.[c.id];
+    const cGroupColor = cGroup && S.groups?.[cGroup] ? GROUP_COLORS[(S.groups[cGroup].colorIdx ?? 0) % GROUP_COLORS.length] : null;
+    const groupDotHtml = cGroupColor
+      ? `<span class="group-row-dot" style="background:${cGroupColor.dot}" onclick="event.stopPropagation();openGroupAssignPopup(event,'${c.id}')" title="Grupo: ${escHtml(S.groups[cGroup].name)} — clic para cambiar"></span>`
+      : `<span class="group-row-dot" style="background:rgba(255,255,255,.15);border:1px dashed rgba(255,255,255,.2)" onclick="event.stopPropagation();openGroupAssignPopup(event,'${c.id}')" title="Sin grupo — clic para asignar"></span>`;
+
     html += `
       <tr class="${expanded ? 'expanded' : ''}" id="row-${c.id}">
         <td style="width:28px"><input type="checkbox" ${selectedIds.has(c.id)?'checked':''} onchange="selectedIds[this.checked?'add':'delete']('${c.id}');updateBulkBar()"></td>
         <td style="width:28px"><span class="expand-icon" onclick="toggleExpand('${c.id}')">▶</span></td>
-        <td class="name-cell" onclick="toggleExpand('${c.id}')" title="${c.name}">${perfDot(c, avg)}${fmt.short(c.name, 32)}</td>
+        <td class="name-cell" onclick="toggleExpand('${c.id}')" title="${c.name}">${groupDotHtml}${perfDot(c, avg)}${fmt.short(c.name, 32)}</td>
         <td>${statusBadge(c.effective_status || c.status)}</td>
         <td class="num">
           <div class="spend-cell">
@@ -3270,10 +3656,11 @@ function renderTable() {
       const expandData = S.adData[c.id];
       html += `<tr class="ads-row"><td colspan="18"><div class="ads-inner" id="ads-${c.id}">`;
 
-      // Tabs: AdSets | Ads
+      // Tabs: AdSets | Ads | Métricas
       html += `<div class="adsets-tabs">
         <button class="adset-tab active" onclick="showTab('${c.id}','adsets',this)">Ad Sets</button>
         <button class="adset-tab" onclick="showTab('${c.id}','ads',this)">Ads</button>
+        <button class="adset-tab" onclick="showTab('${c.id}','metrics',this)">📊 Métricas</button>
       </div>`;
 
       // AdSets panel
@@ -3344,17 +3731,21 @@ function renderTable() {
       }
       html += `</div>`;
 
+      // Metrics tab
+      html += `<div id="tab-metrics-${c.id}" style="display:none">${renderMetricsTab(c)}</div>`;
+
       html += `</div></td></tr>`;
-    }
-  }
+    } // end for c of bucket
+  } // end for gid of groupOrder
   tbody.innerHTML = html;
 }
 
 function showTab(campaignId, tab, btn) {
   document.querySelectorAll(`#ads-${campaignId} .adset-tab`).forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  document.getElementById(`tab-adsets-${campaignId}`).style.display = tab === 'adsets' ? '' : 'none';
-  document.getElementById(`tab-ads-${campaignId}`).style.display    = tab === 'ads'    ? '' : 'none';
+  document.getElementById(`tab-adsets-${campaignId}`).style.display  = tab === 'adsets'  ? '' : 'none';
+  document.getElementById(`tab-ads-${campaignId}`).style.display     = tab === 'ads'     ? '' : 'none';
+  document.getElementById(`tab-metrics-${campaignId}`).style.display = tab === 'metrics' ? '' : 'none';
   if (tab === 'ads' && !S.adData[campaignId]) loadAdData(campaignId);
 }
 
@@ -3498,6 +3889,7 @@ async function loadOverview() {
   }
   S.adData = {}; // reset drill-down cache
   S.expanded.clear();
+  S.groups = null; S.groupMap = null; // reload groups from storage on next render
 
   const btn = document.getElementById('refreshBtn');
   btn.innerHTML = '<span class="spin">↻</span> Cargando…';
