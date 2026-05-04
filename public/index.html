@@ -3735,6 +3735,7 @@ function renderTable() {
       html += `<div id="tab-metrics-${c.id}" style="display:none">${renderMetricsTab(c)}</div>`;
 
       html += `</div></td></tr>`;
+    } // end if expanded
     } // end for c of bucket
   } // end for gid of groupOrder
   tbody.innerHTML = html;
