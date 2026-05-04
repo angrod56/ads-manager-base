@@ -129,7 +129,9 @@ function tok(q, user) {
 // Helper: devuelve opciones de fecha para getInsights según los query params
 function dateOpts(q, fallback = 'last_30d') {
   if (q.since && q.until) return { since: q.since, until: q.until };
-  return { datePreset: q.date || fallback };
+  // 'custom' no es un date_preset válido de Meta — usar fallback si no hay since/until
+  const preset = (!q.date || q.date === 'custom') ? fallback : q.date;
+  return { datePreset: preset };
 }
 
 const SERVER_START = Date.now();

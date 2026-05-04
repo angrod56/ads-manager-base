@@ -1098,6 +1098,10 @@
     /* Small tablet / large phone 900px — sidebar → top tab bar, header fixed */
     @media (max-width: 900px) {
       .header { position: fixed; top: 0; left: 0; right: 0; z-index: 100; }
+      #customDateWrap { position: fixed !important; top: 56px; left: 0; right: 0;
+        background: var(--surface); border-bottom: 1px solid var(--border);
+        padding: 10px 16px; justify-content: center; flex-wrap: wrap;
+        gap: 8px; z-index: 98; box-shadow: 0 4px 12px rgba(0,0,0,.3); }
       .app-layout { flex-direction: column; padding-top: 56px; min-height: calc(100vh - 56px); }
       .sidebar {
         width: 100%; height: auto;
@@ -1125,9 +1129,9 @@
     /* Mobile 700px */
     @media (max-width: 700px) {
       /* Header — fixed, single row, no wrap */
-      .header { height: 56px; min-height: 56px; padding: 0 12px; flex-wrap: nowrap; overflow: hidden; }
+      .header { height: 56px; min-height: 56px; padding: 0 12px; flex-wrap: nowrap; }
       .logo { font-size: 13px; flex-shrink: 0; }
-      .header-controls { gap: 5px; flex-wrap: nowrap; overflow: hidden; flex: 1; min-width: 0; }
+      .header-controls { gap: 5px; flex-wrap: nowrap; flex: 1; min-width: 0; }
       #accountSelect { min-width: 0; flex: 1; font-size: 12px; max-width: 130px; }
       #dateSelect    { font-size: 12px; flex-shrink: 0; max-width: 110px; }
       #refreshBtn    { font-size: 12px; padding: 5px 8px; flex-shrink: 0; }
