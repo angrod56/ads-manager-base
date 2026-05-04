@@ -306,6 +306,8 @@ const GET = {
       const registrations    = getActionValue(ins.actions || [], 'complete_registration') || 0;
       const lpViews          = getActionValue(ins.actions || [], 'landing_page_view') || 0;
       const initiateCheckout = getActionValue(ins.actions || [], 'initiate_checkout') || 0;
+      const addToCart        = getActionValue(ins.actions || [], 'add_to_cart') || 0;
+      const videoViews       = getActionValue(ins.actions || [], 'video_view') || 0;
       const revenue       = getRevenue(ins.action_values || []);
       const roas          = getRoas(ins.purchase_roas || [], spend, revenue);
       const cpl           = calcCPA(spend, registrations);
@@ -318,12 +320,15 @@ const GET = {
         registrations,
         lpViews,
         initiateCheckout,
+        addToCart,
+        videoViews,
         regConv: lpViews > 0 ? registrations / lpViews : null,
         revenue,
         roas,
         cpl,
         cpa:       calcCPA(spend, purchases),
         costPerCheckout: calcCPA(spend, initiateCheckout),
+        costPerLpView:   calcCPA(spend, lpViews),
         ctr:       parseFloat(ins.ctr || 0),
         cpm:       parseFloat(ins.cpm || 0),
         cpc:       parseFloat(ins.cpc || 0),

@@ -331,7 +331,7 @@
     .strat-opt:hover { background: rgba(255,255,255,.09); }
 
     /* ── Column selector ── */
-    .col-panel { position: absolute; z-index: 998; right: 0; top: calc(100% + 6px); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; min-width: 220px; box-shadow: 0 8px 28px rgba(0,0,0,.5); }
+    .col-panel { position: absolute; z-index: 998; right: 0; top: calc(100% + 6px); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; min-width: 280px; max-height: 480px; overflow-y: auto; box-shadow: 0 8px 28px rgba(0,0,0,.5); }
     .col-panel-title { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
     .col-item { display: flex; align-items: center; gap: 8px; padding: 5px 4px; border-radius: 5px; cursor: pointer; font-size: 12px; }
     .col-item:hover { background: rgba(255,255,255,.07); }
@@ -1483,19 +1483,28 @@
               <th data-sort="revenue" class="num col-blue dcol-revenue" title="Valor de conversión reportado por el pixel de Meta">Revenue</th>
               <th data-sort="roas" class="num col-purple dcol-roas" title="Retorno sobre inversión: Revenue ÷ Gasto. Mínimo: 1.2x">ROAS</th>
               <th data-sort="purchases" class="num col-green dcol-purchases" title="Compras registradas por el pixel de Meta">Compras</th>
+              <th data-sort="addToCart" class="num col-green dcol-addtocart" title="Eventos de Agregar al carrito del pixel">Agr. carrito</th>
               <th data-sort="initiateCheckout" class="num col-green dcol-checkout" title="Usuarios que iniciaron el proceso de pago">Pagos inic.</th>
-              <th data-sort="costPerCheckout" class="num col-green dcol-costchk" title="Costo por pago iniciado">$/Pago</th>
+              <th data-sort="costPerCheckout" class="num col-green dcol-costchk" title="Costo por pago iniciado">$/Pago inic.</th>
               <th data-sort="registrations" class="num col-green dcol-leads" title="Leads / Registros (complete_registration del pixel)">Leads</th>
-              <th data-sort="regConv" class="num col-green dcol-convlp" title="Tasa de conversión LP: Registros ÷ Visitas LP">Conv. LP</th>
+              <th data-sort="regConv" class="num col-green dcol-convlp" title="Tasa de conversión LP: Registros ÷ Visitas LP">Conv. LP %</th>
               <th data-sort="cpa" class="num col-yellow dcol-cpa" title="Costo por Adquisición: Gasto ÷ Compras">CPA</th>
               <th data-sort="cpl" class="num col-yellow dcol-cpl" title="Costo por Lead: Gasto ÷ Registros. Máximo: $4">CPL</th>
+              <th data-sort="lpViews" class="num col-cyan dcol-lpviews" title="Visitas a la página de destino">Visitas LP</th>
+              <th data-sort="costPerLpView" class="num col-cyan dcol-costlpv" title="Costo por visita a la página de destino">$/Visita LP</th>
+              <th data-sort="clicks" class="num col-cyan dcol-clicks" title="Clics en el enlace del anuncio">Clics</th>
+              <th data-sort="cpc" class="num col-cyan dcol-cpc" title="Costo por clic en enlace">CPC</th>
+              <th data-sort="impressions" class="num col-cyan dcol-impressions" title="Total de veces que se mostró el anuncio">Impresiones</th>
+              <th data-sort="reach" class="num col-cyan dcol-reach" title="Personas únicas que vieron el anuncio">Alcance</th>
               <th data-sort="frequency" class="num col-cyan dcol-frequency" title="Frecuencia: veces que cada persona vio el anuncio. Alerta si >3">Frec.</th>
+              <th data-sort="cpm" class="num col-cyan dcol-cpm" title="Costo por cada 1,000 impresiones">CPM</th>
               <th data-sort="ctr" class="num col-cyan dcol-ctr" title="Click-Through Rate: % de impresiones con clic. Mínimo: 2%">CTR</th>
+              <th data-sort="videoViews" class="num col-cyan dcol-videoviews" title="Vistas de video de al menos 3 segundos">Vistas video</th>
               <th>Acción</th>
             </tr>
           </thead>
           <tbody id="campaignsTbody">
-            <tr><td colspan="18" class="empty"><div class="empty-icon">⏳</div><div>Cargando campañas…</div></td></tr>
+            <tr><td colspan="27" class="empty"><div class="empty-icon">⏳</div><div>Cargando campañas…</div></td></tr>
           </tbody>
         </table>
       </div>
@@ -3087,17 +3096,30 @@ function stratDesc(key) {
 
 // ── Column selector ───────────────────────────────────────────────────────────
 const COLS = [
-  { id:'revenue',   label:'Revenue',      tip:'Valor de conversión del pixel' },
-  { id:'roas',      label:'ROAS',         tip:'Retorno sobre inversión' },
-  { id:'purchases', label:'Compras',      tip:'Compras registradas por el pixel' },
-  { id:'checkout',  label:'Pagos inic.',  tip:'Usuarios que iniciaron checkout' },
-  { id:'costchk',   label:'$/Pago',       tip:'Costo por pago iniciado' },
-  { id:'leads',     label:'Leads',        tip:'Leads / Registros del pixel' },
-  { id:'convlp',    label:'Conv. LP',     tip:'Tasa de conversión landing page' },
-  { id:'cpa',       label:'CPA',          tip:'Costo por Adquisición' },
-  { id:'cpl',       label:'CPL',          tip:'Costo por Lead' },
-  { id:'frequency', label:'Frec.',        tip:'Frecuencia promedio de exposición' },
-  { id:'ctr',       label:'CTR',          tip:'Click-Through Rate' },
+  // ── Conversiones ─────────────────────────────────────────────────────────────
+  { id:'revenue',       label:'Revenue',        group:'Conversiones', tip:'Valor de conversión reportado por el pixel de Meta' },
+  { id:'roas',          label:'ROAS',           group:'Conversiones', tip:'Retorno sobre inversión publicitaria: Revenue ÷ Gasto' },
+  { id:'purchases',     label:'Compras',        group:'Conversiones', tip:'Compras registradas por el pixel (purchase)' },
+  { id:'addtocart',     label:'Agr. carrito',   group:'Conversiones', tip:'Eventos de "Agregar al carrito" del pixel' },
+  { id:'checkout',      label:'Pagos inic.',    group:'Conversiones', tip:'Inicios de proceso de pago (initiate_checkout)' },
+  { id:'costchk',       label:'$/Pago inic.',   group:'Conversiones', tip:'Costo por pago iniciado: Gasto ÷ Pagos iniciados' },
+  { id:'leads',         label:'Leads',          group:'Conversiones', tip:'Registros completados (complete_registration)' },
+  { id:'convlp',        label:'Conv. LP %',     group:'Conversiones', tip:'Tasa de conversión LP: Registros ÷ Visitas LP' },
+  { id:'cpa',           label:'CPA',            group:'Conversiones', tip:'Costo por Adquisición: Gasto ÷ Compras' },
+  { id:'cpl',           label:'CPL',            group:'Conversiones', tip:'Costo por Lead: Gasto ÷ Registros. Máximo recomendado: $4' },
+  // ── Tráfico / Sitio web ──────────────────────────────────────────────────────
+  { id:'lpviews',       label:'Visitas LP',     group:'Tráfico', tip:'Visitas a la página de destino (landing_page_view)' },
+  { id:'costlpv',       label:'$/Visita LP',    group:'Tráfico', tip:'Costo por visita a la página de destino' },
+  { id:'clicks',        label:'Clics enlace',   group:'Tráfico', tip:'Clics en el enlace del anuncio' },
+  { id:'cpc',           label:'CPC',            group:'Tráfico', tip:'Costo por clic en enlace' },
+  // ── Alcance e impresiones ────────────────────────────────────────────────────
+  { id:'impressions',   label:'Impresiones',    group:'Alcance', tip:'Total de veces que se mostró el anuncio' },
+  { id:'reach',         label:'Alcance',        group:'Alcance', tip:'Personas únicas que vieron el anuncio' },
+  { id:'frequency',     label:'Frecuencia',     group:'Alcance', tip:'Promedio de veces que cada persona vio el anuncio. Alerta si >3' },
+  { id:'cpm',           label:'CPM',            group:'Alcance', tip:'Costo por cada 1,000 impresiones' },
+  // ── Engagement ───────────────────────────────────────────────────────────────
+  { id:'ctr',           label:'CTR',            group:'Engagement', tip:'Click-Through Rate: % de impresiones con clic. Mínimo recomendado: 2%' },
+  { id:'videoviews',    label:'Vistas video',   group:'Engagement', tip:'Vistas de video de al menos 3 segundos' },
 ];
 const COLS_DEFAULT = ['revenue','roas','purchases','leads','cpa','cpl','frequency','ctr'];
 
@@ -3149,13 +3171,24 @@ function renderColPanel() {
   const panel = document.getElementById('colPanel');
   if (!panel) return;
   const active = S.cols || COLS_DEFAULT;
-  panel.innerHTML = '<div class="col-panel-title">Columnas visibles</div>'
-    + COLS.map(c =>
+  const groups = [...new Set(COLS.map(c => c.group))];
+  let html = '<div class="col-panel-title" style="margin-bottom:4px">Columnas visibles</div>'
+    + '<div style="display:flex;gap:6px;margin-bottom:8px">'
+    + '<button onclick="S.cols=[...COLS.map(c=>c.id)];saveCols();applyColVisibility();renderColPanel()" style="flex:1;font-size:10px;padding:3px 6px;border-radius:4px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:var(--text);cursor:pointer">Todas</button>'
+    + '<button onclick="S.cols=[...COLS_DEFAULT];saveCols();applyColVisibility();renderColPanel()" style="flex:1;font-size:10px;padding:3px 6px;border-radius:4px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:var(--text);cursor:pointer">Por defecto</button>'
+    + '</div>';
+  for (const grp of groups) {
+    html += '<div class="col-panel-title" style="margin-top:8px;margin-bottom:2px">' + grp + '</div>';
+    html += COLS.filter(c => c.group === grp).map(c =>
         '<label class="col-item"><input type="checkbox" '
         + (active.includes(c.id) ? 'checked' : '')
         + ' onchange="toggleCol(\'' + c.id + '\')" title="' + c.tip + '">'
-        + c.label + '</label>'
+        + '<span>' + c.label + '</span>'
+        + '<span style="font-size:10px;color:var(--muted);margin-left:auto;max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="' + c.tip + '">' + c.tip.slice(0,28) + (c.tip.length>28?'…':'') + '</span>'
+        + '</label>'
       ).join('');
+  }
+  panel.innerHTML = html;
 }
 
 function escHtml(str) {
@@ -3481,7 +3514,7 @@ function renderTable() {
   const tbody = document.getElementById('campaignsTbody');
 
   if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="18"><div class="empty"><div class="empty-icon">🔍</div><div>Sin resultados</div></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="27"><div class="empty"><div class="empty-icon">🔍</div><div>Sin resultados</div></div></td></tr>';
     return;
   }
 
@@ -3519,20 +3552,29 @@ function renderTable() {
       + '<td class="num dcol-revenue ' + (c.revenue > 0 ? 'green' : 'muted') + '">' + fmt.usd(c.revenue || 0) + '</td>'
       + '<td class="num dcol-roas">' + roasPill(c.roas) + '</td>'
       + '<td class="num dcol-purchases" style="font-weight:' + (c.purchases>0?'600':'400') + '">' + (c.purchases > 0 ? c.purchases : '<span class="muted">0</span>') + '</td>'
+      + '<td class="num dcol-addtocart" style="color:' + ((c.addToCart||0)>0?'var(--text)':'var(--muted)') + '">' + ((c.addToCart||0)||'<span class="muted">0</span>') + '</td>'
       + '<td class="num dcol-checkout" style="color:' + ((c.initiateCheckout||0)>0?'var(--text)':'var(--muted)') + '">' + ((c.initiateCheckout||0)||'<span class="muted">0</span>') + '</td>'
       + '<td class="num dcol-costchk muted">' + fmt.usd(c.costPerCheckout) + '</td>'
       + '<td class="num dcol-leads" style="color:' + ((c.registrations||0)>0?'var(--green)':'var(--muted)') + '">' + ((c.registrations||0)||'<span class="muted">0</span>') + '</td>'
       + '<td class="num dcol-convlp ' + regConvClass(c.registrations, c.lpViews) + '">' + fmtRegConv(c.registrations, c.lpViews) + '</td>'
       + '<td class="num dcol-cpa ' + cpaCls + '">' + fmt.usd(c.cpa) + '</td>'
       + '<td class="num dcol-cpl ' + cpaClass(c.cpl, 4) + '">' + fmt.usd(c.cpl) + '</td>'
+      + '<td class="num dcol-lpviews" style="color:' + ((c.lpViews||0)>0?'var(--text)':'var(--muted)') + '">' + ((c.lpViews||0) ? fmt.num(c.lpViews) : '<span class="muted">0</span>') + '</td>'
+      + '<td class="num dcol-costlpv muted">' + fmt.usd(c.costPerLpView) + '</td>'
+      + '<td class="num dcol-clicks">' + (c.clicks ? fmt.num(c.clicks) : '<span class="muted">0</span>') + '</td>'
+      + '<td class="num dcol-cpc muted">' + fmt.usd(c.cpc) + '</td>'
+      + '<td class="num dcol-impressions muted">' + (c.impressions ? fmt.num(c.impressions) : '<span class="muted">0</span>') + '</td>'
+      + '<td class="num dcol-reach muted">' + (c.reach ? fmt.num(c.reach) : '<span class="muted">0</span>') + '</td>'
       + '<td class="num dcol-frequency ' + freqCls + '">' + (c.frequency||0).toFixed(1) + '</td>'
+      + '<td class="num dcol-cpm muted">' + fmt.usd(c.cpm) + '</td>'
       + '<td class="num dcol-ctr ' + ctrClass(c.ctr) + '">' + fmt.pct(c.ctr) + '</td>'
+      + '<td class="num dcol-videoviews muted">' + ((c.videoViews||0) ? fmt.num(c.videoViews) : '<span class="muted">0</span>') + '</td>'
       + '<td>' + actionBtn + '</td>'
       + '</tr>';
 
     if (expanded) {
       const expandData = S.adData[c.id];
-      html += `<tr class="ads-row"><td colspan="18"><div class="ads-inner" id="ads-${c.id}">`;
+      html += `<tr class="ads-row"><td colspan="27"><div class="ads-inner" id="ads-${c.id}">`;
 
       // Tabs: AdSets | Ads | Métricas
       html += `<div class="adsets-tabs">
@@ -3746,7 +3788,7 @@ async function toggleStatus(id, currentStatus) {
 //  LOAD
 // ═══════════════════════════════════════════════════════════════════
 function noTokenMsg() {
-  return `<tr><td colspan="18" class="empty">
+  return `<tr><td colspan="27" class="empty">
     <div style="padding:32px 0;display:flex;flex-direction:column;align-items:center;gap:12px">
       <div style="font-size:40px">⚙️</div>
       <div style="font-size:15px;font-weight:700;color:var(--text)">Configura tu cuenta primero</div>
@@ -3796,7 +3838,7 @@ async function loadOverview() {
   } catch (e) {
     toast(e.message, 'error');
     const tbody = document.getElementById('campaignsTbody');
-    if (tbody) tbody.innerHTML = `<tr><td colspan="18" class="empty"><div class="empty-icon">⚠️</div><div>${e.message}</div></td></tr>`;
+    if (tbody) tbody.innerHTML = `<tr><td colspan="27" class="empty"><div class="empty-icon">⚠️</div><div>${e.message}</div></td></tr>`;
   }
 
   btn.innerHTML = '↺ Actualizar';
