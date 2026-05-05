@@ -180,7 +180,9 @@ const GET = {
   },
 
   '/api/accounts': async (res, q, user) => {
-    const cKey    = `accounts:${q.token?.slice(-8) || 'env'}`;
+    // Sin token: usuario aún no configuró su cuenta — nunca exponer las cuentas del admin
+    if (!q.token) return json(res, []);
+    const cKey    = `accounts:${q.token.slice(-8)}`;
     const accounts = await cachedMeta(cKey, () => listAccounts(q.token));
     const isAdmin  = user?.role === 'admin';
     const plan     = user?.plan || 'basic';
