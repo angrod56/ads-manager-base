@@ -1720,32 +1720,48 @@
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <select id="utmGroupSel" onchange="utmGroupMode=this.value;loadUtmStats()" style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-size:13px">
           <option value="campaign">Por campaña</option>
+          <option value="adset">Por conjunto</option>
           <option value="content">Por anuncio</option>
         </select>
         <button onclick="loadUtmStats()" style="background:rgba(79,142,247,.15);border:1px solid rgba(79,142,247,.3);border-radius:8px;padding:6px 14px;color:#4f8ef7;font-size:13px;cursor:pointer">↺ Actualizar</button>
       </div>
     </div>
 
-    <!-- Generador de URLs múltiples -->
+    <!-- Generador de URL de redirect con 3 niveles dinámicos -->
     <div class="card" style="margin-bottom:20px;padding:20px;background:linear-gradient(135deg,rgba(79,142,247,.08),rgba(124,58,237,.08));border:1px solid rgba(79,142,247,.2)">
-      <div style="font-size:15px;font-weight:700;margin-bottom:4px">⚡ Genera tus URLs de tracking</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Una URL por campaña o anuncio. Pégala como URL de destino en cada anuncio de Meta Ads.</div>
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px">⚡ Tu URL de tracking (3 niveles)</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">
+        Esta es la URL que pegas en <strong style="color:var(--text)">Sitio web del anuncio</strong> en Meta. Los parámetros dinámicos van en el campo <strong style="color:var(--text)">Parámetros de URL</strong>.
+      </div>
 
       <!-- URL base de Hotmart -->
-      <div style="margin-bottom:14px">
-        <label style="font-size:11px;color:var(--muted);font-weight:600;display:block;margin-bottom:4px">URL DE CHECKOUT HOTMART (base — la misma para todas)</label>
-        <input id="utmHotmartUrl" type="text" placeholder="https://pay.hotmart.com/TU_PRODUCTO"
+      <div style="margin-bottom:12px">
+        <label style="font-size:11px;color:var(--muted);font-weight:600;display:block;margin-bottom:4px">URL DE CHECKOUT HOTMART</label>
+        <input id="utmHotmartUrl" type="text" placeholder="https://pay.hotmart.com/TU_PRODUCTO?checkoutMode=10"
           oninput="buildUtmUrls();saveUtmState()"
           style="width:100%;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px">
       </div>
 
-      <!-- Lista de campañas -->
-      <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:6px">CAMPAÑAS / ANUNCIOS</div>
-      <div id="utmCampaignRows" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px"></div>
-      <button onclick="addUtmRow()" style="background:rgba(79,142,247,.12);border:1px dashed rgba(79,142,247,.4);border-radius:8px;padding:8px;color:#4f8ef7;font-size:12px;cursor:pointer;width:100%">+ Agregar campaña</button>
+      <!-- URL generada del redirect -->
+      <div style="margin-bottom:12px">
+        <label style="font-size:11px;color:var(--muted);font-weight:600;display:block;margin-bottom:4px">URL DEL SITIO WEB (pegar en Meta)</label>
+        <div style="display:flex;gap:8px;align-items:stretch">
+          <div id="utmRedirectOut" style="flex:1;background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:#a5f3fc;font-size:11px;word-break:break-all;min-height:36px;line-height:1.6">—</div>
+          <button onclick="copyRedirectUrl()" style="flex-shrink:0;background:rgba(6,214,160,.15);border:1px solid rgba(6,214,160,.3);border-radius:8px;padding:8px 14px;color:#06d6a0;font-size:12px;cursor:pointer;font-weight:600" id="utmRedirectCopyBtn">Copiar</button>
+        </div>
+      </div>
 
-      <div style="font-size:11px;color:var(--muted);margin-top:10px">
-        💡 Hotmart captura el parámetro <code style="color:#e2d9f3">src</code> automáticamente. Usa nombres cortos sin espacios (ej: <code style="color:#e2d9f3">MAYO_VIDEO1</code>).
+      <!-- Parámetros de URL (campo aparte en Meta) -->
+      <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:4px">
+        <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:6px">PARÁMETROS DE URL (campo separado en Meta)</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <code id="utmParamsOut" style="flex:1;font-size:11px;color:#a5f3fc;word-break:break-all">utm_campaign={{campaign.name}}&utm_term={{adset.name}}&utm_content={{ad.name}}</code>
+          <button onclick="copyMetaParam(document.getElementById('utmParamsOut').textContent, this)" style="flex-shrink:0;background:rgba(79,142,247,.15);border:1px solid rgba(79,142,247,.3);border-radius:6px;padding:5px 10px;color:#4f8ef7;font-size:11px;cursor:pointer;white-space:nowrap">Copiar</button>
+        </div>
+      </div>
+
+      <div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">
+        💡 <strong style="color:var(--text)">Cómo funciona:</strong> Meta pone la URL del sitio web + los parámetros juntos. Tu /r recibe los 3 niveles, los guarda y redirige a Hotmart automáticamente.
       </div>
     </div>
 
@@ -1753,52 +1769,60 @@
     <div class="card" style="margin-bottom:20px;padding:20px">
       <div style="font-size:15px;font-weight:700;margin-bottom:4px">🎯 Parámetros dinámicos de Meta Ads</div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:16px">
-        En lugar de crear una URL por anuncio, usa estas variables en el campo <strong style="color:var(--text)">"Parámetros de URL"</strong> de tus anuncios. Meta las rellena automáticamente con el nombre real de cada campaña o anuncio.
+        Pega estos valores en el campo <strong style="color:var(--text)">"Parámetros de URL"</strong> de tus anuncios. Meta los rellena automáticamente con los nombres reales de campaña, conjunto y anuncio.
       </div>
 
       <div style="display:flex;flex-direction:column;gap:10px">
 
-        <!-- Opción recomendada -->
+        <!-- Opción recomendada: 3 niveles completos -->
         <div style="background:rgba(6,214,160,.06);border:1px solid rgba(6,214,160,.2);border-radius:10px;padding:14px">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
-            <div>
-              <div style="font-size:11px;font-weight:700;color:#06d6a0;margin-bottom:4px">⭐ RECOMENDADO — Por anuncio + campaña</div>
-              <code style="font-size:12px;color:#a5f3fc">src={{ad.name}}&xcod={{campaign.name}}</code>
-              <div style="font-size:11px;color:var(--muted);margin-top:4px">Identifica cada anuncio individual y la campaña a la que pertenece</div>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:11px;font-weight:700;color:#06d6a0;margin-bottom:6px">⭐ RECOMENDADO — Campaña + Conjunto + Anuncio (3 niveles)</div>
+              <code style="font-size:11px;color:#a5f3fc;word-break:break-all">utm_campaign={{campaign.name}}&utm_term={{adset.name}}&utm_content={{ad.name}}</code>
+              <div style="font-size:11px;color:var(--muted);margin-top:6px">Identifica cada anuncio, su conjunto y su campaña. Úsalo con la <strong style="color:var(--text)">URL de tu redirect (/r)</strong> como destino del anuncio — así se registran los 3 niveles en el click.</div>
             </div>
-            <button onclick="copyMetaParam('src={{ad.name}}&xcod={{campaign.name}}', this)" style="flex-shrink:0;background:rgba(6,214,160,.15);border:1px solid rgba(6,214,160,.3);border-radius:6px;padding:6px 14px;color:#06d6a0;font-size:12px;cursor:pointer;white-space:nowrap">Copiar</button>
+            <button onclick="copyMetaParam('utm_campaign={{campaign.name}}&utm_term={{adset.name}}&utm_content={{ad.name}}', this)" style="flex-shrink:0;background:rgba(6,214,160,.15);border:1px solid rgba(6,214,160,.3);border-radius:6px;padding:6px 14px;color:#06d6a0;font-size:12px;cursor:pointer;white-space:nowrap">Copiar</button>
           </div>
         </div>
 
-        <!-- Solo anuncio -->
+        <!-- Hotmart directo: campaña + anuncio -->
         <div style="background:rgba(0,0,0,.2);border:1px solid var(--border);border-radius:10px;padding:14px">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
-            <div>
-              <div style="font-size:11px;font-weight:700;color:#4f8ef7;margin-bottom:4px">Por anuncio</div>
-              <code style="font-size:12px;color:#a5f3fc">src={{ad.name}}</code>
-              <div style="font-size:11px;color:var(--muted);margin-top:4px">Usa el nombre del anuncio como identificador</div>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:11px;font-weight:700;color:#4f8ef7;margin-bottom:6px">Hotmart directo — Campaña + Anuncio</div>
+              <code style="font-size:11px;color:#a5f3fc">src={{campaign.name}}&xcod={{ad.name}}</code>
+              <div style="font-size:11px;color:var(--muted);margin-top:6px">Útil si pones la URL de Hotmart directo (sin redirect). Hotmart captura <code style="color:var(--text)">src</code> y <code style="color:var(--text)">xcod</code> automáticamente. No registra conjunto.</div>
             </div>
-            <button onclick="copyMetaParam('src={{ad.name}}', this)" style="flex-shrink:0;background:rgba(79,142,247,.15);border:1px solid rgba(79,142,247,.3);border-radius:6px;padding:6px 14px;color:#4f8ef7;font-size:12px;cursor:pointer;white-space:nowrap">Copiar</button>
+            <button onclick="copyMetaParam('src={{campaign.name}}&xcod={{ad.name}}', this)" style="flex-shrink:0;background:rgba(79,142,247,.15);border:1px solid rgba(79,142,247,.3);border-radius:6px;padding:6px 14px;color:#4f8ef7;font-size:12px;cursor:pointer;white-space:nowrap">Copiar</button>
           </div>
         </div>
 
-        <!-- Solo campaña -->
-        <div style="background:rgba(0,0,0,.2);border:1px solid var(--border);border-radius:10px;padding:14px">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
-            <div>
-              <div style="font-size:11px;font-weight:700;color:#a78bfa;margin-bottom:4px">Por campaña</div>
-              <code style="font-size:12px;color:#a5f3fc">src={{campaign.name}}</code>
-              <div style="font-size:11px;color:var(--muted);margin-top:4px">Agrupa todas las ventas de una campaña completa</div>
-            </div>
-            <button onclick="copyMetaParam('src={{campaign.name}}', this)" style="flex-shrink:0;background:rgba(167,139,250,.15);border:1px solid rgba(167,139,250,.3);border-radius:6px;padding:6px 14px;color:#a78bfa;font-size:12px;cursor:pointer;white-space:nowrap">Copiar</button>
+        <!-- Variables disponibles -->
+        <div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Variables disponibles de Meta</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px">
+            ${[
+              ['{{campaign.name}}','Nombre de la campaña'],
+              ['{{campaign.id}}','ID de la campaña'],
+              ['{{adset.name}}','Nombre del conjunto de anuncios'],
+              ['{{adset.id}}','ID del conjunto'],
+              ['{{ad.name}}','Nombre del anuncio'],
+              ['{{ad.id}}','ID del anuncio'],
+              ['{{placement}}','Ubicación (feed, reels, stories…)'],
+              ['{{site_source_name}}','Red (fb, ig, msg, an)'],
+            ].map(([v,d]) => `<div style="background:rgba(0,0,0,.3);border-radius:6px;padding:8px 10px">
+              <code style="font-size:11px;color:#a5f3fc">${v}</code>
+              <div style="font-size:10px;color:var(--muted);margin-top:2px">${d}</div>
+            </div>`).join('')}
           </div>
         </div>
 
-        <div style="background:rgba(251,191,36,.05);border:1px solid rgba(251,191,36,.15);border-radius:8px;padding:12px;font-size:11px;color:var(--muted);line-height:1.6">
-          <strong style="color:#fbbf24">¿Cómo pegarlo en Meta?</strong><br>
-          Edita el anuncio → <strong style="color:var(--text)">URL del sitio web</strong> = tu URL de Hotmart normal →
-          <strong style="color:var(--text)">Parámetros de URL</strong> = pega el código copiado arriba.<br>
-          Meta construye la URL final automáticamente con el nombre real de cada anuncio.
+        <div style="background:rgba(251,191,36,.05);border:1px solid rgba(251,191,36,.15);border-radius:8px;padding:12px;font-size:11px;color:var(--muted);line-height:1.7">
+          <strong style="color:#fbbf24">Flujo recomendado con 3 niveles:</strong><br>
+          1. <strong style="color:var(--text)">URL del sitio web</strong> en el anuncio = <code style="color:#a5f3fc">https://tu-app.railway.app/r?u=TU_ID&url=URL_HOTMART_ENCODED</code><br>
+          2. <strong style="color:var(--text)">Parámetros de URL</strong> = el parámetro recomendado de arriba<br>
+          3. Meta construye la URL final → tu /r la recibe, guarda los 3 niveles y redirige a Hotmart.
         </div>
       </div>
     </div>
@@ -5068,7 +5092,7 @@ function showSection(name) {
   if (name === 'sales') loadSales();
   if (name === 'config') loadConfig();
   if (name === 'tutorials') loadTutorials();
-  if (name === 'utm') { loadUtmStats(); if (!_utmRowCount) { if (!restoreUtmState()) addUtmRow(); } }
+  if (name === 'utm') { loadUtmStats(); restoreUtmState(); buildUtmUrls(); }
   if (name === 'reports') loadReports();
   if (name === 'admin') { loadAdminUsers(); loadAdminAnnouncements(); loadTutorials(); }
   saveNavState();
@@ -5914,12 +5938,7 @@ const UTM_STORAGE_KEY = () => `utm_generator_${S.user?.id || 'default'}`;
 
 function saveUtmState() {
   const base = document.getElementById('utmHotmartUrl')?.value.trim() || '';
-  const names = [];
-  document.querySelectorAll('[id^="utmRow-"]').forEach(row => {
-    const val = row.querySelector('input')?.value.trim();
-    if (val !== undefined) names.push(val);
-  });
-  try { localStorage.setItem(UTM_STORAGE_KEY(), JSON.stringify({ base, names })); } catch {}
+  try { localStorage.setItem(UTM_STORAGE_KEY(), JSON.stringify({ base })); } catch {}
 }
 
 function restoreUtmState() {
@@ -5928,10 +5947,7 @@ function restoreUtmState() {
     if (!saved) return false;
     const urlInput = document.getElementById('utmHotmartUrl');
     if (urlInput && saved.base) urlInput.value = saved.base;
-    if (saved.names?.length) {
-      saved.names.forEach(n => addUtmRow(n));
-      return true;
-    }
+    return !!saved.base;
   } catch {}
   return false;
 }
@@ -5955,21 +5971,21 @@ function addUtmRow(name = '') {
 }
 
 function buildUtmUrls() {
-  const base = document.getElementById('utmHotmartUrl')?.value.trim();
-  document.querySelectorAll('[id^="utmRow-"]').forEach(row => {
-    const id   = row.id.replace('utmRow-', '');
-    const name = row.querySelector('input')?.value.trim().replace(/\s+/g, '_');
-    const out  = document.getElementById(`utmOut-${id}`);
-    if (!out) return;
-    if (!base || !name) { out.textContent = '—'; return; }
-    try {
-      const url = new URL(base);
-      url.searchParams.set('src', name);
-      out.textContent = url.toString();
-    } catch {
-      out.textContent = base + (base.includes('?') ? '&' : '?') + 'src=' + name;
-    }
-  });
+  const hotmartUrl = document.getElementById('utmHotmartUrl')?.value.trim();
+  const out = document.getElementById('utmRedirectOut');
+  if (!out) return;
+
+  if (!hotmartUrl) { out.textContent = '— Ingresa la URL de Hotmart arriba'; return; }
+
+  // Construir URL del redirect con los 3 parámetros dinámicos de Meta
+  const appBase = window.location.origin;
+  const userId  = S.user?.id || '';
+  try {
+    const redirectUrl = `${appBase}/r?u=${encodeURIComponent(userId)}&url=${encodeURIComponent(hotmartUrl)}&utm_campaign={{campaign.name}}&utm_term={{adset.name}}&utm_content={{ad.name}}`;
+    out.textContent = redirectUrl;
+  } catch {
+    out.textContent = '— Error al generar URL';
+  }
 }
 
 function copyUtmRowUrl(id) {
@@ -5983,6 +5999,15 @@ function copyUtmRowUrl(id) {
 
 function copyUtmUrl() {} // kept for compatibility
 
+function copyRedirectUrl() {
+  const text = document.getElementById('utmRedirectOut')?.textContent?.trim();
+  if (!text || text.startsWith('—')) return;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('utmRedirectCopyBtn');
+    if (btn) { const orig = btn.textContent; btn.textContent = '✓ Copiado'; setTimeout(() => btn.textContent = orig, 2000); }
+  });
+}
+
 function copyMetaParam(text, btn) {
   navigator.clipboard.writeText(text).then(() => {
     const orig = btn.textContent;
@@ -5994,7 +6019,7 @@ function copyMetaParam(text, btn) {
 async function loadUtmStats() {
   const tbody    = document.getElementById('utmTableBody');
   const colLabel = document.getElementById('utmColLabel');
-  if (colLabel) colLabel.textContent = utmGroupMode === 'content' ? 'Anuncio' : 'Campaña';
+  if (colLabel) colLabel.textContent = utmGroupMode === 'content' ? 'Anuncio' : utmGroupMode === 'adset' ? 'Conjunto' : 'Campaña';
   if (tbody) tbody.innerHTML = `<tr><td colspan="4" class="empty"><div class="empty-icon">⏳</div><div>Cargando…</div></td></tr>`;
 
   try {

@@ -139,18 +139,21 @@ const SERVER_START = Date.now();
 const GET = {
 
   '/r': async (res, q, _user, _body, req) => {
-    const { u: userId, url, utm_campaign, utm_content, utm_source = 'meta', utm_medium = 'paid' } = q;
+    const { u: userId, url, utm_campaign, utm_content, utm_term, utm_source = 'meta', utm_medium = 'paid' } = q;
     if (!userId || !url) { res.writeHead(400); return res.end('Parámetros inválidos'); }
 
-    // Registrar click (fire-and-forget)
+    // Registrar click con los 3 niveles: campaña, conjunto y anuncio
     const rawIp = (req?.headers?.['x-forwarded-for'] || req?.socket?.remoteAddress || '').split(',')[0].trim();
     const ip = rawIp.split('.').slice(0, 3).join('.') + '.0';
     supabaseAdmin.from('utm_clicks').insert({
-      user_id: userId, utm_campaign, utm_content, utm_source, utm_medium,
+      user_id: userId, utm_campaign, utm_content, utm_term, utm_source, utm_medium,
       destination: url, ip,
     }).then(() => {}).catch(() => {});
 
     // Construir URL destino con params de tracking para Hotmart
+    // src = campaña (Hotmart lo captura como tracking_source)
+    // xcod = anuncio (Hotmart lo captura como tracking_code)
+    // utm_term = conjunto — Hotmart no lo captura, pero queda en utm_clicks para cruce posterior
     try {
       const dest = new URL(decodeURIComponent(url));
       if (utm_campaign) dest.searchParams.set('src',  utm_campaign.slice(0, 50));
@@ -939,11 +942,14 @@ const GET = {
     const sinceUtc = q.since ? new Date(new Date(q.since + 'T00:00:00Z').getTime() - tzMs).toISOString() : undefined;
     const untilUtc = q.until ? new Date(new Date(q.until + 'T23:59:59Z').getTime() - tzMs).toISOString() : undefined;
 
-    const group = q.group === 'content' ? 'utm_content' : 'utm_campaign';
+    // group: campaign (default) | adset (utm_term) | content (utm_content/ad)
+    const group = q.group === 'content' ? 'utm_content'
+                : q.group === 'adset'   ? 'utm_term'
+                : 'utm_campaign';
 
     let clicksQ = supabaseAdmin
       .from('utm_clicks')
-      .select('utm_campaign, utm_content, clicked_at')
+      .select('utm_campaign, utm_content, utm_term, clicked_at')
       .eq('user_id', user.id);
     if (sinceUtc) clicksQ = clicksQ.gte('clicked_at', sinceUtc);
     if (untilUtc) clicksQ = clicksQ.lte('clicked_at', untilUtc);
@@ -959,15 +965,33 @@ const GET = {
     const [{ data: clicks }, { data: sales }] = await Promise.all([clicksQ, salesQ]);
 
     const map = {};
-    const key = r => (group === 'utm_content' ? r.utm_content : r.utm_campaign) || '(sin tracking)';
+    // Para adset: solo clics tienen utm_term — agrupamos clics por term y cruzamos ventas
+    // por campaña+anuncio para heredar el term del click más reciente que coincida
+    const clickIndex = {};  // utm_campaign|utm_content → utm_term
+    for (const c of clicks || []) {
+      if (c.utm_term && c.utm_campaign) {
+        const ck = `${c.utm_campaign}|${c.utm_content || ''}`;
+        if (!clickIndex[ck]) clickIndex[ck] = c.utm_term;
+      }
+    }
+
+    const keyFn = (r, fromClicks = false) => {
+      if (group === 'utm_term') {
+        if (fromClicks) return r.utm_term || '(sin conjunto)';
+        // Para ventas, cruzar por campaña+anuncio para recuperar el adset
+        const ck = `${r.utm_campaign || ''}|${r.utm_content || ''}`;
+        return clickIndex[ck] || '(sin conjunto)';
+      }
+      return (group === 'utm_content' ? r.utm_content : r.utm_campaign) || '(sin tracking)';
+    };
 
     for (const c of clicks || []) {
-      const k = key(c);
+      const k = keyFn(c, true);
       if (!map[k]) map[k] = { label: k, clicks: 0, sales: 0, revenue: 0 };
       map[k].clicks++;
     }
     for (const s of sales || []) {
-      const k = key(s);
+      const k = keyFn(s, false);
       if (!map[k]) map[k] = { label: k, clicks: 0, sales: 0, revenue: 0 };
       map[k].sales++;
       map[k].revenue += s.commission || s.amount || 0;
