@@ -6694,52 +6694,52 @@ async function init() {
     api('/api/config'),
   ]);
 
-  // Admin: si no tiene meta_token en perfil, usar el ENV_TOKEN del servidor
-  if (!S.token && S.user?.role === 'admin' && config.defaultToken) {
-    S.token = config.defaultToken;
-  }
-
-  // Si no hay token configurado, quedan 0 cuentas — mostrar banner y detener init
+  // Si no hay token ni cuentas y no es admin: mostrar banner de configuración
   if (!accountsResult.length && !S.token && S.user?.role !== 'admin') {
     showSetupBanner();
     document.getElementById('accountSelect').innerHTML = '<option>— Configura tu token Meta →</option>';
     return;
   }
 
-  // Si accounts falló por rate limit pero hay token: usar cuenta guardada si existe
-  if (!accountsResult.length && S.token) {
-    const saved = S.user?.meta_account_id || localStorage.getItem('meta_account');
-    if (saved) {
-      S.account = saved;
-      document.getElementById('accountSelect').innerHTML = `<option value="${saved}">${saved}</option>`;
-    }
-  }
-
   const accounts = accountsResult;
   S.accounts = accounts;
 
   const sel = document.getElementById('accountSelect');
-  sel.innerHTML = accounts.map(a =>
-    `<option value="${a.id}">${a.name} — ${a.currency} (${a.id})</option>`
-  ).join('');
 
-  // Aviso si el plan limita las cuentas disponibles (solo para no-admins con límite activo)
-  const first = accounts[0];
-  if (first?._planLimit !== null && first?._planTotal > first?._planLimit) {
-    const planNames = { basic: 'Básico', pro: 'Pro', agency: 'Agencia' };
-    const planLabel = planNames[S.user?.plan || 'basic'] || 'actual';
-    const msg = document.createElement('div');
-    msg.style.cssText = 'font-size:11px;color:var(--yellow);margin-top:4px;text-align:center';
-    msg.textContent = `Plan ${planLabel}: mostrando ${first._planLimit} de ${first._planTotal} cuentas`;
-    sel.parentNode.insertBefore(msg, sel.nextSibling);
+  if (accounts.length) {
+    sel.innerHTML = accounts.map(a =>
+      `<option value="${a.id}">${a.name} — ${a.currency} (${a.id})</option>`
+    ).join('');
+
+    // Aviso si el plan limita las cuentas disponibles (solo para no-admins con límite activo)
+    const first = accounts[0];
+    if (first?._planLimit !== null && first?._planTotal > first?._planLimit) {
+      const planNames = { basic: 'Básico', pro: 'Pro', agency: 'Agencia' };
+      const planLabel = planNames[S.user?.plan || 'basic'] || 'actual';
+      const msg = document.createElement('div');
+      msg.style.cssText = 'font-size:11px;color:var(--yellow);margin-top:4px;text-align:center';
+      msg.textContent = `Plan ${planLabel}: mostrando ${first._planLimit} de ${first._planTotal} cuentas`;
+      sel.parentNode.insertBefore(msg, sel.nextSibling);
+    }
+
+    // Pre-seleccionar: perfil Supabase > localStorage > config
+    const savedAccount = S.user?.meta_account_id || localStorage.getItem('meta_account');
+    if (savedAccount && accounts.find(a => a.id === savedAccount)) sel.value = savedAccount;
+    else if (config.defaultAccount) sel.value = config.defaultAccount;
+    S.account  = sel.value;
+    S.currency = accounts.find(a => a.id === S.account)?.currency || 'USD';
+  } else {
+    // Accounts falló (token inválido, rate limit) — usar cuenta guardada si existe.
+    // Para admin, el servidor usará el token del sistema en cada petición API.
+    const saved = S.user?.meta_account_id
+                || localStorage.getItem('meta_account')
+                || config.defaultAccount
+                || null;
+    if (saved) {
+      S.account = saved;
+      sel.innerHTML = `<option value="${saved}">${saved}</option>`;
+    }
   }
-
-  // Pre-seleccionar: perfil Supabase > localStorage > config
-  const savedAccount = S.user?.meta_account_id || localStorage.getItem('meta_account');
-  if (savedAccount && accounts.find(a => a.id === savedAccount)) sel.value = savedAccount;
-  else if (config.defaultAccount) sel.value = config.defaultAccount;
-  S.account  = sel.value;
-  S.currency = accounts.find(a => a.id === S.account)?.currency || 'USD';
   S.date     = document.getElementById('dateSelect').value;
 
   // Eventos

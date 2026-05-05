@@ -118,14 +118,6 @@ async function rawBody(req) {
 
 // ── Rutas GET ─────────────────────────────────────────────────────────────────
 
-// Resuelve el token Meta: explícito en query > token del usuario > ENV solo para admin
-function tok(q, user) {
-  if (q.token) return q.token;
-  if (user?.meta_token) return user.meta_token;
-  if (user?.role === 'admin') return process.env.META_ACCESS_TOKEN || null;
-  return null;
-}
-
 // Helper: devuelve opciones de fecha para getInsights según los query params
 function dateOpts(q, fallback = 'last_30d') {
   if (q.since && q.until) return { since: q.since, until: q.until };
@@ -172,8 +164,9 @@ const GET = {
 
   '/api/config': async (res) => {
     json(res, {
-      defaultAccount: process.env.META_AD_ACCOUNT_ID || null,
-      vapidPublicKey: process.env.VAPID_PUBLIC_KEY    || null,
+      defaultAccount:  process.env.META_AD_ACCOUNT_ID || null,
+      vapidPublicKey:  process.env.VAPID_PUBLIC_KEY   || null,
+      hasSystemToken:  !!process.env.META_ACCESS_TOKEN,
     });
   },
 
@@ -1535,11 +1528,14 @@ http.createServer(async (req, res) => {
     let user = null;
     if (!PUBLIC_ROUTES.includes(path2)) {
       user = await verifySession(req);
-      // Resolver token: explícito en query > propio del usuario > ENV solo para admin
+      // Resolver token: explícito en query > ENV para admin (más estable) > token personal > nada
       if (!q.token) {
-        if (user?.meta_token) q.token = user.meta_token;
-        else if (user?.role === 'admin') q.token = process.env.META_ACCESS_TOKEN || null;
-        // usuarios sin token no heredan el del admin → api.js lanzará error controlado
+        if (user?.role === 'admin') {
+          q.token = process.env.META_ACCESS_TOKEN || user?.meta_token || null;
+        } else if (user?.meta_token) {
+          q.token = user.meta_token;
+        }
+        // usuarios sin token ni admin → api.js lanzará error controlado
       }
     }
 
