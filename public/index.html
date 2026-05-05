@@ -575,8 +575,9 @@
     .mod-tab:hover { color: var(--text); }
     .mod-tab.active { color: var(--blue); border-bottom-color: var(--blue); font-weight: 600; }
     @media (max-width: 900px) {
-      #moduleTabs { top: 0; padding: 0 12px; }
+      #moduleTabs { top: 110px; padding: 0 12px; }
       .mod-tab { padding: 9px 12px; font-size: 12px; }
+      body.date-panel-open #moduleTabs { top: 164px; }
     }
 
     /* ── Banner sticky ── */
