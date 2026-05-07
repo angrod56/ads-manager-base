@@ -6992,8 +6992,21 @@ async function initPush() {
     }
     if (!_vapidPublicKey) return;
 
-    // Reusar suscripción existente o crear una nueva
+    // Verificar si el servidor tiene suscripciones activas para este usuario.
+    // Si no tiene (endpoint expiró y fue borrado automáticamente), forzar nueva
+    // suscripción aunque el browser conserve el objeto stale.
+    const serverStatus = await fetch('/api/push/status', {
+      headers: { 'Authorization': `Bearer ${S.jwt}` },
+    }).then(r => r.json()).catch(() => ({ count: 0 }));
+
     let sub = await reg.pushManager.getSubscription();
+
+    if (serverStatus.count === 0 && sub) {
+      // Suscripción del browser ya no está en el servidor — descartarla y renovar
+      await sub.unsubscribe();
+      sub = null;
+    }
+
     if (!sub) {
       sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
