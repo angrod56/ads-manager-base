@@ -1543,12 +1543,12 @@ http.createServer(async (req, res) => {
     let user = null;
     if (!PUBLIC_ROUTES.includes(path2)) {
       user = await verifySession(req);
-      // Resolver token: explícito en query > ENV para admin (más estable) > token personal > nada
+      // Resolver token: explícito en query > token personal > ENV solo si no hay token propio
       if (!q.token) {
-        if (user?.role === 'admin') {
-          q.token = process.env.META_ACCESS_TOKEN || user?.meta_token || null;
-        } else if (user?.meta_token) {
+        if (user?.meta_token) {
           q.token = user.meta_token;
+        } else if (user?.role === 'admin') {
+          q.token = process.env.META_ACCESS_TOKEN || null;
         }
         // usuarios sin token ni admin → api.js lanzará error controlado
       }
