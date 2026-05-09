@@ -2369,6 +2369,21 @@
       <div id="announcementsList"><div style="color:var(--muted);font-size:13px;padding:8px 0">Cargando banners…</div></div>
     </div>
 
+    <!-- Actividad reciente -->
+    <div class="card" style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:18px">📡</span>
+          <div>
+            <div style="font-size:15px;font-weight:700">Actividad reciente</div>
+            <div style="font-size:12px;color:var(--muted)">Últimas acciones de todos los usuarios</div>
+          </div>
+        </div>
+        <button onclick="loadAdminActivity()" style="font-size:12px;padding:6px 12px">↺ Actualizar</button>
+      </div>
+      <div id="adminActivityFeed" style="max-height:280px;overflow-y:auto">Cargando…</div>
+    </div>
+
     <!-- Usuarios -->
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
@@ -5101,8 +5116,17 @@ function showSection(name) {
   if (name === 'tutorials') loadTutorials();
   if (name === 'utm') { loadUtmStats(); restoreUtmState(); buildUtmUrls(); }
   if (name === 'reports') loadReports();
-  if (name === 'admin') { loadAdminUsers(); loadAdminAnnouncements(); loadTutorials(); }
+  if (name === 'admin') { loadAdminUsers(); loadAdminAnnouncements(); loadTutorials(); loadAdminActivity(); }
   saveNavState();
+
+  // Registrar actividad (fire-and-forget)
+  if (S.jwt) {
+    fetch('/api/activity', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${S.jwt}` },
+      body: JSON.stringify({ action: name }),
+    }).catch(() => {});
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -6315,10 +6339,67 @@ async function saveTutorials() {
   } catch(e) { alert('Error: ' + e.message); }
 }
 
+let _adminUsers = [];
+
+const ACTIVITY_LABELS = {
+  dashboard: 'Dashboard', campaigns: 'Campañas', topads: 'Top Ads',
+  countries: 'Países', launches: 'Lanzamientos', projections: 'Proyecciones',
+  sales: 'Ventas', utm: 'UTM Tracking', reports: 'Reportes',
+  recommendations: 'Recomendaciones', config: 'Configuración',
+  admin: 'Panel Admin', login: 'Inicio de sesión',
+  save_token: 'Token Meta guardado', save_hotmart: 'Configuró Hotmart',
+};
+
+function activityLabel(action) {
+  return ACTIVITY_LABELS[action] || action;
+}
+
+function onlineStatus(lastSeen) {
+  if (!lastSeen) return { dot: 'rgba(255,255,255,.15)', label: 'Sin actividad' };
+  const diff = Date.now() - new Date(lastSeen).getTime();
+  if (diff < 5 * 60 * 1000)  return { dot: '#06d6a0', label: 'En línea ahora' };
+  if (diff < 60 * 60 * 1000) return { dot: '#ffd166', label: 'Hace ' + Math.round(diff / 60000) + ' min' };
+  if (diff < 24 * 60 * 60 * 1000) return { dot: '#8892b0', label: 'Hoy, ' + new Date(lastSeen).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' }) };
+  return { dot: 'rgba(255,255,255,.15)', label: new Date(lastSeen).toLocaleDateString('es', { day: '2-digit', month: 'short' }) };
+}
+
+async function loadAdminActivity() {
+  const el = document.getElementById('adminActivityFeed');
+  try {
+    const acts = await api('/api/admin/activity');
+    if (!acts.length) { el.innerHTML = '<p style="color:var(--muted);font-size:13px;text-align:center;padding:16px">Sin actividad registrada aún</p>'; return; }
+    const fmtAgo = iso => {
+      const diff = Date.now() - new Date(iso).getTime();
+      if (diff < 60000)    return 'hace unos segundos';
+      if (diff < 3600000)  return 'hace ' + Math.round(diff / 60000) + ' min';
+      if (diff < 86400000) return 'hace ' + Math.round(diff / 3600000) + 'h';
+      return new Date(iso).toLocaleDateString('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+    };
+    el.innerHTML = acts.map(a => {
+      const u = _adminUsers.find(u => u.id === a.user_id);
+      const name = u ? (u.name || u.email) : a.user_id.slice(0, 8);
+      const label = activityLabel(a.action);
+      const isLogin = a.action === 'login';
+      const icon = isLogin ? '🔑' : '📂';
+      return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:15px;flex-shrink:0">${icon}</span>
+        <div style="flex:1;min-width:0">
+          <span style="font-weight:600;font-size:13px">${name}</span>
+          <span style="color:var(--muted);font-size:12px"> — ${label}</span>
+        </div>
+        <span style="font-size:11px;color:var(--muted);white-space:nowrap;flex-shrink:0">${fmtAgo(a.created_at)}</span>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = `<p style="color:var(--red);font-size:13px">${e.message}</p>`;
+  }
+}
+
 async function loadAdminUsers() {
   const el = document.getElementById('adminUsersTable');
   try {
     const users = await api('/api/admin/users');
+    _adminUsers = users;
     // Poblar selector de usuarios en formulario de venta manual
     const sel = document.getElementById('msUserId');
     if (sel) {
@@ -6341,20 +6422,24 @@ async function loadAdminUsers() {
         <thead><tr style="color:var(--muted);font-size:11px;text-align:left;border-bottom:1px solid var(--border)">
           <th style="padding:10px 8px">Usuario</th>
           <th style="padding:10px 8px">Rol</th>
+          <th style="padding:10px 8px">Estado</th>
           <th style="padding:10px 8px">Plan</th>
           <th style="padding:10px 8px">Meta</th>
           <th style="padding:10px 8px">Webhook Hotmart</th>
           <th style="padding:10px 8px">Webhook Stripe</th>
           <th style="padding:10px 8px">Registro</th>
           <th style="padding:10px 8px">Último ingreso</th>
+          <th style="padding:10px 8px">Última acción</th>
           <th style="padding:10px 8px">Acciones</th>
         </tr></thead>
         <tbody>
           ${users.map(u => {
             const plan = u.plan || 'basic';
-            const statusDot = u.status === 'suspended'
-              ? '<span title="Suspendido" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#f85149;margin-right:5px"></span>'
-              : '<span title="Activo" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#06d6a0;margin-right:5px"></span>';
+            const online = onlineStatus(u.last_seen);
+            const acctSuspended = u.status === 'suspended';
+            const statusDot = acctSuspended
+              ? '<span title="Cuenta suspendida" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#f85149;margin-right:5px"></span>'
+              : '<span title="Cuenta activa" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#06d6a0;margin-right:5px"></span>';
             return `
             <tr style="border-top:1px solid var(--border)">
               <td style="padding:10px 8px">
@@ -6363,7 +6448,11 @@ async function loadAdminUsers() {
                 <span style="display:block;font-size:11px;color:var(--muted)">${u.email}</span>
               </td>
               <td style="padding:10px 8px">
-                <span style="background:${u.role==='admin'?'var(--blue)':'var(--border)'};color:${u.role==='admin'?'#fff':'var(--text)'};padding:2px 8px;border-radius:4px;font-size:11px">
+                <div style="display:flex;align-items:center;gap:5px">
+                  <div title="${online.label}" style="width:8px;height:8px;border-radius:50%;background:${online.dot};flex-shrink:0"></div>
+                  <span style="font-size:11px;color:var(--muted);white-space:nowrap">${online.label}</span>
+                </div>
+                <span style="background:${u.role==='admin'?'var(--blue)':'var(--border)'};color:${u.role==='admin'?'#fff':'var(--text)'};padding:1px 6px;border-radius:4px;font-size:10px;margin-top:4px;display:inline-block">
                   ${u.role}
                 </span>
               </td>
@@ -6388,6 +6477,13 @@ async function loadAdminUsers() {
               </td>
               <td style="padding:10px 8px;font-size:12px">${fmtDt(u.created_at)}</td>
               <td style="padding:10px 8px;font-size:12px">${fmtDt(u.last_login)}</td>
+              <td style="padding:10px 8px;font-size:12px">
+                ${u.last_action
+                  ? `<span style="color:var(--text);font-size:12px">${activityLabel(u.last_action)}</span>
+                     ${u.last_seen ? '<span style="display:block;font-size:10px;color:var(--muted)">' + onlineStatus(u.last_seen).label + '</span>' : ''}`
+                  : '<span style="color:var(--muted)">—</span>'
+                }
+              </td>
               <td style="padding:10px 8px">
                 <div style="display:flex;flex-direction:column;gap:5px">
                   ${u.role !== 'admin'

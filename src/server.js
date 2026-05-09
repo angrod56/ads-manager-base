@@ -12,7 +12,7 @@ import {
   getAdPreview, getAdCreative,
 } from './campaigns.js';
 import {
-  verifySession, listUsers, saveUserToken, touchLastLogin, setUserRole, deleteUser,
+  verifySession, listUsers, saveUserToken, touchLastLogin, logActivity, setUserRole, deleteUser,
   saveHotmartToken, saveStripeToken, saveUserName, setUserPlan, supabase, supabaseAdmin,
 } from './auth.js';
 import { verifyHotmartToken, processHotmartEvent, getSales, getTotalEarned } from './hotmart.js';
@@ -905,6 +905,18 @@ const GET = {
     json(res, await listUsers());
   },
 
+  // ── Admin: actividad reciente (todas las acciones) ───────────────────────────
+  '/api/admin/activity': async (res, q, user) => {
+    if (!user || user.role !== 'admin') return err(res, 'No autorizado', 403);
+    const { data, error } = await supabaseAdmin
+      .from('user_activity')
+      .select('user_id, action, created_at')
+      .order('created_at', { ascending: false })
+      .limit(parseInt(q.limit || '100'));
+    if (error) return err(res, error.message);
+    json(res, data || []);
+  },
+
   // ── Admin: buscar venta (todos los usuarios) por txid o buyer ────────────────
   '/api/admin/find-sale': async (res, q, user) => {
     if (!user || user.role !== 'admin') return err(res, 'No autorizado', 403);
@@ -1095,6 +1107,7 @@ const POST = {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return err(res, error.message, 401);
     await touchLastLogin(data.user.id);
+    logActivity(data.user.id, 'login').catch(() => {});
     const { data: profile } = await supabaseAdmin
       .from('profiles').select('*').eq('id', data.user.id).single();
     json(res, { session: data.session, user: profile });
@@ -1272,6 +1285,15 @@ const POST = {
     const { name } = await body(req);
     if (!name) return err(res, 'name requerido', 400);
     await saveUserName(user.id, name);
+    json(res, { ok: true });
+  },
+
+  // ── Actividad: registrar acción del usuario ──────────────────────────────────
+  '/api/activity': async (res, req, user) => {
+    if (!user) return err(res, 'No autorizado', 401);
+    const { action } = await body(req);
+    if (!action) return err(res, 'action requerido', 400);
+    logActivity(user.id, action).catch(() => {});
     json(res, { ok: true });
   },
 

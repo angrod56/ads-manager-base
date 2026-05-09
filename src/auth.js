@@ -70,10 +70,18 @@ export async function setUserPlan(userId, plan) {
 export async function listUsers() {
   const { data, error } = await supabaseAdmin
     .from('profiles')
-    .select('id, email, name, role, plan, meta_account_id, created_at, last_login')
+    .select('id, email, name, role, plan, status, meta_account_id, created_at, last_login, last_seen, last_action')
     .order('created_at', { ascending: false });
   if (error) throw new Error(error.message);
   return data;
+}
+
+export async function logActivity(userId, action) {
+  const now = new Date().toISOString();
+  await Promise.all([
+    supabaseAdmin.from('profiles').update({ last_seen: now, last_action: action }).eq('id', userId),
+    supabaseAdmin.from('user_activity').insert({ user_id: userId, action }),
+  ]);
 }
 
 export async function saveUserToken(userId, metaToken, metaAccountId) {
