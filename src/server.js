@@ -180,22 +180,14 @@ const GET = {
   },
 
   '/api/accounts': async (res, q, user) => {
-    // Sin token: usuario aún no configuró su cuenta — nunca exponer las cuentas del admin
+    // Sin token propio: no exponer cuentas del sistema
     if (!q.token) return json(res, []);
     const cKey    = `accounts:${q.token.slice(-8)}`;
     const accounts = await cachedMeta(cKey, () => listAccounts(q.token));
     const isAdmin  = user?.role === 'admin';
-
-    // Usuario no-admin con cuenta configurada: mostrar solo ESA cuenta.
-    // Evita que tokens de agencia expongan cuentas de otros clientes.
-    if (!isAdmin && user?.meta_account_id) {
-      const theirs = accounts.find(a => a.id === user.meta_account_id);
-      return json(res, theirs ? [{ ...theirs, _planLimit: null, _planTotal: 1 }] : []);
-    }
-
-    const plan      = user?.plan || 'basic';
-    const limit     = isAdmin ? Infinity : (PLAN_LIMITS[plan]?.metaAccounts ?? 5);
-    const limited   = limit === Infinity ? accounts : accounts.slice(0, limit);
+    const plan     = user?.plan || 'basic';
+    const limit    = isAdmin ? Infinity : (PLAN_LIMITS[plan]?.metaAccounts ?? 5);
+    const limited  = limit === Infinity ? accounts : accounts.slice(0, limit);
     const planLimit = limit === Infinity ? null : limit;
     json(res, limited.map(a => ({ ...a, _planLimit: planLimit, _planTotal: accounts.length })));
   },
