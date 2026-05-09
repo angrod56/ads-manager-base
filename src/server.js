@@ -185,9 +185,17 @@ const GET = {
     const cKey    = `accounts:${q.token.slice(-8)}`;
     const accounts = await cachedMeta(cKey, () => listAccounts(q.token));
     const isAdmin  = user?.role === 'admin';
-    const plan     = user?.plan || 'basic';
-    const limit    = isAdmin ? Infinity : (PLAN_LIMITS[plan]?.metaAccounts ?? 5);
-    const limited  = limit === Infinity ? accounts : accounts.slice(0, limit);
+
+    // Usuario no-admin con cuenta configurada: mostrar solo ESA cuenta.
+    // Evita que tokens de agencia expongan cuentas de otros clientes.
+    if (!isAdmin && user?.meta_account_id) {
+      const theirs = accounts.find(a => a.id === user.meta_account_id);
+      return json(res, theirs ? [{ ...theirs, _planLimit: null, _planTotal: 1 }] : []);
+    }
+
+    const plan      = user?.plan || 'basic';
+    const limit     = isAdmin ? Infinity : (PLAN_LIMITS[plan]?.metaAccounts ?? 5);
+    const limited   = limit === Infinity ? accounts : accounts.slice(0, limit);
     const planLimit = limit === Infinity ? null : limit;
     json(res, limited.map(a => ({ ...a, _planLimit: planLimit, _planTotal: accounts.length })));
   },
@@ -1154,6 +1162,19 @@ const POST = {
     const appUrl = process.env.APP_URL || 'https://app.ka2ia.com';
     const url = `${baseUrl}&redirectUrl=${encodeURIComponent(`${appUrl}/app?upgraded=1`)}`;
     json(res, { url });
+  },
+
+  // ── Auth: guardar cuenta seleccionada en el perfil ──────────────────────────
+  '/api/auth/save-account': async (res, req, user) => {
+    if (!user) return err(res, 'No autorizado', 401);
+    const { accountId } = await body(req);
+    if (!accountId) return err(res, 'accountId requerido', 400);
+    const { error } = await supabaseAdmin
+      .from('profiles')
+      .update({ meta_account_id: accountId })
+      .eq('id', user.id);
+    if (error) return err(res, error.message);
+    json(res, { ok: true });
   },
 
   // ── Auth: guardar token de Meta ──────────────────────────────────────────────

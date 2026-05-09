@@ -6747,6 +6747,14 @@ async function init() {
     S.account  = e.target.value;
     S.currency = S.accounts.find(a => a.id === S.account)?.currency || 'USD';
     localStorage.setItem('meta_account', S.account);
+    // Persistir en perfil para que el servidor restrinja esta cuenta en futuros accesos
+    if (S.jwt && S.account) {
+      fetch('/api/auth/save-account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${S.jwt}` },
+        body: JSON.stringify({ accountId: S.account }),
+      }).catch(() => {});
+    }
     reloadActiveModule();
   });
   document.getElementById('dateSelect').addEventListener('change', e => {
