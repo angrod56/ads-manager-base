@@ -4815,7 +4815,7 @@ const SECTION_PLAN = {
   campaigns:       'basic',
   sales:           'basic',
   config:          'basic',
-  admin:           'basic',
+  admin:           'admin',
   topads:          'basic',
   countries:       'basic',
   launches:        'basic',
@@ -4846,6 +4846,7 @@ function userPlanRank() {
 
 function canAccess(section) {
   if (S.user?.role === 'admin') return true;
+  if (SECTION_PLAN[section] === 'admin') return false; // sección exclusiva de admin
   const required = PLAN_RANK[SECTION_PLAN[section] || 'basic'] ?? 0;
   return userPlanRank() >= required;
 }
