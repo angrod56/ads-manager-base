@@ -182,18 +182,9 @@ const GET = {
   '/api/accounts': async (res, q, user) => {
     // Sin token propio: no exponer cuentas del sistema
     if (!q.token) return json(res, []);
-    const cKey    = `accounts:${q.token.slice(-8)}`;
+    const cKey     = `accounts:${q.token.slice(-8)}`;
     const accounts = await cachedMeta(cKey, () => listAccounts(q.token));
     const isAdmin  = user?.role === 'admin';
-
-    // Usuario no-admin con cuenta ya configurada: mostrar solo esa cuenta.
-    // Aunque el token tenga acceso a muchas cuentas del BM, el cliente
-    // solo debe ver la suya propia.
-    if (!isAdmin && user?.meta_account_id) {
-      const theirs = accounts.find(a => a.id === user.meta_account_id);
-      return json(res, theirs ? [{ ...theirs, _planLimit: null, _planTotal: 1 }] : []);
-    }
-
     const plan     = user?.plan || 'basic';
     const limit    = isAdmin ? Infinity : (PLAN_LIMITS[plan]?.metaAccounts ?? 5);
     const limited  = limit === Infinity ? accounts : accounts.slice(0, limit);
