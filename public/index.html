@@ -5198,8 +5198,7 @@ async function saveMetaToken() {
   btn.disabled = true;
 
   try {
-    S.token = token;
-    const accounts = await api('/api/accounts');
+    const accounts = await api('/api/accounts?token=' + encodeURIComponent(token));
     if (!accounts.length) throw new Error('No se encontraron cuentas para este token');
 
     await fetch('/api/auth/save-token', {
@@ -5208,6 +5207,7 @@ async function saveMetaToken() {
       body: JSON.stringify({ metaToken: token }),
     });
 
+    S.token = token;
     document.getElementById('tokenScreen').style.display = 'none';
     await launchApp();
   } catch(e) {
