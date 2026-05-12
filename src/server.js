@@ -1592,3 +1592,11 @@ http.createServer(async (req, res) => {
   console.log(`${'─'.repeat(48)}\n`);
   startDailyNotifications();
 });
+
+// Evitar que el proceso muera por rechazos no capturados
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err.message, err.stack);
+});
