@@ -5673,25 +5673,33 @@ let _allSales = [];
 function deleteSale(saleId) {
   const row = document.getElementById('sale-row-' + saleId);
   if (!row) return;
-  // Si ya está en modo confirmación, ejecutar el delete
-  if (row.dataset.confirming === '1') {
-    _doDeleteSale(saleId, row);
-    return;
-  }
-  // Primera pulsación: mostrar botones de confirmación inline
-  row.dataset.confirming = '1';
   const lastCell = row.querySelector('td:last-child');
-  lastCell.innerHTML = `
-    <div style="display:flex;gap:4px;align-items:center">
-      <button onclick="_doDeleteSale(${JSON.stringify(saleId)},this.closest('tr'))"
-        style="background:#f85149;border:none;border-radius:5px;padding:3px 8px;color:#fff;font-size:11px;font-weight:700;cursor:pointer">
-        Eliminar
-      </button>
-      <button onclick="this.closest('tr').dataset.confirming='';this.closest('td').innerHTML='<button onclick=\\'deleteSale('+JSON.stringify(${JSON.stringify(saleId)})+')\\' title=\\'Eliminar venta\\' style=\\'background:transparent;border:1px solid transparent;border-radius:6px;padding:3px 7px;cursor:pointer;color:var(--muted);font-size:13px;opacity:.4\\'>🗑</button>'"
-        style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:3px 8px;color:var(--muted);font-size:11px;cursor:pointer">
-        Cancelar
-      </button>
-    </div>`;
+  const div = document.createElement('div');
+  div.style.cssText = 'display:flex;gap:4px;align-items:center';
+
+  const btnOk = document.createElement('button');
+  btnOk.textContent = 'Eliminar';
+  btnOk.style.cssText = 'background:#f85149;border:none;border-radius:5px;padding:3px 8px;color:#fff;font-size:11px;font-weight:700;cursor:pointer';
+  btnOk.onclick = () => _doDeleteSale(saleId, row);
+
+  const btnCancel = document.createElement('button');
+  btnCancel.textContent = 'Cancelar';
+  btnCancel.style.cssText = 'background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:3px 8px;color:var(--muted);font-size:11px;cursor:pointer';
+  btnCancel.onclick = () => {
+    const btn = document.createElement('button');
+    btn.dataset.saleId = saleId;
+    btn.setAttribute('onclick', 'deleteSale(this.dataset.saleId)');
+    btn.title = 'Eliminar venta';
+    btn.style.cssText = 'background:transparent;border:1px solid transparent;border-radius:6px;padding:3px 7px;cursor:pointer;color:var(--muted);font-size:13px;opacity:.4';
+    btn.textContent = '🗑';
+    lastCell.innerHTML = '';
+    lastCell.appendChild(btn);
+  };
+
+  div.appendChild(btnOk);
+  div.appendChild(btnCancel);
+  lastCell.innerHTML = '';
+  lastCell.appendChild(div);
 }
 
 async function _doDeleteSale(saleId, row) {
@@ -5761,7 +5769,7 @@ function renderSalesTable(sales) {
       <td style="padding:8px 6px;font-size:12px">${statusLabel[s.status] || s.status}</td>
       <td style="padding:8px 6px">${sourceBadge(s)}</td>
       <td style="padding:8px 6px;text-align:center">
-        <button onclick="deleteSale(${JSON.stringify(s.id)},${JSON.stringify(s.buyer_name||s.buyer_email||'esta venta')})"
+        <button data-sale-id="${s.id}" onclick="deleteSale(this.dataset.saleId)"
           title="Eliminar venta"
           style="background:transparent;border:1px solid transparent;border-radius:6px;padding:3px 7px;cursor:pointer;color:var(--muted);font-size:13px;opacity:.4;transition:all .15s"
           onmouseover="this.style.opacity=1;this.style.borderColor='var(--red)';this.style.color='var(--red)'"
