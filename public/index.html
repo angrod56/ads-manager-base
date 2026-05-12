@@ -5670,21 +5670,46 @@ function celebrateMilestone(m) {
 
 let _allSales = [];
 
-async function deleteSale(saleId, label) {
-  if (!confirm(`¿Eliminar "${label}"? Esta acción no se puede deshacer.`)) return;
+function deleteSale(saleId) {
+  const row = document.getElementById('sale-row-' + saleId);
+  if (!row) return;
+  // Si ya está en modo confirmación, ejecutar el delete
+  if (row.dataset.confirming === '1') {
+    _doDeleteSale(saleId, row);
+    return;
+  }
+  // Primera pulsación: mostrar botones de confirmación inline
+  row.dataset.confirming = '1';
+  const lastCell = row.querySelector('td:last-child');
+  lastCell.innerHTML = `
+    <div style="display:flex;gap:4px;align-items:center">
+      <button onclick="_doDeleteSale(${JSON.stringify(saleId)},this.closest('tr'))"
+        style="background:#f85149;border:none;border-radius:5px;padding:3px 8px;color:#fff;font-size:11px;font-weight:700;cursor:pointer">
+        Eliminar
+      </button>
+      <button onclick="this.closest('tr').dataset.confirming='';this.closest('td').innerHTML='<button onclick=\\'deleteSale('+JSON.stringify(${JSON.stringify(saleId)})+')\\' title=\\'Eliminar venta\\' style=\\'background:transparent;border:1px solid transparent;border-radius:6px;padding:3px 7px;cursor:pointer;color:var(--muted);font-size:13px;opacity:.4\\'>🗑</button>'"
+        style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:3px 8px;color:var(--muted);font-size:11px;cursor:pointer">
+        Cancelar
+      </button>
+    </div>`;
+}
+
+async function _doDeleteSale(saleId, row) {
+  if (!row) row = document.getElementById('sale-row-' + saleId);
+  const lastCell = row?.querySelector('td:last-child');
+  if (lastCell) lastCell.innerHTML = '<span style="font-size:11px;color:var(--muted)">Eliminando…</span>';
   try {
-    await fetch('/api/sales/delete', {
+    const r = await fetch('/api/sales/delete', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${S.jwt}` },
       body: JSON.stringify({ id: saleId }),
-    }).then(r => r.json()).then(d => { if (d.error) throw new Error(d.error); });
-    // Quitar la fila visualmente sin recargar
-    const row = document.getElementById(`sale-row-${saleId}`);
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
     if (row) row.remove();
     _allSales = _allSales.filter(s => s.id !== saleId);
-    filterSalesTable();
   } catch(e) {
-    alert('Error al eliminar: ' + e.message);
+    if (lastCell) lastCell.innerHTML = `<span style="font-size:11px;color:var(--red)">Error: ${e.message}</span>`;
   }
 }
 
