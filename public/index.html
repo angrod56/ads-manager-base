@@ -1691,6 +1691,7 @@
               <th style="padding:8px 6px;text-align:right">Monto</th>
               <th style="padding:8px 6px">Estado</th>
               <th style="padding:8px 6px">Pago</th>
+              <th style="padding:8px 6px"></th>
             </tr>
           </thead>
           <tbody id="salesTbody">
@@ -5669,6 +5670,24 @@ function celebrateMilestone(m) {
 
 let _allSales = [];
 
+async function deleteSale(saleId, label) {
+  if (!confirm(`¿Eliminar "${label}"? Esta acción no se puede deshacer.`)) return;
+  try {
+    await fetch('/api/sales/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${S.jwt}` },
+      body: JSON.stringify({ id: saleId }),
+    }).then(r => r.json()).then(d => { if (d.error) throw new Error(d.error); });
+    // Quitar la fila visualmente sin recargar
+    const row = document.getElementById(`sale-row-${saleId}`);
+    if (row) row.remove();
+    _allSales = _allSales.filter(s => s.id !== saleId);
+    filterSalesTable();
+  } catch(e) {
+    alert('Error al eliminar: ' + e.message);
+  }
+}
+
 async function loadSales() {
   try {
     const params = dateParams() + `&tz=${TZ_OFFSET_H}`;
@@ -5709,13 +5728,20 @@ function renderSalesTable(sales) {
       : '<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,76,0,.12);color:#ff8c5a;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700">🔥 Hotmart</span>';
   };
   tbody.innerHTML = sales.map(s => `
-    <tr style="border-top:1px solid var(--border)">
+    <tr id="sale-row-${s.id}" style="border-top:1px solid var(--border)">
       <td style="padding:8px 6px;color:var(--muted);font-size:12px">${s.sale_date ? new Date(s.sale_date).toLocaleDateString('es') : '—'}</td>
       <td style="padding:8px 6px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${s.product_name}">${s.product_name}</td>
       <td style="padding:8px 6px;color:var(--muted);font-size:12px">${s.buyer_name || s.buyer_email || '—'}</td>
       <td style="padding:8px 6px;text-align:right;font-weight:600">${fmt.usd(s.commission || s.amount)}</td>
       <td style="padding:8px 6px;font-size:12px">${statusLabel[s.status] || s.status}</td>
       <td style="padding:8px 6px">${sourceBadge(s)}</td>
+      <td style="padding:8px 6px;text-align:center">
+        <button onclick="deleteSale(${JSON.stringify(s.id)},${JSON.stringify(s.buyer_name||s.buyer_email||'esta venta')})"
+          title="Eliminar venta"
+          style="background:transparent;border:1px solid transparent;border-radius:6px;padding:3px 7px;cursor:pointer;color:var(--muted);font-size:13px;opacity:.4;transition:all .15s"
+          onmouseover="this.style.opacity=1;this.style.borderColor='var(--red)';this.style.color='var(--red)'"
+          onmouseout="this.style.opacity=.4;this.style.borderColor='transparent';this.style.color='var(--muted)'">🗑</button>
+      </td>
     </tr>`).join('');
   if (countEl) countEl.textContent = `${sales.length} resultado${sales.length !== 1 ? 's' : ''}`;
 }

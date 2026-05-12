@@ -35,7 +35,8 @@ export async function processStripeEvent(event, userId) {
   let saleId, amount, currency, buyerEmail, buyerName, productName, paymentType;
 
   if (type === 'checkout.session.completed' || type === 'checkout.session.async_payment_succeeded') {
-    saleId      = obj.id;
+    // Usar payment_intent ID como ID canónico — evita duplicado con payment_intent.succeeded
+    saleId      = obj.payment_intent || obj.id;
     amount      = (obj.amount_total || 0) / 100;
     currency    = (obj.currency || 'usd').toUpperCase();
     buyerEmail  = obj.customer_details?.email || obj.customer_email || null;
@@ -44,11 +45,12 @@ export async function processStripeEvent(event, userId) {
     paymentType = obj.payment_method_types?.[0] || 'card';
 
   } else if (type === 'payment_intent.succeeded') {
+    // checkout.session.completed ya crea el registro con este mismo ID — solo actualiza si existe
     saleId      = obj.id;
     amount      = (obj.amount_received || obj.amount || 0) / 100;
     currency    = (obj.currency || 'usd').toUpperCase();
-    buyerEmail  = obj.receipt_email || null;
-    buyerName   = obj.shipping?.name || null;
+    buyerEmail  = obj.receipt_email || obj.metadata?.buyer_email || null;
+    buyerName   = obj.shipping?.name || obj.metadata?.buyer_name || null;
     productName = obj.description || obj.metadata?.product_name || 'Stripe Payment';
     paymentType = obj.payment_method_types?.[0] || 'card';
 
@@ -93,17 +95,20 @@ export async function processStripeEvent(event, userId) {
 
   const { data: existing } = await supabaseAdmin
     .from('sales')
-    .select('id, status')
+    .select('id, status, buyer_name, buyer_email, product_name')
     .eq('id', sale.id)
     .eq('user_id', userId)
     .maybeSingle();
 
   if (existing) {
+    // Actualizar estado; rellenar datos del comprador si el registro previo los tenía vacíos
+    const updates = { status: sale.status, hotmart_event: sale.hotmart_event };
+    if (!existing.buyer_name  && sale.buyer_name)  updates.buyer_name  = sale.buyer_name;
+    if (!existing.buyer_email && sale.buyer_email) updates.buyer_email = sale.buyer_email;
+    if (existing.product_name === 'Stripe Payment' && sale.product_name !== 'Stripe Payment')
+      updates.product_name = sale.product_name;
     const { error } = await supabaseAdmin
-      .from('sales')
-      .update({ status: sale.status, hotmart_event: sale.hotmart_event })
-      .eq('id', existing.id)
-      .eq('user_id', userId);
+      .from('sales').update(updates).eq('id', existing.id).eq('user_id', userId);
     if (error) throw new Error(error.message);
   } else if (status === 'approved') {
     const { error } = await supabaseAdmin.from('sales').insert(sale);

@@ -1051,6 +1051,17 @@ const POST = {
     json(res, { ok: true });
   },
 
+  // ── Ventas: eliminar venta propia (duplicados manuales) ───────────────────────
+  '/api/sales/delete': async (res, req, user) => {
+    if (!user) return err(res, 'No autorizado', 401);
+    const { id } = await body(req);
+    if (!id) return err(res, 'id requerido', 400);
+    // Solo puede eliminar sus propias ventas
+    const { error } = await supabaseAdmin.from('sales').delete().eq('id', id).eq('user_id', user.id);
+    if (error) return err(res, error.message);
+    json(res, { ok: true });
+  },
+
   // ── Admin: copiar venta a otro usuario ─────────────────────────────────────
   '/api/admin/copy-sale': async (res, req, user) => {
     if (!user || user.role !== 'admin') return err(res, 'No autorizado', 403);
