@@ -1316,11 +1316,6 @@
   </div>
 </div>
 
-<!-- ── Onboarding Wizard ──────────────────────────────────────────────────── -->
-<div id="onboardingScreen" style="position:fixed;inset:0;background:rgba(6,8,24,.97);z-index:9999;display:none;align-items:center;justify-content:center;padding:20px">
-  <div id="obCard" style="background:var(--surface);border:1px solid rgba(79,142,247,.25);border-radius:20px;max-width:540px;width:100%;box-shadow:0 8px 48px rgba(0,0,0,.7);overflow:hidden"></div>
-</div>
-
 <!-- ── Main App (oculto hasta que haya token) ─────────────────────────────── -->
 <div id="mainApp" style="display:none">
 
@@ -6688,210 +6683,6 @@ async function submitManualSale() {
   }
 }
 
-// ── Onboarding Wizard ─────────────────────────────────────────────────────────
-let _obStep = 1;
-
-function showOnboarding() {
-  _obStep = 1;
-  document.getElementById('onboardingScreen').style.display = 'flex';
-  _obRender();
-}
-
-function _obStepBar() {
-  const labels = ['Bienvenida','Meta Ads','Hotmart','Push'];
-  return labels.map((label, i) => {
-    const n = i + 1, done = _obStep > n, cur = _obStep === n, last = i === 3;
-    const bg  = done ? '#06d6a0' : cur ? '#4f8ef7' : 'rgba(255,255,255,.12)';
-    const col = (done || cur) ? '#fff' : 'rgba(255,255,255,.3)';
-    const tc  = done ? '#06d6a0' : cur ? 'var(--text)' : 'rgba(255,255,255,.3)';
-    const lc  = done ? '#06d6a0' : 'rgba(255,255,255,.08)';
-    return `<div style="display:flex;align-items:center;${last ? '' : 'flex:1'}">
-      <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
-        <div style="width:28px;height:28px;border-radius:50%;background:${bg};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:${col}">${done ? '✓' : n}</div>
-        <span style="font-size:10px;font-weight:600;color:${tc};white-space:nowrap">${label}</span>
-      </div>
-      ${last ? '' : `<div style="flex:1;height:2px;background:${lc};margin:0 8px;margin-bottom:14px"></div>`}
-    </div>`;
-  }).join('');
-}
-
-function _obRender() {
-  const card = document.getElementById('obCard');
-  let body = '', skipHtml = '', nextLabel = 'Siguiente →';
-
-  if (_obStep === 1) {
-    const first = (S.user?.name || '').split(' ')[0];
-    body = `
-      <div style="text-align:center;padding:8px 0 4px">
-        <div style="font-size:44px;margin-bottom:12px">👋</div>
-        <h2 style="font-size:21px;font-weight:800;color:var(--text);margin-bottom:10px">¡Bienvenido${first ? ', ' + first : ''}!</h2>
-        <p style="color:var(--muted);font-size:13px;line-height:1.6;max-width:360px;margin:0 auto">
-          Vamos a configurar ka2ia en 3 pasos para que veas tus métricas, ventas y comisiones en tiempo real.
-        </p>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
-        ${[['📊','Conectar Meta Ads','Visualiza campañas, ROAS y costos de publicidad'],
-           ['💰','Integrar Hotmart','Registra ventas y comisiones automáticamente'],
-           ['🔔','Activar notificaciones','Recibe alertas de ventas en tiempo real']
-          ].map(([ic,ti,de]) => `
-          <div style="display:flex;align-items:center;gap:12px;background:var(--surface2);border-radius:10px;padding:11px 14px">
-            <span style="font-size:20px">${ic}</span>
-            <div><div style="font-size:13px;font-weight:600;color:var(--text)">${ti}</div><div style="font-size:12px;color:var(--muted)">${de}</div></div>
-          </div>`).join('')}
-      </div>`;
-    nextLabel = 'Empecemos →';
-
-  } else if (_obStep === 2) {
-    body = `
-      <div>
-        <h2 style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px">Conectar Meta Ads</h2>
-        <p style="color:var(--muted);font-size:13px;line-height:1.5">Necesitas un <strong style="color:var(--text)">token de acceso</strong> de Meta Business (larga duración).</p>
-      </div>
-      <ol style="color:var(--muted);font-size:13px;line-height:2;padding-left:20px;margin:0">
-        <li>Ve a <strong style="color:var(--text)">Meta for Developers</strong> → Graph API Explorer</li>
-        <li>Selecciona tu app → <strong style="color:var(--text)">Generate Access Token</strong></li>
-        <li>Incluye el permiso <code style="background:rgba(255,255,255,.08);padding:1px 6px;border-radius:4px;font-size:12px">ads_read</code></li>
-        <li>Copia el token y pégalo aquí abajo</li>
-      </ol>
-      <div style="display:flex;flex-direction:column;gap:6px">
-        <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)">Token de acceso de Meta</label>
-        <input id="obMetaToken" type="password" placeholder="EAAxxxxxxxxxxxxxxx…"
-          style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:13px;font-family:monospace;outline:none"
-          onkeydown="if(event.key==='Enter')onboardingNext()">
-        <div id="obMetaErr" style="display:none;color:var(--red);font-size:12px;background:rgba(248,81,73,.08);padding:8px 10px;border-radius:6px;line-height:1.4"></div>
-      </div>`;
-    nextLabel = 'Validar y guardar →';
-
-  } else if (_obStep === 3) {
-    const wurl = location.origin + '/webhook/hotmart?user_id=' + (S.user?.id || '');
-    body = `
-      <div>
-        <h2 style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px">Configurar Hotmart</h2>
-        <p style="color:var(--muted);font-size:13px;line-height:1.5">Agrega esta URL como webhook en Hotmart para registrar ventas automáticamente.</p>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:6px">
-        <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)">Tu URL de webhook</label>
-        <div style="display:flex;gap:8px;align-items:center">
-          <code style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:11px;color:var(--muted);word-break:break-all;line-height:1.5">${wurl}</code>
-          <button id="obCopyBtn" onclick="_obCopyWebhook()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 14px;color:var(--text);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0">Copiar</button>
-        </div>
-      </div>
-      <ol style="color:var(--muted);font-size:13px;line-height:2;padding-left:20px;margin:0">
-        <li>En Hotmart: <strong style="color:var(--text)">Herramientas → Webhooks → Agregar</strong></li>
-        <li>Pega la URL de arriba</li>
-        <li>Activa el evento <strong style="color:var(--text)">PURCHASE_APPROVED</strong></li>
-        <li>Guarda los cambios</li>
-      </ol>
-      <div style="background:rgba(255,209,102,.06);border:1px solid rgba(255,209,102,.18);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--yellow)">
-        💡 También puedes hacer esto más tarde en <strong>Configuración → Hotmart</strong>
-      </div>`;
-    nextLabel = 'Continuar →';
-    skipHtml = `<button onclick="onboardingSkip()" style="background:transparent;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:0">Omitir este paso</button>`;
-
-  } else if (_obStep === 4) {
-    const granted = typeof Notification !== 'undefined' && Notification.permission === 'granted';
-    body = `
-      <div>
-        <h2 style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px">Notificaciones push</h2>
-        <p style="color:var(--muted);font-size:13px;line-height:1.5">Recibe alertas instantáneas de ventas, incluso con ka2ia cerrado.</p>
-      </div>
-      <div style="text-align:center;padding:12px 0">
-        <div style="font-size:48px;margin-bottom:14px">${granted ? '✅' : '🔔'}</div>
-        ${granted
-          ? '<div style="color:var(--green);font-size:15px;font-weight:700">¡Notificaciones ya activas!</div>'
-          : '<button id="obPushBtn" onclick="obActivatePush()" style="background:linear-gradient(135deg,#4f8ef7,#9b5de5);border:none;border-radius:12px;padding:12px 28px;color:#fff;font-size:14px;font-weight:700;cursor:pointer">Activar notificaciones</button>'
-        }
-        <div id="obPushStatus" style="margin-top:10px;font-size:13px;color:var(--muted)"></div>
-      </div>
-      <div style="background:rgba(79,142,247,.06);border:1px solid rgba(79,142,247,.15);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--muted)">
-        💡 También puedes activarlas después en <strong style="color:var(--text)">Configuración → Notificaciones Push</strong>
-      </div>`;
-    nextLabel = '¡Finalizar!';
-    skipHtml = `<button onclick="onboardingSkip()" style="background:transparent;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:0">Omitir</button>`;
-  }
-
-  card.innerHTML = `
-    <div style="padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center">
-      ${_obStepBar()}
-    </div>
-    <div style="padding:24px;display:flex;flex-direction:column;gap:16px">${body}</div>
-    <div style="padding:14px 24px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:${skipHtml ? 'space-between' : 'flex-end'}">
-      ${skipHtml}
-      <button id="obNextBtn" onclick="onboardingNext()" style="background:linear-gradient(135deg,#4f8ef7,#9b5de5);border:none;border-radius:10px;padding:10px 22px;color:#fff;font-size:13px;font-weight:700;cursor:pointer">${nextLabel}</button>
-    </div>`;
-}
-
-function _obCopyWebhook() {
-  const url = location.origin + '/webhook/hotmart?user_id=' + (S.user?.id || '');
-  navigator.clipboard.writeText(url).then(() => {
-    const btn = document.getElementById('obCopyBtn');
-    if (btn) { btn.textContent = '✓'; setTimeout(() => { btn.textContent = 'Copiar'; }, 2000); }
-  }).catch(() => {});
-}
-
-async function onboardingNext() {
-  if (_obStep === 1) { _obStep = 2; _obRender(); return; }
-  if (_obStep === 2) { await _obSaveToken(); return; }
-  if (_obStep === 3) { _obStep = 4; _obRender(); return; }
-  if (_obStep === 4) { _obFinish(); return; }
-}
-
-function onboardingSkip() {
-  if (_obStep === 3) { _obStep = 4; _obRender(); return; }
-  _obFinish();
-}
-
-async function _obSaveToken() {
-  const inp   = document.getElementById('obMetaToken');
-  const errEl = document.getElementById('obMetaErr');
-  const btn   = document.getElementById('obNextBtn');
-  const token = inp?.value.trim();
-  errEl.style.display = 'none';
-  if (!token) { errEl.textContent = 'Por favor ingresa tu token de Meta Ads'; errEl.style.display = 'block'; return; }
-  btn.disabled = true; btn.textContent = 'Verificando…';
-  try {
-    S.token = token;
-    const accounts = await api('/api/accounts');
-    if (!accounts.length) throw new Error('No se encontraron cuentas publicitarias para este token');
-    await fetch('/api/auth/save-token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${S.jwt}` },
-      body: JSON.stringify({ metaToken: token }),
-    });
-    S.user.meta_token = token;
-    S.accounts = accounts;
-    if (!S.account && accounts.length) { S.account = accounts[0].id; S.currency = accounts[0].currency || 'USD'; }
-    _obStep = 3; _obRender();
-  } catch(e) {
-    S.token = S.user?.meta_token || '';
-    let msg = e.message;
-    if (msg.includes('190') || msg.includes('Invalid OAuth')) msg = 'Token inválido o expirado. Genera uno nuevo en Meta for Developers.';
-    else if (msg.includes('100') || msg.includes('Invalid parameter')) msg = 'Token incorrecto. Verifica que lo copiaste completo.';
-    errEl.textContent = msg; errEl.style.display = 'block';
-    btn.disabled = false; btn.textContent = 'Validar y guardar →';
-  }
-}
-
-async function obActivatePush() {
-  const btn    = document.getElementById('obPushBtn');
-  const status = document.getElementById('obPushStatus');
-  if (btn) { btn.disabled = true; btn.textContent = 'Activando…'; }
-  try {
-    await initPush();
-    if (status) { status.style.color = 'var(--green)'; status.textContent = '✓ ¡Notificaciones activadas!'; }
-    if (btn) btn.style.display = 'none';
-  } catch(e) {
-    if (status) status.textContent = 'No se pudieron activar: ' + e.message;
-    if (btn) { btn.disabled = false; btn.textContent = 'Reintentar'; }
-  }
-}
-
-function _obFinish() {
-  localStorage.setItem('ka2ia_onboarded', '1');
-  document.getElementById('onboardingScreen').style.display = 'none';
-  if (S.token) init().then(() => reloadActiveModule());
-}
-
 function showSetupBanner() {
   const existing = document.getElementById('setupWelcomeBanner');
   if (existing) return;
@@ -6987,10 +6778,7 @@ async function launchApp() {
 
   loadAnnouncements();
   applyNavLocks();
-  if (!S.token && S.user?.role !== 'admin') {
-    if (!localStorage.getItem('ka2ia_onboarded')) showOnboarding();
-    else showSetupBanner();
-  }
+  if (!S.token && S.user?.role !== 'admin') showSetupBanner();
   await init();
   initPush();
   window.dispatchEvent(new Event('appReady'));
@@ -7003,10 +6791,10 @@ async function init() {
     api('/api/config'),
   ]);
 
-  // Si no hay token ni cuentas y no es admin: mostrar banner (solo si ya pasó el onboarding)
+  // Si no hay token ni cuentas y no es admin: mostrar banner de configuración
   if (!accountsResult.length && !S.token && S.user?.role !== 'admin') {
-    if (localStorage.getItem('ka2ia_onboarded')) showSetupBanner();
-    document.getElementById('accountSelect').innerHTML = '<option>— Configura tu cuenta →</option>';
+    showSetupBanner();
+    document.getElementById('accountSelect').innerHTML = '<option>— Configura tu token Meta →</option>';
     return;
   }
 
