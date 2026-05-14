@@ -5765,7 +5765,7 @@ function renderSalesTable(sales) {
       <td style="padding:8px 6px;color:var(--muted);font-size:12px">${s.sale_date ? new Date(s.sale_date).toLocaleDateString('es') : '—'}</td>
       <td style="padding:8px 6px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${s.product_name}">${s.product_name}</td>
       <td style="padding:8px 6px;color:var(--muted);font-size:12px">${s.buyer_name || s.buyer_email || '—'}</td>
-      <td style="padding:8px 6px;text-align:right;font-weight:600">${fmt.usd(s.commission || s.amount)}</td>
+      <td style="padding:8px 6px;text-align:right;font-weight:600">${s.currency && s.currency !== 'USD' ? new Intl.NumberFormat('en-US',{style:'currency',currency:s.currency}).format(s.amount||0) : fmt.usd(s.commission||s.amount)}</td>
       <td style="padding:8px 6px;font-size:12px">${statusLabel[s.status] || s.status}</td>
       <td style="padding:8px 6px">${sourceBadge(s)}</td>
       <td style="padding:8px 6px;text-align:center">

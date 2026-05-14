@@ -86,7 +86,7 @@ export async function processStripeEvent(event, userId) {
     buyer_name:    buyerName,
     amount,
     currency,
-    commission:    amount,
+    commission:    currency === 'USD' ? amount : 0,
     status,
     payment_type:  paymentType,
     hotmart_event: `stripe:${type}`,
