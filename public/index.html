@@ -6591,7 +6591,8 @@ async function searchSaleAdmin() {
     const params = new URLSearchParams();
     if (txid)  params.set('txid',  txid);
     if (buyer) params.set('buyer', buyer);
-    const r = await fetch('/api/admin/find-sale?' + params, { headers: { Authorization: 'Bearer ' + (S.jwt || localStorage.getItem('jwt')) } });
+    const authHdr = { Authorization: 'Bearer ' + (S.jwt || localStorage.getItem('jwt')) };
+    const r = await fetch('/api/admin/find-sale?' + params, { headers: authHdr });
     const d = await r.json();
     if (!d.found || !d.sales?.length) {
       out.innerHTML = '<span style="color:var(--muted)">No se encontraron ventas.</span>';
@@ -6599,112 +6600,150 @@ async function searchSaleAdmin() {
     }
     const usersMap = {};
     try {
-      const ur = await fetch('/api/admin/users', { headers: { Authorization: 'Bearer ' + (S.jwt || localStorage.getItem('jwt')) } });
+      const ur = await fetch('/api/admin/users', { headers: authHdr });
       const ud = await ur.json();
       (Array.isArray(ud) ? ud : ud.users || []).forEach(u => { usersMap[u.id] = u.email || u.id; });
     } catch(_) {}
 
-    out.innerHTML = d.sales.map(s => `
-      <div id="sr_${s.id.replace(/[^a-z0-9]/gi,'_')}" style="background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:12px">
+    out.innerHTML = '';
+    d.sales.forEach(s => {
+      const card = document.createElement('div');
+      card.style.cssText = 'background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:12px';
+
+      const amtFmt = s.currency && s.currency !== 'USD'
+        ? new Intl.NumberFormat('en-US',{style:'currency',currency:s.currency}).format(s.amount||0)
+        : '$' + (s.commission||s.amount||0).toFixed(2);
+
+      card.innerHTML = `
         <div style="font-weight:700;color:var(--text);margin-bottom:4px">${s.id}</div>
-        <div style="color:var(--muted)">${s.buyer_name || '—'} &nbsp;·&nbsp; ${s.product_name || '—'} &nbsp;·&nbsp; <strong style="color:#06d6a0">$${(s.commission||s.amount||0).toFixed(2)}</strong> &nbsp;·&nbsp; ${s.status}</div>
-        <div style="color:var(--muted);margin-top:2px">${usersMap[s.user_id] || s.user_id} &nbsp;·&nbsp; ${s.sale_date ? s.sale_date.slice(0,10) : '—'}</div>
-        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
-          <button onclick="adminEditCommission('${s.id}','${s.user_id}',${s.commission||0})"
-            style="font-size:11px;padding:4px 10px;border-radius:6px;background:rgba(79,142,247,.15);border:1px solid var(--blue);color:var(--blue);cursor:pointer">
-            ✏️ Editar comisión
-          </button>
-          <button onclick="adminCopySale('${s.id}')"
-            style="font-size:11px;padding:4px 10px;border-radius:6px;background:rgba(6,214,160,.1);border:1px solid #06d6a0;color:#06d6a0;cursor:pointer">
-            📋 Copiar a usuario
-          </button>
-          <button onclick="adminDeleteSale('${s.id}','${s.user_id}')"
-            style="font-size:11px;padding:4px 10px;border-radius:6px;background:rgba(248,113,113,.1);border:1px solid var(--red);color:var(--red);cursor:pointer">
-            🗑️ Eliminar
-          </button>
-        </div>
-        <div id="sra_${s.id.replace(/[^a-z0-9]/gi,'_')}" style="margin-top:8px"></div>
-      </div>`).join('');
+        <div style="color:var(--muted)">${s.buyer_name||'—'} &nbsp;·&nbsp; ${s.product_name||'—'} &nbsp;·&nbsp; <strong style="color:#06d6a0">${amtFmt}</strong> &nbsp;·&nbsp; ${s.status}</div>
+        <div style="color:var(--muted);margin-top:2px">${usersMap[s.user_id]||s.user_id} &nbsp;·&nbsp; ${s.sale_date?s.sale_date.slice(0,10):'—'}</div>`;
+
+      const btnRow = document.createElement('div');
+      btnRow.style.cssText = 'display:flex;gap:6px;margin-top:8px;flex-wrap:wrap';
+
+      const mkBtn = (label, bg, border, color) => {
+        const b = document.createElement('button');
+        b.textContent = label;
+        b.style.cssText = `font-size:11px;padding:4px 10px;border-radius:6px;background:${bg};border:1px solid ${border};color:${color};cursor:pointer`;
+        return b;
+      };
+
+      const area = document.createElement('div');
+      area.style.marginTop = '8px';
+
+      const btnEdit = mkBtn('✏️ Editar comisión','rgba(79,142,247,.15)','var(--blue)','var(--blue)');
+      btnEdit.addEventListener('click', () => _adminShowEditCommission(s.id, s.user_id, s.commission||0, area));
+
+      const btnCopy = mkBtn('📋 Copiar a usuario','rgba(6,214,160,.1)','#06d6a0','#06d6a0');
+      btnCopy.addEventListener('click', () => _adminShowCopySale(s.id, area, usersMap));
+
+      const btnDel = mkBtn('🗑️ Eliminar','rgba(248,113,113,.1)','var(--red)','var(--red)');
+      btnDel.addEventListener('click', () => _adminDeleteSale(s.id, s.user_id, card));
+
+      btnRow.appendChild(btnEdit);
+      btnRow.appendChild(btnCopy);
+      btnRow.appendChild(btnDel);
+      card.appendChild(btnRow);
+      card.appendChild(area);
+      out.appendChild(card);
+    });
   } catch(e) {
     out.innerHTML = '<span style="color:var(--red)">Error: ' + e.message + '</span>';
   }
 }
 
-function adminEditCommission(saleId, userId, currentCommission) {
-  const key = saleId.replace(/[^a-z0-9]/gi,'_');
-  const area = document.getElementById(`sra_${key}`);
-  area.innerHTML = `
-    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-      <input id="ec_val_${key}" type="number" step="0.01" value="${currentCommission}"
-        style="width:100px;padding:5px 8px;border-radius:6px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-size:12px">
-      <button onclick="adminSaveCommission('${saleId}','${userId}','${key}')"
-        style="font-size:11px;padding:5px 10px;border-radius:6px;background:var(--blue);border:none;color:#fff;cursor:pointer">Guardar</button>
-      <button onclick="document.getElementById('sra_${key}').innerHTML=''"
-        style="font-size:11px;padding:5px 10px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);cursor:pointer">Cancelar</button>
-      <span id="ec_msg_${key}" style="font-size:11px"></span>
-    </div>`;
+function _adminShowEditCommission(saleId, userId, currentCommission, area) {
+  area.innerHTML = '';
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:6px;align-items:center;flex-wrap:wrap';
+
+  const input = document.createElement('input');
+  input.type = 'number'; input.step = '0.01'; input.value = currentCommission;
+  input.style.cssText = 'width:100px;padding:5px 8px;border-radius:6px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-size:12px';
+
+  const msg = document.createElement('span');
+  msg.style.fontSize = '11px';
+
+  const btnSave = document.createElement('button');
+  btnSave.textContent = 'Guardar';
+  btnSave.style.cssText = 'font-size:11px;padding:5px 10px;border-radius:6px;background:var(--blue);border:none;color:#fff;cursor:pointer';
+  btnSave.addEventListener('click', async () => {
+    const val = parseFloat(input.value);
+    if (isNaN(val)) { msg.textContent = 'Valor inválido'; msg.style.color = 'var(--red)'; return; }
+    msg.textContent = 'Guardando…'; msg.style.color = 'var(--muted)';
+    try {
+      await post('/api/admin/update-sale', { id: saleId, userId, commission: val });
+      msg.textContent = '✓ Guardado'; msg.style.color = '#06d6a0';
+    } catch(e) {
+      msg.textContent = 'Error: ' + e.message; msg.style.color = 'var(--red)';
+    }
+  });
+
+  const btnCancel = document.createElement('button');
+  btnCancel.textContent = 'Cancelar';
+  btnCancel.style.cssText = 'font-size:11px;padding:5px 10px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);cursor:pointer';
+  btnCancel.addEventListener('click', () => { area.innerHTML = ''; });
+
+  row.appendChild(input); row.appendChild(btnSave); row.appendChild(btnCancel); row.appendChild(msg);
+  area.appendChild(row);
 }
 
-async function adminSaveCommission(saleId, userId, key) {
-  const val = parseFloat(document.getElementById(`ec_val_${key}`).value);
-  const msg = document.getElementById(`ec_msg_${key}`);
-  if (isNaN(val)) { msg.textContent = 'Valor inválido'; msg.style.color = 'var(--red)'; return; }
-  msg.textContent = 'Guardando…'; msg.style.color = 'var(--muted)';
-  try {
-    await post('/api/admin/update-sale', { id: saleId, userId, commission: val });
-    msg.textContent = '✓ Guardado'; msg.style.color = '#06d6a0';
-  } catch(e) {
-    msg.textContent = 'Error: ' + e.message; msg.style.color = 'var(--red)';
-  }
-}
+async function _adminShowCopySale(saleId, area, usersMap) {
+  area.innerHTML = '';
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:6px;align-items:center;flex-wrap:wrap';
 
-async function adminCopySale(saleId) {
-  const key  = saleId.replace(/[^a-z0-9]/gi,'_');
-  const area = document.getElementById(`sra_${key}`);
-  // Construir selector de usuarios
-  let userOptions = '<option value="">Seleccionar usuario…</option>';
+  const sel = document.createElement('select');
+  sel.style.cssText = 'padding:5px 8px;border-radius:6px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-size:12px';
+  sel.innerHTML = '<option value="">Seleccionar usuario…</option>';
   try {
     const r = await fetch('/api/admin/users', { headers: { Authorization: 'Bearer ' + (S.jwt || localStorage.getItem('jwt')) } });
     const d = await r.json();
-    userOptions += (Array.isArray(d) ? d : d.users || []).map(u => `<option value="${u.id}">${u.email || u.id}</option>`).join('');
-  } catch(_) {}
-  area.innerHTML = `
-    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-      <select id="cp_user_${key}" style="padding:5px 8px;border-radius:6px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-size:12px">${userOptions}</select>
-      <input id="cp_comm_${key}" type="number" step="0.01" placeholder="Comisión USD"
-        style="width:100px;padding:5px 8px;border-radius:6px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-size:12px">
-      <button onclick="adminConfirmCopy('${saleId}','${key}')"
-        style="font-size:11px;padding:5px 10px;border-radius:6px;background:#06d6a0;border:none;color:#000;cursor:pointer;font-weight:700">Copiar</button>
-      <button onclick="document.getElementById('sra_${key}').innerHTML=''"
-        style="font-size:11px;padding:5px 10px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);cursor:pointer">Cancelar</button>
-      <span id="cp_msg_${key}" style="font-size:11px"></span>
-    </div>`;
-}
-
-async function adminConfirmCopy(saleId, key) {
-  const targetUserId = document.getElementById(`cp_user_${key}`).value;
-  const commission   = document.getElementById(`cp_comm_${key}`).value;
-  const msg          = document.getElementById(`cp_msg_${key}`);
-  if (!targetUserId) { msg.textContent = 'Selecciona un usuario'; msg.style.color = 'var(--red)'; return; }
-  msg.textContent = 'Copiando…'; msg.style.color = 'var(--muted)';
-  try {
-    const r = await post('/api/admin/copy-sale', {
-      originalId: saleId,
-      targetUserId,
-      commission: commission ? parseFloat(commission) : undefined,
+    (Array.isArray(d) ? d : d.users || []).forEach(u => {
+      const o = document.createElement('option');
+      o.value = u.id; o.textContent = u.email || u.id;
+      sel.appendChild(o);
     });
-    msg.textContent = `✓ Copiada con ID ${r.id}`; msg.style.color = '#06d6a0';
-  } catch(e) {
-    msg.textContent = 'Error: ' + e.message; msg.style.color = 'var(--red)';
-  }
+  } catch(_) {}
+
+  const commInput = document.createElement('input');
+  commInput.type = 'number'; commInput.step = '0.01'; commInput.placeholder = 'Comisión USD';
+  commInput.style.cssText = 'width:100px;padding:5px 8px;border-radius:6px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-size:12px';
+
+  const msg = document.createElement('span');
+  msg.style.fontSize = '11px';
+
+  const btnOk = document.createElement('button');
+  btnOk.textContent = 'Copiar';
+  btnOk.style.cssText = 'font-size:11px;padding:5px 10px;border-radius:6px;background:#06d6a0;border:none;color:#000;cursor:pointer;font-weight:700';
+  btnOk.addEventListener('click', async () => {
+    const targetUserId = sel.value;
+    const commission   = commInput.value;
+    if (!targetUserId) { msg.textContent = 'Selecciona un usuario'; msg.style.color = 'var(--red)'; return; }
+    msg.textContent = 'Copiando…'; msg.style.color = 'var(--muted)';
+    try {
+      const res = await post('/api/admin/copy-sale', { originalId: saleId, targetUserId, commission: commission ? parseFloat(commission) : undefined });
+      msg.textContent = '✓ Copiada con ID ' + res.id; msg.style.color = '#06d6a0';
+    } catch(e) {
+      msg.textContent = 'Error: ' + e.message; msg.style.color = 'var(--red)';
+    }
+  });
+
+  const btnCancel = document.createElement('button');
+  btnCancel.textContent = 'Cancelar';
+  btnCancel.style.cssText = 'font-size:11px;padding:5px 10px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);cursor:pointer';
+  btnCancel.addEventListener('click', () => { area.innerHTML = ''; });
+
+  row.appendChild(sel); row.appendChild(commInput); row.appendChild(btnOk); row.appendChild(btnCancel); row.appendChild(msg);
+  area.appendChild(row);
 }
 
-async function adminDeleteSale(saleId, userId) {
-  if (!confirm(`¿Eliminar venta ${saleId}? Esta acción no se puede deshacer.`)) return;
+async function _adminDeleteSale(saleId, userId, card) {
+  if (!confirm('¿Eliminar esta venta? Esta acción no se puede deshacer.')) return;
   try {
     await post('/api/admin/delete-sale', { id: saleId, userId });
-    const key = saleId.replace(/[^a-z0-9]/gi,'_');
-    document.getElementById(`sr_${key}`)?.remove();
+    card.remove();
     toast('Venta eliminada', 'success');
   } catch(e) {
     toast('Error: ' + e.message, 'error');
