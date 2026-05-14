@@ -920,11 +920,10 @@ const GET = {
   // ── Admin: buscar venta (todos los usuarios) por txid o buyer ────────────────
   '/api/admin/find-sale': async (res, q, user) => {
     if (!user || user.role !== 'admin') return err(res, 'No autorizado', 403);
-    let query = supabaseAdmin.from('sales').select('*');
-    // ilike para que encuentre tanto el plain txid como los IDs compuestos (txid_userid)
-    if (q.txid)  query = query.ilike('id', `${q.txid}%`);
-    if (q.buyer) query = query.ilike('buyer_name', `%${q.buyer}%`);
     if (!q.txid && !q.buyer) return err(res, 'txid o buyer requerido', 400);
+    let query = supabaseAdmin.from('sales').select('*');
+    if (q.txid)  query = query.ilike('id', `%${q.txid}%`);
+    if (q.buyer) query = query.or(`buyer_name.ilike.%${q.buyer}%,buyer_email.ilike.%${q.buyer}%`);
     const { data } = await query.order('sale_date', { ascending: false }).limit(20);
     json(res, { found: !!(data?.length), sales: data || [] });
   },
