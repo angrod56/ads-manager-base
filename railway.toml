@@ -1,5 +1,6 @@
 [build]
 builder = "NIXPACKS"
+buildCommand = "npm ci --omit=dev"
 
 [deploy]
 startCommand = "node src/server.js"
