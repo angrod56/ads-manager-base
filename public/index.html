@@ -2111,8 +2111,17 @@
         </div>
       </div>
 
+      <!-- Estado del token actual -->
+      <div id="cfgMetaStatus" style="display:none;padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:8px"></div>
+
       <div style="display:flex;flex-direction:column;gap:8px">
-        <label style="font-size:12px;color:var(--muted);font-weight:600">TOKEN DE ACCESO</label>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <label style="font-size:12px;color:var(--muted);font-weight:600">TOKEN DE ACCESO</label>
+          <button onclick="checkCurrentMetaToken()"
+            style="font-size:11px;padding:3px 10px;border-radius:6px;background:transparent;border:1px solid var(--border);color:var(--muted);cursor:pointer">
+            🔍 Verificar token actual
+          </button>
+        </div>
         <input id="cfgMetaToken" type="password" placeholder="EAAxxxxxxxxxxxxxxx…"
           style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 12px;color:var(--text);font-size:13px;font-family:monospace">
         <div id="cfgMetaError" style="display:none;color:var(--red);font-size:12px;padding:6px 10px;background:rgba(255,80,80,.1);border-radius:6px"></div>
@@ -2121,6 +2130,13 @@
           Guardar token de Meta
         </button>
         <div id="cfgMetaOk" style="display:none;color:#4caf50;font-size:13px;text-align:center">✓ Token guardado correctamente</div>
+        <!-- Solo visible para admin: limpiar token personal -->
+        <div id="cfgMetaClearRow" style="display:none;margin-top:4px">
+          <button onclick="clearPersonalMetaToken()"
+            style="width:100%;background:transparent;border:1px solid var(--border);border-radius:8px;padding:9px;color:var(--muted);font-size:13px;cursor:pointer">
+            🗑 Limpiar token personal (usar token del sistema)
+          </button>
+        </div>
       </div>
     </div>
 
@@ -5340,6 +5356,16 @@ function loadConfig() {
     _el('hotmartEmailInput').value = S.user.hotmart_email;
   if (S.user.hotmart_token && _el('hottokInput'))
     _el('hottokInput').value = S.user.hotmart_token;
+  // Mostrar estado del token Meta y botón limpiar si hay token personal
+  if (_el('cfgMetaClearRow')) {
+    const hasPersonal = !!S.user.meta_token;
+    _el('cfgMetaClearRow').style.display = hasPersonal ? 'block' : 'none';
+  }
+  if (_el('cfgMetaStatus') && S.token) {
+    // Auto-verificar el token actual al abrir Config
+    checkCurrentMetaToken();
+  }
+
   // Stripe
   if (_el('stripeWebhookUrl'))
     _el('stripeWebhookUrl').textContent = `${location.origin}/webhook/stripe?user_id=${S.user.id}`;
@@ -5431,6 +5457,53 @@ async function saveConfigName() {
     S.user.name = name;
     document.getElementById('userBadge').textContent = name;
     okEl.style.display = 'block';
+  } catch(e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+async function checkCurrentMetaToken() {
+  const statusEl = document.getElementById('cfgMetaStatus');
+  statusEl.style.display = 'block';
+  statusEl.style.background = 'rgba(79,142,247,.1)';
+  statusEl.style.border = '1px solid rgba(79,142,247,.3)';
+  statusEl.style.color = 'var(--muted)';
+  statusEl.textContent = 'Verificando token actual…';
+  try {
+    const accounts = await api('/api/accounts');
+    if (accounts.length) {
+      statusEl.style.background = 'rgba(6,214,160,.1)';
+      statusEl.style.border = '1px solid rgba(6,214,160,.4)';
+      statusEl.style.color = '#06d6a0';
+      statusEl.textContent = `✓ Token válido — ${accounts.length} cuenta${accounts.length !== 1 ? 's' : ''} encontrada${accounts.length !== 1 ? 's' : ''}`;
+    } else {
+      statusEl.style.background = 'rgba(255,80,80,.1)';
+      statusEl.style.border = '1px solid rgba(255,80,80,.3)';
+      statusEl.style.color = 'var(--red)';
+      statusEl.textContent = '⚠ Token válido pero sin cuentas publicitarias asociadas';
+    }
+  } catch(e) {
+    statusEl.style.background = 'rgba(255,80,80,.1)';
+    statusEl.style.border = '1px solid rgba(255,80,80,.3)';
+    statusEl.style.color = 'var(--red)';
+    statusEl.textContent = '✗ Token inválido o expirado — actualiza tu token abajo';
+  }
+}
+
+async function clearPersonalMetaToken() {
+  if (!confirm('¿Limpiar tu token personal? La app usará el token del sistema.')) return;
+  try {
+    await post('/api/auth/clear-token', {});
+    S.token = '';
+    S.user.meta_token = null;
+    document.getElementById('cfgMetaClearRow').style.display = 'none';
+    const statusEl = document.getElementById('cfgMetaStatus');
+    statusEl.style.display = 'block';
+    statusEl.style.background = 'rgba(6,214,160,.1)';
+    statusEl.style.border = '1px solid rgba(6,214,160,.4)';
+    statusEl.style.color = '#06d6a0';
+    statusEl.textContent = '✓ Token personal eliminado — usando token del sistema';
+    await init();
   } catch(e) {
     alert('Error: ' + e.message);
   }

@@ -1201,6 +1201,12 @@ const POST = {
     json(res, { ok: true });
   },
 
+  '/api/auth/clear-token': async (res, req, user) => {
+    if (!user) return err(res, 'No autorizado', 401);
+    await saveUserToken(user.id, null, null);
+    json(res, { ok: true });
+  },
+
   // ── Admin: cambiar role ──────────────────────────────────────────────────────
   '/api/admin/set-role': async (res, req, user) => {
     if (!user || user.role !== 'admin') return err(res, 'No autorizado', 403);
