@@ -162,9 +162,10 @@ const GET = {
     res.end(JSON.stringify({ v: SERVER_START }));
   },
 
-  '/api/config': async (res) => {
+  '/api/config': async (res, _q, user) => {
     json(res, {
-      defaultAccount:  process.env.META_AD_ACCOUNT_ID || null,
+      // defaultAccount solo para admin — clientes no deben ver ni usar la cuenta del sistema
+      defaultAccount:  user?.role === 'admin' ? (process.env.META_AD_ACCOUNT_ID || null) : null,
       vapidPublicKey:  process.env.VAPID_PUBLIC_KEY   || null,
       hasSystemToken:  !!process.env.META_ACCESS_TOKEN,
     });
@@ -192,18 +193,21 @@ const GET = {
     json(res, limited.map(a => ({ ...a, _planLimit: planLimit, _planTotal: accounts.length })));
   },
 
-  '/api/campaigns': async (res, q) => {
+  '/api/campaigns': async (res, q, user) => {
     if (!q.account) return err(res, 'account requerido', 400);
+    if (!q.token) return err(res, 'Token de Meta no configurado', 403);
     json(res, await listCampaigns(q.account, q.status || 'ALL', q.token));
   },
 
-  '/api/adsets': async (res, q) => {
+  '/api/adsets': async (res, q, user) => {
     if (!q.account) return err(res, 'account requerido', 400);
+    if (!q.token) return err(res, 'Token de Meta no configurado', 403);
     json(res, await listAdSets(q.account, q.campaign || null, q.status || 'ALL', q.token));
   },
 
-  '/api/ads': async (res, q) => {
+  '/api/ads': async (res, q, user) => {
     if (!q.account) return err(res, 'account requerido', 400);
+    if (!q.token) return err(res, 'Token de Meta no configurado', 403);
     const parentId = q.adset || q.campaign || q.account;
     const type = q.adset ? 'adset' : q.campaign ? 'campaign' : 'account';
     json(res, await listAds(parentId, type, q.status || 'ALL', q.token));

@@ -7018,18 +7018,18 @@ async function init() {
       sel.parentNode.insertBefore(msg, sel.nextSibling);
     }
 
-    // Pre-seleccionar: perfil Supabase > localStorage > config
+    // Pre-seleccionar: perfil Supabase > localStorage > defaultAccount (solo admin)
     const savedAccount = S.user?.meta_account_id || localStorage.getItem('meta_account');
     if (savedAccount && accounts.find(a => a.id === savedAccount)) sel.value = savedAccount;
-    else if (config.defaultAccount) sel.value = config.defaultAccount;
+    else if (config.defaultAccount && S.user?.role === 'admin') sel.value = config.defaultAccount;
+    else sel.value = accounts[0]?.id || '';
     S.account  = sel.value;
     S.currency = accounts.find(a => a.id === S.account)?.currency || 'USD';
   } else {
     // Accounts falló (token inválido, rate limit) — usar cuenta guardada si existe.
-    // Para admin, el servidor usará el token del sistema en cada petición API.
     const saved = S.user?.meta_account_id
                 || localStorage.getItem('meta_account')
-                || config.defaultAccount
+                || (S.user?.role === 'admin' ? config.defaultAccount : null)
                 || null;
     if (saved) {
       S.account = saved;
