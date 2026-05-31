@@ -6854,6 +6854,26 @@ async function submitManualSale() {
   }
 }
 
+function _showTokenExpiredBanner() {
+  const existing = document.getElementById('tokenExpiredBanner');
+  if (existing) return;
+  const banner = document.createElement('div');
+  banner.id = 'tokenExpiredBanner';
+  banner.style.cssText = 'background:linear-gradient(135deg,rgba(248,81,73,.15),rgba(248,81,73,.08));border:1px solid rgba(248,81,73,.4);border-radius:16px;padding:18px 22px;margin-bottom:24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap';
+  banner.innerHTML = `
+    <div style="font-size:28px">🔑</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:14px;font-weight:700;color:#f85149;margin-bottom:4px">Tu token de Meta expiró</div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.5">Ve a <strong style="color:var(--text)">Configuración → Meta Ads</strong>, genera un nuevo token en Meta for Developers y pégalo allí.</div>
+    </div>
+    <button onclick="showSection('config');document.getElementById('tokenExpiredBanner')?.remove()"
+      style="background:#f85149;border:none;border-radius:10px;padding:10px 18px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">
+      Renovar token →
+    </button>`;
+  const dashSection = document.getElementById('section-dashboard');
+  if (dashSection) dashSection.prepend(banner);
+}
+
 function showSetupBanner() {
   const existing = document.getElementById('setupWelcomeBanner');
   if (existing) return;
@@ -6957,8 +6977,9 @@ async function launchApp() {
 }
 
 async function init() {
+  let accountsError = null;
   const [accountsResult, config] = await Promise.all([
-    api('/api/accounts').catch(() => []),
+    api('/api/accounts').catch(e => { accountsError = e; return []; }),
     api('/api/config'),
   ]);
 
@@ -6967,6 +6988,13 @@ async function init() {
     showSetupBanner();
     document.getElementById('accountSelect').innerHTML = '<option>— Configura tu token Meta →</option>';
     return;
+  }
+
+  // Token expirado o inválido (code 190): mostrar banner de renovación
+  if (!accountsResult.length && S.token && accountsError) {
+    const msg = accountsError.message || '';
+    const expired = msg.includes('190') || msg.toLowerCase().includes('expired') || msg.toLowerCase().includes('invalid');
+    if (expired) _showTokenExpiredBanner();
   }
 
   const accounts = accountsResult;
